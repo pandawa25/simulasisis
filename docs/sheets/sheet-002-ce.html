@@ -349,10 +349,12 @@ const NETLIST = {
 
     "not_001": { "type": "NOT", "gateId": "001", "input": "in_f105LAHH003" },
     "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["not_001", "in_m105LSHH003", "in_f105HS003M"] },
-    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "or_002", "r": "in_f105HS003UCR" },
+    "not_s003": { "type": "NOT", "input": "or_002" },
+    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "not_s003", "r": "in_f105HS003UCR" },
 
     "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
-    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "and_001b", "r": "in_f105HS024UCR" },
+    "not_s002b": { "type": "NOT", "input": "and_001b" },
+    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "not_s002b", "r": "in_f105HS024UCR" },
 
     "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RFCC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
     "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
@@ -367,7 +369,8 @@ const NETLIST = {
   "notes": [
     "Nomor '00002'/'00003' yang muncul di gambar itu nomor blok/rangkaian internal di dalam dokumen, bukan nomor halaman — halaman ini sendiri tetap disebut Sheet 2.",
     "Label latch yang benar (dikonfirmasi lewat gambar zoom): ST_105HS003UC untuk jalur f105UY001, dan ST_105HS024UC untuk jalur f105UY003/f105UY003_IL.",
-    "Semua latch (RS) di simulator ini pakai aturan yang sama: begitu sinyal pemicunya (S) hilang, output langsung mati dan terkunci di situ. Output baru bisa menyala lagi kalau sinyal pemicu aktif DAN tombol reset ditekan sesaat (bukan ditahan terus)."
+    "Semua latch (RS) di simulator ini pakai aturan yang sama: begitu sinyal pemicunya (S) hilang, output langsung mati dan terkunci di situ. Output baru bisa menyala lagi kalau sinyal pemicu aktif DAN tombol reset ditekan sesaat (bukan ditahan terus).",
+    "Koreksi (2026-10-24, #6): konvensi pin RS SEBELUMNYA salah (field 's' diisi gerbang kondisi mentah, field 'r' diisi tag reset, tanpa NOT). Setelah re-trace pixel gambar sumber berulang kali dan dikonfirmasi user: pin S pada gambar = tag reset manual (bukan kondisi), pin R1 (yang ada lingkaran kecil) = gerbang kondisi (OR002/AND001) DENGAN inversi (NOT). Bug fungsionalnya: dengan wiring lama, saat plant benar-benar sehat (semua alarm FALSE), field 's' = FALSE sehingga Q dipaksa FALSE terus-menerus dan reset TIDAK PERNAH bisa berhasil -- kebalikan dari perilaku SIS yang benar. Fix: tambahkan node NOT eksplisit (not_s003, not_s002b) yang membalik or_002/and_001b sebelum masuk field 's', field 'r' tetap tag reset mentah (tidak berubah). Tervalidasi lewat skenario Node: sehat+reset->TRUE, trip+reset-attempt->tetap FALSE, trip lepas+reset->TRUE."
   ]
 }
 ;

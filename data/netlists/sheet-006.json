@@ -51,7 +51,7 @@
 
     "in_f105HS005UCR":{ "type": "INPUT", "label": "f105HS005UCR", "desc": "Reset RS_A", "isReset": true, "group": "Reset (manual, per latch)" },
     "in_f105HS025UCR":{ "type": "INPUT", "label": "f105HS025UCR", "desc": "Reset RS_B", "isReset": true, "group": "Reset (manual, per latch)" },
-    "in_f105HS009UCR":{ "type": "INPUT", "label": "f105HS009UCR", "desc": "Reset RST_F", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS009UCR":{ "type": "INPUT", "label": "f105HS009UCR", "desc": "Reset RST_F & RST_E (satu tag, dua latch)", "isReset": true, "group": "Reset (manual, per latch)" },
     "in_f105HS007UCR":{ "type": "INPUT", "label": "f105HS007UCR", "desc": "Reset RST_D", "isReset": true, "group": "Reset (manual, per latch)" },
     "in_f105HS012UCR":{ "type": "INPUT", "label": "f105HS012UCR", "desc": "Reset RST_C", "isReset": true, "group": "Reset (manual, per latch)" },
 
@@ -74,22 +74,29 @@
     "g012_OR":  { "type": "OR", "gateId": "012", "inputs": ["in_m105LSHH030", "in_f105HS030LM"] },
     "g013_AND": { "type": "AND", "gateId": "013", "inputs": ["in_f105HS019AE", "in_f105HS019B"] },
 
-    "rsA_006":  { "type": "RS", "gateId": "006", "label": "RS_105UC009_A", "s": "g005_AND", "r": "in_f105HS005UCR" },
-    "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "g007_AND", "r": "in_f105HS025UCR" },
-    "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "g001_OR", "r": "in_f105HS009UCR" },
+    "not_s006": { "type": "NOT", "input": "g005_AND" },
+    "rsA_006":  { "type": "RS", "gateId": "006", "label": "RS_105UC009_A", "s": "not_s006", "r": "in_f105HS005UCR" },
+    "not_s008": { "type": "NOT", "input": "g007_AND" },
+    "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "not_s008", "r": "in_f105HS025UCR" },
+    "not_s002": { "type": "NOT", "input": "g001_OR" },
+    "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "not_s002", "r": "in_f105HS009UCR" },
 
     "g009_AND": { "type": "AND", "gateId": "009", "inputs": ["rsA_006", "g004_OR", "rsB_008"] },
-    "rstD_010": { "type": "RS", "gateId": "010", "label": "RST_105UC009_D", "s": "g009_AND", "r": "in_f105HS007UCR" },
+    "not_g004": { "type": "NOT", "input": "g004_OR" },
+    "and009_corrected": { "type": "AND", "inputs": ["rsA_006", "not_g004", "rsB_008"] },
+    "rstD_010": { "type": "RS", "gateId": "010", "label": "RST_105UC009_D", "s": "and009_corrected", "r": "in_f105HS007UCR" },
 
     "g014_AND": { "type": "AND", "gateId": "014", "inputs": ["g011_AND", "g012_OR", "in_f105HS010A", "in_f105HS010B", "g013_AND"] },
-    "rstC_015": { "type": "RS", "gateId": "015", "label": "RST_105UC009_C", "s": "g014_AND", "r": "in_f105HS012UCR" },
+    "not_s015": { "type": "NOT", "input": "g014_AND" },
+    "rstC_015": { "type": "RS", "gateId": "015", "label": "RST_105UC009_C", "s": "not_s015", "r": "in_f105HS012UCR" },
 
     "vot_017": { "type": "VOTING", "gateId": "017", "label": "VOT_009_105UC009", "k": 2,
       "inputs": ["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"] },
 
     "g018_AND": { "type": "AND", "gateId": "018", "inputs": ["rstD_010", "rstC_015", "g016_OR", "vot_017"] },
-
-    "rstE_019": { "type": "RS", "gateId": "019", "label": "RST_105UC009_E", "s": "rstF_002", "r": "g018_AND" },
+    "not_g016": { "type": "NOT", "input": "g016_OR" },
+    "and018_corrected": { "type": "AND", "inputs": ["rstD_010", "rstC_015", "not_g016", "vot_017"] },
+    "rstE_019": { "type": "RS", "gateId": "019", "label": "RST_105UC009_E", "s": "and018_corrected", "r": "in_f105HS009UCR" },
 
     "g020_AND": { "type": "AND", "gateId": "020", "inputs": ["rstE_019", "in_f105ZSO010"] },
 
@@ -114,17 +121,16 @@
   "summary": [
     "Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.",
     "RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.",
-    "RST_E baru bisa menyala kalau RST_F juga dalam kondisi sehat DAN tombol resetnya ditekan — tapi reset ini sendiri cuma berhasil kalau 4 syarat kompak sehat bersamaan: RST_D (yang sendirinya butuh Grup A DAN Grup B ESD + alarm level m105LSLL009/f105HS009M kompak sehat dulu), RST_C (Grup C1+C2 ESD + level + posisi valve, via AND014), kondisi Recycle/MOS (m105FSLL030/f105HS030M), dan voting temperature (2 dari 9 sensor HH).",
+    "RST_E dan RST_F ternyata pakai TOMBOL RESET YANG SAMA (f105HS009UCR, dikonfirmasi lewat trace ulang gambar sumber) — jadi satu pulsa reset mencoba mereset keduanya sekaligus. RST_E baru benar-benar menyala kalau, PADA SAAT tombol itu dipulsa, 4 syarat ini kompak sehat: RST_D (yang sendirinya butuh Grup A DAN Grup B ESD + alarm level m105LSLL009/f105HS009M kompak sehat dulu, direset lewat tombolnya sendiri f105HS007UCR), RST_C (Grup C1+C2 ESD + level + posisi valve, via AND014, direset lewat f105HS012UCR), kondisi Recycle/MOS (m105FSLL030/f105HS030M) sehat, dan voting temperature sehat (kurang dari 2 dari 9 sensor HH alarm). Urutan reset yang benar: reset RS_A/RS_B/RST_D/RST_C dulu satu-satu sampai semua sehat, baru terakhir pulsa f105HS009UCR untuk RST_F+RST_E sekaligus.",
     "Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.",
     "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."
   ],
   "notes": [
-    "Aturan latch RS: begitu sinyal pemicunya (S) hilang, output langsung mati & terkunci di situ, apapun kondisi tombol reset (R). Output baru menyala lagi kalau S aktif DAN tombol reset ditekan sesaat (bukan ditahan terus).",
-    "Lingkaran kecil di pin R1 pada gambar asli cuma simbol standar pin reset, bukan tanda sinyal dibalik.",
-    "Sinyal 'AND_105UC009_FEED1' (hasil AND020) dipakai dua kali: langsung jadi status HDS Reed AE/BE, dan digabung lagi dengan RST_F untuk jadi syarat f105UY011 (Splitter).",
+    "Aturan latch RS: begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output baru menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) dipulsa sesaat (bukan ditahan terus).",
     "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
-    "AND009 (3-input) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1) -> jadi syarat RST_D. AND018 (4-input) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting -> jadi pulsa reset RST_E. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
+    "AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
     "Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.",
-    "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) dan sambungan RST_E–RST_F sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi."
+    "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi.",
+    "Koreksi (2026-10-24, #6 — PENTING, membatalkan sebagian catatan lama di atas tentang pin R1/S): konvensi pin RS SEBELUMNYA salah arah & diyakini keliru dua kali sebelum akhirnya di-re-trace tuntas atas desakan user (sudah diingatkan user 3x). Yang benar, dikonfirmasi dari screenshot live DCS beresolusi tinggi di 6 blok RS sheet ini: pin S pada gambar = tag RESET manual (bukan kondisi!), pin R1 (ada lingkaran kecil) = gerbang KONDISI (AND/OR) DENGAN inversi (NOT) sungguhan — lingkaran itu BUKAN sekadar simbol dekoratif seperti diklaim di catatan lama. Temuan tambahan: RST_E (019) pin S-nya BUKAN disambung ke RST_F.Q1 seperti dikira sebelumnya, melainkan ke tag reset f105HS009UCR yang SAMA dengan RST_F (satu tombol, dua latch). Bug fungsional yang terkonfirmasi lewat test Node sebelum fix: dengan wiring lama (field 's' = kondisi mentah tanpa NOT), saat plant benar-benar sehat field 's' selalu FALSE sehingga Q terkunci FALSE permanen dan reset TIDAK PERNAH berhasil. Fix yang diterapkan: (a) untuk latch 'murni' (rsA_006, rsB_008, rstF_002, rstC_015 — gerbang kondisinya cuma AND/OR dari tag mentah, tidak campur dengan Q1 latch lain): tambah node NOT yang membalik gerbang kondisi (not_s006/not_s008/not_s002/not_s015), hasilnya jadi field 's'; (b) untuk latch dgn gerbang kondisi CAMPURAN Q1-latch-lain + tag mentah (rstD_010 via AND009, rstE_019 via AND018): TIDAK cukup NOT di luar AND — harus NOT secara spesifik hanya pada input yang polaritasnya 'alarm=TRUE' (g004_OR utk AND009, g016_OR utk AND018) SEBELUM masuk AND, lalu AND hasil koreksi itu (and009_corrected/and018_corrected, semua input sudah berpolaritas 'sehat=TRUE') dipakai LANGSUNG sebagai field 's' tanpa NOT tambahan di luar; field 'r' rstE_019 diperbaiki dari 'rstF_002' jadi 'in_f105HS009UCR'. Node AND009/AND018 asli dibiarkan apa adanya (masih dipakai utk tampilan HMI out_AND1_HMI, nilainya murni informatif, bukan dasar logic latch lagi). Tervalidasi lewat >10 skenario Node mencakup semua 6 latch: sehat+reset->TRUE, trip (ESD/alarm/voting/recycle)+reset-attempt->tetap FALSE, trip lepas+reset->TRUE, cascade RST_D->RST_E, reset-order-dependency (RST_D/RST_C harus direset dulu sebelum pulsa gabungan RST_F/RST_E)."
   ]
 }
