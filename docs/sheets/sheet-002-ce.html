@@ -567,26 +567,21 @@ if(NAV && NAV.next){
 /* ======================= konvensi warna Cause & Effect =======================
    PENTING: beda dengan halaman Logic Detail (yang warnanya ngikut nilai
    mentah sinyal: TRUE=merah, FALSE=hijau, dipakai utk nelusurin jalur
-   wire apa adanya), halaman Cause & Effect ini warnanya ngikut KONDISI
-   NORMAL/TRIP (hijau=normal, merah=trip) — sama-sama konsep fail-safe,
-   cuma indikatornya beda maksud:
-   - CAUSE (tag alarm/ESD/MOS/Reset, type INPUT): defaultnya FALSE =
-     normal/belum aktif = hijau, TRUE = alarm/tombol aktif = merah.
-     KECUALI node yang ditandai `healthyWhenTrue: true` di netlist (tag
-     transmitter fail-safe yang nilainya sudah di-NOT duluan, mis.
-     f105LAHH003 "sehat=TRUE") — utk node itu TRUE = sehat = hijau.
-   - EFFECT (tag output, type OUTPUT): KEBALIKAN dari CAUSE — TRUE =
-     output energized/jalan normal = hijau, FALSE = output
-     mati/terkunci trip = merah. Ini konsisten dgn konvensi dokumen
-     "healthy=TRUE" utk sinyal internal/output (RS latch dst), beda dgn
-     raw alarm input yang justru "healthy=FALSE".
-   Kalau nanti ada sheet baru, cek lagi per-tag apakah butuh
-   `healthyWhenTrue` (biasanya ditandai di desc aslinya "sehat=TRUE"). */
+   wire apa adanya), halaman Cause & Effect ini warnanya SELALU
+   KEBALIKAN dari itu, berlaku SERAGAM ke semua indikator di halaman ini
+   (CAUSE, EFFECT, status MOS, status Reset) — TANPA pengecualian per
+   tipe node: TRUE = hijau (normal), FALSE = merah (trip/aktif).
+   Koreksi (2026-10-24, #7): versi sebelumnya keliru menambahkan
+   pengecualian per-tipe (OUTPUT pakai TRUE=hijau, tapi INPUT malah
+   dibalik jadi FALSE=hijau) — akibatnya baris CAUSE/MOS/Reset berakhir
+   dgn warna PERSIS SAMA dgn halaman Logic Detail (TRUE tetap tampil
+   merah di kedua halaman), bukan kebalikannya seperti diminta user.
+   Flag `healthyWhenTrue` SUDAH TIDAK DIPAKAI LAGI di sini — dengan
+   aturan seragam TRUE=hijau, flag itu jadi tidak relevan utk pewarnaan
+   CE (nilainya sendiri yg sudah di-NOT di level netlist, bukan
+   tampilannya, yang perlu diperhatikan). */
 function isNormal(id, val){
-  const n = nodes[id];
-  if(n.type === 'OUTPUT') return val;
-  if(n.healthyWhenTrue) return val;
-  return !val;
+  return val;
 }
 
 /* ======================= simulate + repaint ======================= */
@@ -600,7 +595,7 @@ function simulate(){
     if(re.chip){
       const active = !!v[id];
       re.chip.textContent = active ? 'AKTIF' : 'TIDAK AKTIF';
-      re.chip.className = 'chip ' + (active ? 'on' : 'off');
+      re.chip.className = 'chip ' + (active ? 'off' : 'on');
     }
   });
   saveSyncedState();
