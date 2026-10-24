@@ -615,15 +615,44 @@ if(NAV && NAV.next){
   nextLink.style.display = '';
 }
 
+/* ======================= konvensi warna Cause & Effect =======================
+   PENTING: beda dengan halaman Logic Detail (yang warnanya ngikut nilai
+   mentah sinyal: TRUE=merah, FALSE=hijau, dipakai utk nelusurin jalur
+   wire apa adanya), halaman Cause & Effect ini warnanya ngikut KONDISI
+   NORMAL/TRIP (hijau=normal, merah=trip) — sama-sama konsep fail-safe,
+   cuma indikatornya beda maksud:
+   - CAUSE (tag alarm/ESD/MOS/Reset, type INPUT): defaultnya FALSE =
+     normal/belum aktif = hijau, TRUE = alarm/tombol aktif = merah.
+     KECUALI node yang ditandai `healthyWhenTrue: true` di netlist (tag
+     transmitter fail-safe yang nilainya sudah di-NOT duluan, mis.
+     f105LAHH003 "sehat=TRUE") — utk node itu TRUE = sehat = hijau.
+   - EFFECT (tag output, type OUTPUT): KEBALIKAN dari CAUSE — TRUE =
+     output energized/jalan normal = hijau, FALSE = output
+     mati/terkunci trip = merah. Ini konsisten dgn konvensi dokumen
+     "healthy=TRUE" utk sinyal internal/output (RS latch dst), beda dgn
+     raw alarm input yang justru "healthy=FALSE".
+   Kalau nanti ada sheet baru, cek lagi per-tag apakah butuh
+   `healthyWhenTrue` (biasanya ditandai di desc aslinya "sehat=TRUE"). */
+function isNormal(id, val){
+  const n = nodes[id];
+  if(n.type === 'OUTPUT') return val;
+  if(n.healthyWhenTrue) return val;
+  return !val;
+}
+
 /* ======================= simulate + repaint ======================= */
 function simulate(){
   const v = sim.step(inputState);
   ids.forEach(function(id){
     const re = rowEls[id];
     if(!re) return;
-    const on = !!v[id];
-    if(re.dot){ re.dot.classList.toggle('on', on); re.dot.classList.toggle('off', !on); }
-    if(re.chip){ re.chip.textContent = on ? 'AKTIF' : 'TIDAK AKTIF'; re.chip.className = 'chip ' + (on ? 'on' : 'off'); }
+    const normal = isNormal(id, !!v[id]);
+    if(re.dot){ re.dot.classList.toggle('on', !normal); re.dot.classList.toggle('off', normal); }
+    if(re.chip){
+      const active = !!v[id];
+      re.chip.textContent = active ? 'AKTIF' : 'TIDAK AKTIF';
+      re.chip.className = 'chip ' + (active ? 'on' : 'off');
+    }
   });
 }
 

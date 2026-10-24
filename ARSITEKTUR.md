@@ -43,6 +43,15 @@ Dikonfirmasi user — versi awal (k-of-n TRUE) juga **salah/terbalik**.
 - Contoh 2oo9 (`k=2`, 9 input): output tetap TRUE selama maksimal 1 input FALSE; begitu 2 atau lebih input FALSE, output FALSE (trip).
 - Formula: `output = (jumlah input FALSE) < k`. Lihat `engine/sim-engine.js` case `"VOTING"`.
 
+### Konvensi warna CAUSE & EFFECT berbeda dengan warna Logic Detail
+**Koreksi (2026-10-24, #5)**, dikonfirmasi user — ini bukan bug, dua halaman memang sengaja pakai 2 konvensi indikator berbeda untuk konsep fail-safe yang sama:
+- **Logic Detail** (`sheet.template.html`): warna ngikut **nilai mentah sinyal apa adanya** — TRUE=merah, FALSE=hijau, titik. Dipakai buat nelusurin wire/gate, jadi harus representasi nilai literal tanpa interpretasi.
+- **Cause & Effect** (`causeeffect.template.html`): warna ngikut **kondisi NORMAL vs TRIP**, hijau=normal, merah=trip — ini konvensi standar cause & effect diagram di industri (STAT hijau = kondisi 1/normal, merah = kondisi 0/trip), KEBALIKAN dari halaman Logic Detail untuk sinyal yang sama. Aturan per tipe node (lihat `isNormal()` di template):
+  - `OUTPUT` (kolom EFFECT): TRUE = energized/jalan normal = **hijau**, FALSE = mati/terkunci trip = **merah** (kebalikan dari CAUSE!).
+  - `INPUT` (kolom CAUSE/MOS/Reset): defaultnya FALSE = normal/belum aktif = **hijau**, TRUE = alarm/tombol aktif = **merah** — KECUALI node ditandai `"healthyWhenTrue": true` di netlist (tag transmitter fail-safe yang sudah di-NOT duluan, mis. `f105LAHH003` "sehat=TRUE"), untuk node itu TRUE = sehat = **hijau**.
+- Efek samping yang BENAR (bukan bug): karena semua RS latch default `FALSE` sebelum pernah direset, halaman CE akan tampil **semua EFFECT merah (trip)** saat pertama dibuka/reset — ini representasi akurat kondisi "belum pernah direset operator", bukan kesalahan tampilan.
+- Saat bikin netlist sheet baru: cek per tag INPUT apakah butuh flag `healthyWhenTrue` (biasanya ditandai di desc aslinya dengan kata "sehat=TRUE" / "fail-safe").
+
 ### Lain-lain
 - Sinyal yang direferensikan ulang di tempat lain pada sheet yang sama (contoh: `AND_105UC009_FEED1`) dimodel sebagai node biasa yang di-reference oleh id — selama tidak membentuk loop aljabar, engine jalan satu pass topological per step.
 
