@@ -523,13 +523,57 @@ function groupSort(colIds, groupOrder){
 byLayer[0] = groupSort(byLayer[0] || [], NETLIST.causeGroups);
 byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups);
 
+/* --- wrapping deskripsi tag (INPUT/OUTPUT) ---
+   Sebelumnya desc dirender sebagai satu baris <text> tanpa wrap, jadi
+   teks panjang meluber keluar box dan numpuk dengan wire/box tetangga.
+   Sekarang di-wrap jadi beberapa baris (maks TAG_DESC_MAX_LINES) yang
+   pas dengan lebar box, dan tinggi box dihitung otomatis mengikuti
+   jumlah baris — posisi vertikal boleh beda dari gambar sumber, yang
+   penting rapi & terbaca. */
+const _measureCtx = document.createElement('canvas').getContext('2d');
+_measureCtx.font = "8px 'IBM Plex Sans', ui-sans-serif, sans-serif";
+const TAG_DESC_MAX_LINES = 3;
+function wrapDesc(text, maxWidth, maxLines){
+  maxLines = maxLines || TAG_DESC_MAX_LINES;
+  if(!text) return [];
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  words.forEach(function(w){
+    const test = cur ? cur + ' ' + w : w;
+    if(!cur || _measureCtx.measureText(test).width <= maxWidth){
+      cur = test;
+    } else {
+      lines.push(cur);
+      cur = w;
+    }
+  });
+  if(cur) lines.push(cur);
+  if(lines.length > maxLines){
+    let last = lines[maxLines - 1];
+    while(last.length > 1 && _measureCtx.measureText(last + '…').width > maxWidth){
+      last = last.slice(0, -1);
+    }
+    lines[maxLines - 1] = last.replace(/\s+$/, '') + '…';
+    lines.length = maxLines;
+  }
+  return lines;
+}
+
 /* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
    input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
    di sisi kiri box (lihat centerOf di bawah) dan tidak numpuk di satu
    titik tengah box saat gate punya banyak input (mis. VOT 9 input,
-   AND014 5 input) — itu sumber utama kabel "bertumpuk" di zona LOGIC. */
+   AND014 5 input) — itu sumber utama kabel "bertumpuk" di zona LOGIC.
+   Untuk INPUT/OUTPUT, tinggi juga menyesuaikan jumlah baris deskripsi
+   setelah di-wrap supaya tidak ada teks yang terpotong/meluber. */
 function boxSize(n){
-  if(n.type === 'INPUT' || n.type === 'OUTPUT') return { w: 130, h: 34 };
+  if(n.type === 'INPUT' || n.type === 'OUTPUT'){
+    const w = 150;
+    const lines = wrapDesc(n.desc, w - 20);
+    const h = Math.max(34, 26 + lines.length * 10 + 6);
+    return { w: w, h: h, descLines: lines };
+  }
   if(n.type === 'RS') return { w: 120, h: 48 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
@@ -795,18 +839,27 @@ function makeTagNode(id, n){
   const p = pos[id], s = boxSize(n);
   const isInput = n.type === 'INPUT';
   const g = el('g', { class: 'tag off' + (isInput ? ' input' : ''), 'data-id': id });
-  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 17 });
+  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 12 });
   g.appendChild(rect);
   const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
   name.textContent = n.label;
   g.appendChild(name);
-  const desc = el('text', { x: p.x + 10, y: p.y + 26, class: 'desc' });
-  desc.textContent = n.desc || '';
-  g.appendChild(desc);
-  const val = el('text', { x: p.x + s.w - 10, y: p.y + s.h / 2 + 4, 'text-anchor': 'end', class: 'val' });
+  /* desc di-wrap jadi beberapa baris (lihat wrapDesc/boxSize) supaya
+     rapi di dalam box, bukan satu baris panjang yang meluber. */
+  const descLines = s.descLines || wrapDesc(n.desc, s.w - 20);
+  if(descLines.length){
+    const desc = el('text', { x: p.x + 10, y: p.y + 26, class: 'desc' });
+    descLines.forEach(function(line, i){
+      const tspan = el('tspan', { x: p.x + 10, dy: i === 0 ? 0 : 10 });
+      tspan.textContent = line;
+      desc.appendChild(tspan);
+    });
+    g.appendChild(desc);
+  }
+  const val = el('text', { x: p.x + s.w - 10, y: p.y + 14, 'text-anchor': 'end', class: 'val' });
   val.textContent = 'FALSE';
   g.appendChild(val);
-  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 20, class: 'trace-ring' });
+  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 15, class: 'trace-ring' });
   g.appendChild(ring);
   if(isInput){
     g.addEventListener('click', function(){
