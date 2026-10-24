@@ -325,7 +325,7 @@ function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
     case 'RS': return [n.s, n.r];
-    case 'NOT': case 'BUFFER': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
     case 'OUTPUT': return [n.source];
     default: return [];
   }
@@ -424,7 +424,7 @@ function boxSize(n){
   if(n.type === 'RS') return { w: 120, h: 48 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
-  return { w: 70, h: 34 }; // NOT/BUFFER (1 input)
+  return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
 }
 
 const COL_W = 248, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;

@@ -305,7 +305,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
@@ -314,7 +314,10 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
                       // step() — bukan threshold "k dari n TRUE")
         // RS:
         s: "<nodeId>", r: "<nodeId>"
-        // NOT/BUFFER:
+        // NOT/BUFFER/MOVE ("MOVE" dipakai saat gambar asli literal memberi
+        // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
+        // (passthrough nilai apa adanya), bedanya cuma label yang tampil
+        // di kanvas supaya cocok dengan gambar sumber):
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -332,7 +335,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
         case "INPUT": refs = []; break;
       }
@@ -381,7 +384,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
           case "NOT":
             v[id] = !v[n.input];
             break;
-          case "BUFFER":
+          case "BUFFER": case "MOVE":
             v[id] = v[n.input];
             break;
           case "VOTING": {
@@ -508,7 +511,7 @@ function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
     case 'RS': return [n.s, n.r];
-    case 'NOT': case 'BUFFER': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
     case 'OUTPUT': return [n.source];
     default: return [];
   }
@@ -607,7 +610,7 @@ function boxSize(n){
   if(n.type === 'RS') return { w: 120, h: 48 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
-  return { w: 70, h: 34 }; // NOT/BUFFER (1 input)
+  return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
 }
 
 const COL_W = 248, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;

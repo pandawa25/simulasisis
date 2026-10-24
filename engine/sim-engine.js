@@ -7,7 +7,7 @@
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
@@ -16,7 +16,10 @@
                       // step() — bukan threshold "k dari n TRUE")
         // RS:
         s: "<nodeId>", r: "<nodeId>"
-        // NOT/BUFFER:
+        // NOT/BUFFER/MOVE ("MOVE" dipakai saat gambar asli literal memberi
+        // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
+        // (passthrough nilai apa adanya), bedanya cuma label yang tampil
+        // di kanvas supaya cocok dengan gambar sumber):
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -34,7 +37,7 @@
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
         case "INPUT": refs = []; break;
       }
@@ -83,7 +86,7 @@
           case "NOT":
             v[id] = !v[n.input];
             break;
-          case "BUFFER":
+          case "BUFFER": case "MOVE":
             v[id] = v[n.input];
             break;
           case "VOTING": {

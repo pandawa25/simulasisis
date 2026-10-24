@@ -4,7 +4,7 @@
   "sheetRef": "Sheet 6 of 34 — P02_UNIT_105 v1.175",
   "causeGroups": [
     "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)",
-    "ESD Pushbutton — Grup B (→ RS_B)",
+    "ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)",
     "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)",
     "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)",
     "Level / MOS",
@@ -23,8 +23,8 @@
     "in_f105HS007A":  { "type": "INPUT", "label": "f105HS007A", "desc": "ESD", "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)" },
     "in_f105HS007B":  { "type": "INPUT", "label": "f105HS007B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)" },
 
-    "in_f105HS002AE": { "type": "INPUT", "label": "f105HS002AE", "desc": "ESD", "group": "ESD Pushbutton — Grup B (→ RS_B)" },
-    "in_f105HS002B":  { "type": "INPUT", "label": "f105HS002B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup B (→ RS_B)" },
+    "in_f105HS002AE": { "type": "INPUT", "label": "f105HS002AE", "desc": "ESD", "group": "ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)" },
+    "in_f105HS002B":  { "type": "INPUT", "label": "f105HS002B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)" },
 
     "in_f105HS006A":  { "type": "INPUT", "label": "f105HS006A", "desc": "ESD Button", "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)" },
     "in_f105HS006B":  { "type": "INPUT", "label": "f105HS006B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)" },
@@ -68,7 +68,7 @@
     "g001_OR":  { "type": "OR", "gateId": "001", "inputs": ["in_m105LSHH019", "in_f105HS019M"] },
     "g004_OR":  { "type": "OR", "gateId": "004", "inputs": ["in_m105LSLL009", "in_f105HS009M"] },
     "g005_AND": { "type": "AND", "gateId": "005", "inputs": ["in_f105HS007A", "in_f105HS007B"] },
-    "g006_OR":  { "type": "OR", "gateId": "006", "inputs": ["in_m105FSLL030", "in_f105HS030M"] },
+    "g016_OR":  { "type": "OR", "gateId": "016", "inputs": ["in_m105FSLL030", "in_f105HS030M"] },
     "g007_AND": { "type": "AND", "gateId": "007", "inputs": ["in_f105HS002AE", "in_f105HS002B"] },
     "g011_AND": { "type": "AND", "gateId": "011", "inputs": ["in_f105HS006A", "in_f105HS006B"] },
     "g012_OR":  { "type": "OR", "gateId": "012", "inputs": ["in_m105LSHH030", "in_f105HS030LM"] },
@@ -78,7 +78,7 @@
     "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "g007_AND", "r": "in_f105HS025UCR" },
     "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "g001_OR", "r": "in_f105HS009UCR" },
 
-    "g009_AND": { "type": "AND", "gateId": "009", "inputs": ["rsA_006", "g004_OR", "g006_OR"] },
+    "g009_AND": { "type": "AND", "gateId": "009", "inputs": ["rsA_006", "g004_OR", "rsB_008"] },
     "rstD_010": { "type": "RS", "gateId": "010", "label": "RST_105UC009_D", "s": "g009_AND", "r": "in_f105HS007UCR" },
 
     "g014_AND": { "type": "AND", "gateId": "014", "inputs": ["g011_AND", "g012_OR", "in_f105HS010A", "in_f105HS010B", "g013_AND"] },
@@ -87,7 +87,7 @@
     "vot_017": { "type": "VOTING", "gateId": "017", "label": "VOT_009_105UC009", "k": 2,
       "inputs": ["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"] },
 
-    "g018_AND": { "type": "AND", "gateId": "018", "inputs": ["rstD_010", "rsB_008", "rstC_015", "vot_017"] },
+    "g018_AND": { "type": "AND", "gateId": "018", "inputs": ["rstD_010", "rstC_015", "g016_OR", "vot_017"] },
 
     "rstE_019": { "type": "RS", "gateId": "019", "label": "RST_105UC009_E", "s": "rstF_002", "r": "g018_AND" },
 
@@ -95,9 +95,9 @@
 
     "g003_AND": { "type": "AND", "gateId": "003", "inputs": ["rstF_002", "g020_AND"] },
 
-    "mv_feed1": { "type": "BUFFER", "gateId": "021", "label": "MOVE (FEED1)", "input": "g020_AND" },
+    "mv_feed1": { "type": "MOVE", "gateId": "021", "input": "g020_AND" },
 
-    "mv_xs012": { "type": "BUFFER", "gateId": "022", "label": "MOVE", "input": "in_f105XS012" },
+    "mv_xs012": { "type": "MOVE", "gateId": "022", "input": "in_f105XS012" },
     "not_023":  { "type": "NOT", "gateId": "023", "input": "mv_xs012" },
 
     "out_f105UY011":  { "type": "OUTPUT", "label": "f105UY011", "desc": "Splitter", "source": "g003_AND", "group": "Output Proses (ke lapangan)" },
@@ -114,15 +114,17 @@
   "summary": [
     "Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.",
     "RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.",
-    "RST_E baru bisa menyala kalau RST_F juga dalam kondisi sehat DAN tombol resetnya ditekan — tapi reset ini sendiri cuma berhasil kalau 4 syarat kompak sehat bersamaan: Grup A (ESD), Grup B (ESD), Grup C (ESD + level + posisi valve), dan voting temperature (2 dari 9 sensor HH).",
+    "RST_E baru bisa menyala kalau RST_F juga dalam kondisi sehat DAN tombol resetnya ditekan — tapi reset ini sendiri cuma berhasil kalau 4 syarat kompak sehat bersamaan: RST_D (yang sendirinya butuh Grup A DAN Grup B ESD + alarm level m105LSLL009/f105HS009M kompak sehat dulu), RST_C (Grup C1+C2 ESD + level + posisi valve, via AND014), kondisi Recycle/MOS (m105FSLL030/f105HS030M), dan voting temperature (2 dari 9 sensor HH).",
     "Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.",
-    "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke initiator Grup A/B/C atau voting temperature satu-satu."
+    "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."
   ],
   "notes": [
     "Aturan latch RS: begitu sinyal pemicunya (S) hilang, output langsung mati & terkunci di situ, apapun kondisi tombol reset (R). Output baru menyala lagi kalau S aktif DAN tombol reset ditekan sesaat (bukan ditahan terus).",
     "Lingkaran kecil di pin R1 pada gambar asli cuma simbol standar pin reset, bukan tanda sinyal dibalik.",
     "Sinyal 'AND_105UC009_FEED1' (hasil AND020) dipakai dua kali: langsung jadi status HDS Reed AE/BE, dan digabung lagi dengan RST_F untuk jadi syarat f105UY011 (Splitter).",
     "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
+    "AND009 (3-input) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1) -> jadi syarat RST_D. AND018 (4-input) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting -> jadi pulsa reset RST_E. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
+    "Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.",
     "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) dan sambungan RST_E–RST_F sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi."
   ]
 }
