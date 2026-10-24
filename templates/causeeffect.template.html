@@ -238,6 +238,35 @@ const sim = SimEngine.createSim(NETLIST);
 const inputState = {};
 INPUT_IDS.forEach(function(id){ inputState[id] = false; });
 
+/* ======================= sinkronisasi state dgn halaman Logic Detail =======================
+   Lihat komentar yang sama di sheet.template.html — halaman ini & versi
+   Logic Detail sheet yang sama berbagi netlist (NETLIST.id sama), jadi
+   state disinkronkan lewat localStorage (key dari NETLIST.id) supaya
+   toggle CAUSE/MOS/Reset di satu halaman kebawa kalau pindah ke halaman
+   satunya, termasuk memory internal RS latch (rsPrev/rPrev) supaya
+   status trip/reset-nya ikut kebawa, bukan cuma posisi tombol. */
+const SYNC_KEY = 'sis-sim-state-' + (NETLIST.id || NETLIST.title || 'sheet');
+function loadSyncedState(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved.inputState){
+      Object.keys(saved.inputState).forEach(function(id){
+        if(id in inputState) inputState[id] = !!saved.inputState[id];
+      });
+    }
+    if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
+    if(saved.rPrev) Object.keys(saved.rPrev).forEach(function(id){ if(id in sim.state.rPrev) sim.state.rPrev[id] = !!saved.rPrev[id]; });
+  }catch(e){}
+}
+function saveSyncedState(){
+  try{
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev, rPrev: sim.state.rPrev }));
+  }catch(e){}
+}
+loadSyncedState();
+
 /* ======================= render: CAUSE table (per grup) ======================= */
 const causeBody = document.getElementById('causeBody');
 const rowEls = {}; // id -> { dot, val }
@@ -385,6 +414,7 @@ function simulate(){
       re.chip.className = 'chip ' + (active ? 'on' : 'off');
     }
   });
+  saveSyncedState();
 }
 
 document.getElementById('resetBtn').addEventListener('click', function(){
