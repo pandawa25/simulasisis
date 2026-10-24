@@ -290,11 +290,20 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}
             // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
             // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
             // ini, lihat ARSITEKTUR.md Koreksi #9).
-            // Pemetaan field netlist (lihat Koreksi #6): 's' = NOT(R1_vendor)
-            // = sinyal sehat/health (dominant-clear); 'r' = S_vendor mentah
-            // (tag reset manual, vendor menyebutnya "Set" krn menyetel Q1
-            // TRUE, meski secara SIS itu tombol reset).
-            const s = v[n.s];
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
             const r = v[n.r];
             const qPrev = state.rsPrev[id];
             const next = s && (qPrev || r);
@@ -352,12 +361,10 @@ const NETLIST = {
 
     "not_001": { "type": "NOT", "gateId": "001", "input": "in_f105LAHH003" },
     "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["not_001", "in_m105LSHH003", "in_f105HS003M"] },
-    "not_s003": { "type": "NOT", "input": "or_002" },
-    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "not_s003", "r": "in_f105HS003UCR" },
+    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "or_002", "sInvert": true, "r": "in_f105HS003UCR" },
 
     "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
-    "not_s002b": { "type": "NOT", "input": "and_001b" },
-    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "not_s002b", "r": "in_f105HS024UCR" },
+    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "and_001b", "sInvert": true, "r": "in_f105HS024UCR" },
 
     "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RFCC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
     "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
@@ -374,7 +381,8 @@ const NETLIST = {
     "Label latch yang benar (dikonfirmasi lewat gambar zoom): ST_105HS003UC untuk jalur f105UY001, dan ST_105HS024UC untuk jalur f105UY003/f105UY003_IL.",
     "Semua latch (RS) di simulator ini pakai formula resmi IEC 61131-3 'RS.ST' (bistable reset-dominant): Q1 := (Q1 OR S) AND NOT R1. Begitu sinyal pemicunya (field 's' di netlist = NOT kondisi) hilang, output langsung mati dan terkunci. Output menyala lagi kalau 's' TRUE dan field 'r' (tag reset) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (lihat Koreksi #9 di ARSITEKTUR.md).",
     "Koreksi (2026-10-24, #6): konvensi pin RS SEBELUMNYA salah (field 's' diisi gerbang kondisi mentah, field 'r' diisi tag reset, tanpa NOT). Setelah re-trace pixel gambar sumber berulang kali dan dikonfirmasi user: pin S pada gambar = tag reset manual (bukan kondisi), pin R1 (yang ada lingkaran kecil) = gerbang kondisi (OR002/AND001) DENGAN inversi (NOT). Bug fungsionalnya: dengan wiring lama, saat plant benar-benar sehat (semua alarm FALSE), field 's' = FALSE sehingga Q dipaksa FALSE terus-menerus dan reset TIDAK PERNAH bisa berhasil -- kebalikan dari perilaku SIS yang benar. Fix: tambahkan node NOT eksplisit (not_s003, not_s002b) yang membalik or_002/and_001b sebelum masuk field 's', field 'r' tetap tag reset mentah (tidak berubah). Tervalidasi lewat skenario Node: sehat+reset->TRUE, trip+reset-attempt->tetap FALSE, trip lepas+reset->TRUE.",
-    "Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet) — detail lengkap di ARSITEKTUR.md Koreksi #9. Field s/r di netlist ini TIDAK berubah."
+    "Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet) — detail lengkap di ARSITEKTUR.md Koreksi #9. Field s/r di netlist ini TIDAK berubah.",
+    "Koreksi (2026-10-24, #10): node NOT terpisah (not_s003, not_s002b) dihapus dari netlist ini -- inversi R1 sekarang dibaca lewat flag 'sInvert: true' langsung di node RS (rs_003.s = 'or_002' + sInvert, rs_002b.s = 'and_001b' + sInvert), supaya struktur netlist & render cocok gambar sumber (lingkaran inversi melekat di pin R1 block RS, bukan gerbang NOT berdiri sendiri). Perilaku logic sama persis dgn sebelumnya, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10."
   ]
 }
 ;

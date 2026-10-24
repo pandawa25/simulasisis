@@ -203,6 +203,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .gate-id{font-family:var(--mono); font-size:8.5px; fill:var(--fg-dim)}
 .pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
 .pin-tick{stroke:var(--wire); stroke-width:1.4}
+.pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
 .wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
 .wire.highlight{stroke:var(--accent); stroke-width:3; opacity:1; stroke-dasharray:none}
@@ -690,16 +691,26 @@ function makeGateNode(id, n){
     /* Urutan render pin sengaja mengikuti deps(n) = [n.r, n.s] (lihat
        fungsi deps() di atas) supaya cocok dgn gambar sumber: pin ATAS =
        tag reset mentah (field netlist 'r', label gambar "S"), pin BAWAH
-       = gerbang kondisi yg sudah di-NOT (field netlist 's', label
-       gambar "R1" dgn lingkaran/inversi). JANGAN tukar balik tanpa cek
-       ARSITEKTUR.md Koreksi #6/#8. */
+       = gerbang kondisi (field netlist 's', label gambar "R1"). JANGAN
+       tukar balik tanpa cek ARSITEKTUR.md Koreksi #6/#8/#10.
+       Koreksi (2026-10-24, #10): inversi R1 digambar sbg lingkaran kecil
+       MELEKAT LANGSUNG di pin R1 (persis gambar sumber), BUKAN lagi
+       gerbang NOT kotak terpisah sebelum RS — lingkaran ini digambar utk
+       SEMUA block RS tanpa kecuali (konvensi block, bukan tergantung
+       flag `sInvert` di netlist — untuk rstD_010/rstE_019 yg gerbang
+       kondisinya sudah "pre-corrected" polaritas sehat=TRUE, inversi
+       matematisnya sudah terserap di dalam and009_corrected/and018_corrected,
+       tapi lingkaran tetap digambar demi kesetiaan visual ke gambar asli). */
     const sY = p.y + s.h / 3, rY = p.y + (s.h * 2) / 3;
     const sLabel = el('text', { x: p.x + 4, y: sY - 3, class: 'pin-label' });
-    sLabel.textContent = 'S (reset)';
+    sLabel.textContent = 'S';
     g.appendChild(sLabel);
     const rLabel = el('text', { x: p.x + 4, y: rY - 3, class: 'pin-label' });
-    rLabel.textContent = 'R1 (kondisi, NOT)';
+    rLabel.textContent = 'R1';
     g.appendChild(rLabel);
+    // Bulatan inversi kecil di pin R1 (bawah), pas di titik wire masuk.
+    const invertBubble = el('circle', { cx: p.x - 3.5, cy: rY, r: 3.5, class: 'pin-invert-bubble' });
+    g.appendChild(invertBubble);
     // state fill rect behind, updated on simulate
     const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
     g.insertBefore(stateRect, rect);

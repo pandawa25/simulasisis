@@ -203,6 +203,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .gate-id{font-family:var(--mono); font-size:8.5px; fill:var(--fg-dim)}
 .pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
 .pin-tick{stroke:var(--wire); stroke-width:1.4}
+.pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
 .wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
 .wire.highlight{stroke:var(--accent); stroke-width:3; opacity:1; stroke-dasharray:none}
@@ -405,11 +406,20 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
             // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
             // ini, lihat ARSITEKTUR.md Koreksi #9).
-            // Pemetaan field netlist (lihat Koreksi #6): 's' = NOT(R1_vendor)
-            // = sinyal sehat/health (dominant-clear); 'r' = S_vendor mentah
-            // (tag reset manual, vendor menyebutnya "Set" krn menyetel Q1
-            // TRUE, meski secara SIS itu tombol reset).
-            const s = v[n.s];
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
             const r = v[n.r];
             const qPrev = state.rsPrev[id];
             const next = s && (qPrev || r);
@@ -517,12 +527,9 @@ const NETLIST = {
     "g012_OR":  { "type": "OR", "gateId": "012", "inputs": ["in_m105LSHH030", "in_f105HS030LM"] },
     "g013_AND": { "type": "AND", "gateId": "013", "inputs": ["in_f105HS019AE", "in_f105HS019B"] },
 
-    "not_s006": { "type": "NOT", "input": "g005_AND" },
-    "rsA_006":  { "type": "RS", "gateId": "006", "label": "RS_105UC009_A", "s": "not_s006", "r": "in_f105HS005UCR" },
-    "not_s008": { "type": "NOT", "input": "g007_AND" },
-    "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "not_s008", "r": "in_f105HS025UCR" },
-    "not_s002": { "type": "NOT", "input": "g001_OR" },
-    "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "not_s002", "r": "in_f105HS009UCR" },
+    "rsA_006":  { "type": "RS", "gateId": "006", "label": "RS_105UC009_A", "s": "g005_AND", "sInvert": true, "r": "in_f105HS005UCR" },
+    "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "g007_AND", "sInvert": true, "r": "in_f105HS025UCR" },
+    "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "g001_OR", "sInvert": true, "r": "in_f105HS009UCR" },
 
     "g009_AND": { "type": "AND", "gateId": "009", "inputs": ["rsA_006", "g004_OR", "rsB_008"] },
     "not_g004": { "type": "NOT", "input": "g004_OR" },
@@ -530,8 +537,7 @@ const NETLIST = {
     "rstD_010": { "type": "RS", "gateId": "010", "label": "RST_105UC009_D", "s": "and009_corrected", "r": "in_f105HS007UCR" },
 
     "g014_AND": { "type": "AND", "gateId": "014", "inputs": ["g011_AND", "g012_OR", "in_f105HS010A", "in_f105HS010B", "g013_AND"] },
-    "not_s015": { "type": "NOT", "input": "g014_AND" },
-    "rstC_015": { "type": "RS", "gateId": "015", "label": "RST_105UC009_C", "s": "not_s015", "r": "in_f105HS012UCR" },
+    "rstC_015": { "type": "RS", "gateId": "015", "label": "RST_105UC009_C", "s": "g014_AND", "sInvert": true, "r": "in_f105HS012UCR" },
 
     "vot_017": { "type": "VOTING", "gateId": "017", "label": "VOT_009_105UC009", "k": 2,
       "inputs": ["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"] },
@@ -574,7 +580,9 @@ const NETLIST = {
     "AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
     "Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.",
     "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi.",
-    "Koreksi (2026-10-24, #6 — PENTING, membatalkan sebagian catatan lama di atas tentang pin R1/S): konvensi pin RS SEBELUMNYA salah arah & diyakini keliru dua kali sebelum akhirnya di-re-trace tuntas atas desakan user (sudah diingatkan user 3x). Yang benar, dikonfirmasi dari screenshot live DCS beresolusi tinggi di 6 blok RS sheet ini: pin S pada gambar = tag RESET manual (bukan kondisi!), pin R1 (ada lingkaran kecil) = gerbang KONDISI (AND/OR) DENGAN inversi (NOT) sungguhan — lingkaran itu BUKAN sekadar simbol dekoratif seperti diklaim di catatan lama. Temuan tambahan: RST_E (019) pin S-nya BUKAN disambung ke RST_F.Q1 seperti dikira sebelumnya, melainkan ke tag reset f105HS009UCR yang SAMA dengan RST_F (satu tombol, dua latch). Bug fungsional yang terkonfirmasi lewat test Node sebelum fix: dengan wiring lama (field 's' = kondisi mentah tanpa NOT), saat plant benar-benar sehat field 's' selalu FALSE sehingga Q terkunci FALSE permanen dan reset TIDAK PERNAH berhasil. Fix yang diterapkan: (a) untuk latch 'murni' (rsA_006, rsB_008, rstF_002, rstC_015 — gerbang kondisinya cuma AND/OR dari tag mentah, tidak campur dengan Q1 latch lain): tambah node NOT yang membalik gerbang kondisi (not_s006/not_s008/not_s002/not_s015), hasilnya jadi field 's'; (b) untuk latch dgn gerbang kondisi CAMPURAN Q1-latch-lain + tag mentah (rstD_010 via AND009, rstE_019 via AND018): TIDAK cukup NOT di luar AND — harus NOT secara spesifik hanya pada input yang polaritasnya 'alarm=TRUE' (g004_OR utk AND009, g016_OR utk AND018) SEBELUM masuk AND, lalu AND hasil koreksi itu (and009_corrected/and018_corrected, semua input sudah berpolaritas 'sehat=TRUE') dipakai LANGSUNG sebagai field 's' tanpa NOT tambahan di luar; field 'r' rstE_019 diperbaiki dari 'rstF_002' jadi 'in_f105HS009UCR'. Node AND009/AND018 asli dibiarkan apa adanya (masih dipakai utk tampilan HMI out_AND1_HMI, nilainya murni informatif, bukan dasar logic latch lagi). Tervalidasi lewat >10 skenario Node mencakup semua 6 latch: sehat+reset->TRUE, trip (ESD/alarm/voting/recycle)+reset-attempt->tetap FALSE, trip lepas+reset->TRUE, cascade RST_D->RST_E, reset-order-dependency (RST_D/RST_C harus direset dulu sebelum pulsa gabungan RST_F/RST_E)."
+    "Koreksi (2026-10-24, #6 — PENTING, membatalkan sebagian catatan lama di atas tentang pin R1/S): konvensi pin RS SEBELUMNYA salah arah & diyakini keliru dua kali sebelum akhirnya di-re-trace tuntas atas desakan user (sudah diingatkan user 3x). Yang benar, dikonfirmasi dari screenshot live DCS beresolusi tinggi di 6 blok RS sheet ini: pin S pada gambar = tag RESET manual (bukan kondisi!), pin R1 (ada lingkaran kecil) = gerbang KONDISI (AND/OR) DENGAN inversi (NOT) sungguhan — lingkaran itu BUKAN sekadar simbol dekoratif seperti diklaim di catatan lama. Temuan tambahan: RST_E (019) pin S-nya BUKAN disambung ke RST_F.Q1 seperti dikira sebelumnya, melainkan ke tag reset f105HS009UCR yang SAMA dengan RST_F (satu tombol, dua latch). Bug fungsional yang terkonfirmasi lewat test Node sebelum fix: dengan wiring lama (field 's' = kondisi mentah tanpa NOT), saat plant benar-benar sehat field 's' selalu FALSE sehingga Q terkunci FALSE permanen dan reset TIDAK PERNAH berhasil. Fix yang diterapkan: (a) untuk latch 'murni' (rsA_006, rsB_008, rstF_002, rstC_015 — gerbang kondisinya cuma AND/OR dari tag mentah, tidak campur dengan Q1 latch lain): tambah node NOT yang membalik gerbang kondisi (not_s006/not_s008/not_s002/not_s015), hasilnya jadi field 's'; (b) untuk latch dgn gerbang kondisi CAMPURAN Q1-latch-lain + tag mentah (rstD_010 via AND009, rstE_019 via AND018): TIDAK cukup NOT di luar AND — harus NOT secara spesifik hanya pada input yang polaritasnya 'alarm=TRUE' (g004_OR utk AND009, g016_OR utk AND018) SEBELUM masuk AND, lalu AND hasil koreksi itu (and009_corrected/and018_corrected, semua input sudah berpolaritas 'sehat=TRUE') dipakai LANGSUNG sebagai field 's' tanpa NOT tambahan di luar; field 'r' rstE_019 diperbaiki dari 'rstF_002' jadi 'in_f105HS009UCR'. Node AND009/AND018 asli dibiarkan apa adanya (masih dipakai utk tampilan HMI out_AND1_HMI, nilainya murni informatif, bukan dasar logic latch lagi). Tervalidasi lewat >10 skenario Node mencakup semua 6 latch: sehat+reset->TRUE, trip (ESD/alarm/voting/recycle)+reset-attempt->tetap FALSE, trip lepas+reset->TRUE, cascade RST_D->RST_E, reset-order-dependency (RST_D/RST_C harus direset dulu sebelum pulsa gabungan RST_F/RST_E).",
+    "Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet). Detail di ARSITEKTUR.md Koreksi #9.",
+    "Koreksi (2026-10-24, #10): node NOT terpisah (not_s006, not_s008, not_s002, not_s015) dihapus -- inversi R1 utk 4 latch 'murni' ini sekarang dibaca lewat flag 'sInvert: true' langsung di node RS-nya (s menunjuk LANGSUNG ke gerbang mentah g005_AND/g007_AND/g001_OR/g014_AND). rstD_010 & rstE_019 TIDAK dapat sInvert (s tetap and009_corrected/and018_corrected, inversi parsial-per-term sudah terserap di situ, lihat Koreksi #6 bagian b) -- tapi render tetap gambar bulatan di pin R1-nya juga demi kesetiaan visual. not_g004/not_g016 (NOT internal utk koreksi polaritas per-term di and009_corrected/and018_corrected) TIDAK dihapus -- itu beda kasus dari 'NOT wrapper lurus sebelum RS' yg dimaksud user. Perilaku logic sama persis, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10."
   ]
 }
 ;
@@ -968,16 +976,26 @@ function makeGateNode(id, n){
     /* Urutan render pin sengaja mengikuti deps(n) = [n.r, n.s] (lihat
        fungsi deps() di atas) supaya cocok dgn gambar sumber: pin ATAS =
        tag reset mentah (field netlist 'r', label gambar "S"), pin BAWAH
-       = gerbang kondisi yg sudah di-NOT (field netlist 's', label
-       gambar "R1" dgn lingkaran/inversi). JANGAN tukar balik tanpa cek
-       ARSITEKTUR.md Koreksi #6/#8. */
+       = gerbang kondisi (field netlist 's', label gambar "R1"). JANGAN
+       tukar balik tanpa cek ARSITEKTUR.md Koreksi #6/#8/#10.
+       Koreksi (2026-10-24, #10): inversi R1 digambar sbg lingkaran kecil
+       MELEKAT LANGSUNG di pin R1 (persis gambar sumber), BUKAN lagi
+       gerbang NOT kotak terpisah sebelum RS — lingkaran ini digambar utk
+       SEMUA block RS tanpa kecuali (konvensi block, bukan tergantung
+       flag `sInvert` di netlist — untuk rstD_010/rstE_019 yg gerbang
+       kondisinya sudah "pre-corrected" polaritas sehat=TRUE, inversi
+       matematisnya sudah terserap di dalam and009_corrected/and018_corrected,
+       tapi lingkaran tetap digambar demi kesetiaan visual ke gambar asli). */
     const sY = p.y + s.h / 3, rY = p.y + (s.h * 2) / 3;
     const sLabel = el('text', { x: p.x + 4, y: sY - 3, class: 'pin-label' });
-    sLabel.textContent = 'S (reset)';
+    sLabel.textContent = 'S';
     g.appendChild(sLabel);
     const rLabel = el('text', { x: p.x + 4, y: rY - 3, class: 'pin-label' });
-    rLabel.textContent = 'R1 (kondisi, NOT)';
+    rLabel.textContent = 'R1';
     g.appendChild(rLabel);
+    // Bulatan inversi kecil di pin R1 (bawah), pas di titik wire masuk.
+    const invertBubble = el('circle', { cx: p.x - 3.5, cy: rY, r: 3.5, class: 'pin-invert-bubble' });
+    g.appendChild(invertBubble);
     // state fill rect behind, updated on simulate
     const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
     g.insertBefore(stateRect, rect);

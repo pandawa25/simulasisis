@@ -106,11 +106,20 @@
             // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
             // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
             // ini, lihat ARSITEKTUR.md Koreksi #9).
-            // Pemetaan field netlist (lihat Koreksi #6): 's' = NOT(R1_vendor)
-            // = sinyal sehat/health (dominant-clear); 'r' = S_vendor mentah
-            // (tag reset manual, vendor menyebutnya "Set" krn menyetel Q1
-            // TRUE, meski secara SIS itu tombol reset).
-            const s = v[n.s];
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
             const r = v[n.r];
             const qPrev = state.rsPrev[id];
             const next = s && (qPrev || r);
