@@ -24,19 +24,19 @@
 
     "not_001": { "type": "NOT", "gateId": "001", "input": "in_f105LAHH003" },
     "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["not_001", "in_m105LSHH003", "in_f105HS003M"] },
-    "rs_003":  { "type": "RS",  "gateId": "003", "label": "RT_105HS003U", "s": "or_002", "r": "in_f105HS003UCR" },
+    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "or_002", "r": "in_f105HS003UCR" },
 
     "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
-    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "RT_105HS024U", "s": "and_001b", "r": "in_f105HS024UCR" },
+    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "and_001b", "r": "in_f105HS024UCR" },
 
-    "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RECC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
+    "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RFCC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
     "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
     "out_f105UY003_IL": { "type": "OUTPUT", "label": "f105UY003_IL", "desc": "105-UY-003 Interlock Signal",        "source": "rs_002b", "group": "Internal HMI (monitor saja)" }
   },
   "notes": [
     "Sheet ini menggabungkan 3 UC sekaligus (judul '105-UC-001/002/024'): blok logika bernomor '00002' (di drawing, kiri-atas tiap blok) men-drive f105UY001 dan resetnya ditandai '(105-UC-001/002)' -> blok ini mewakili UC-001/002 digabung; blok '00003' men-drive f105UY003 & f105UY003_IL dan resetnya ditandai '(105-UC-024)' -> blok ini mewakili UC-024. Nomor '00002'/'00003' itu nomor rung/blok internal drawing, BUKAN nomor sheet.",
     "f105LAHH003 melewati gerbang NOT sebelum masuk OR — konsisten dengan konvensi fail-safe 'sehat/normal = TRUE' yang sudah dikonfirmasi di VOTING sheet 105-UC-009: field instrument ini dianggap TRUE saat kondisi normal, dan trip/alarm direpresentasikan saat sinyalnya jatuh ke FALSE, sehingga NOT(sinyal) baru TRUE saat alarm betulan aktif dan ikut men-trigger OR. Pada screenshot sumber, node ini memang tampil TRUE (merah) sebagai kondisi default/sehatnya — bukan indikasi alarm aktif.",
-    "RS block label pada gambar asli terlihat terpotong di tepi kiri box ('T_105HS003U' / 'T_105HS024U') — huruf 'R' di depannya kemungkinan terpotong garis box (konsisten pola penamaan RS/RST di sheet lain). Diasumsikan 'RT_105HS003U' dan 'RT_105HS024U'. Perlu dikonfirmasi ulang kalau ada crop/zoom yang lebih jelas.",
+    "Label gate RS dikonfirmasi user via crop/zoom: 'ST_105HS003UC' (blok 00002/003 -> f105UY001) dan 'ST_105HS024UC' (blok 00003/002 -> f105UY003/f105UY003_IL, pola penamaan sama persis, cuma beda suffix sesuai tag reset-nya).",
     "f105UY003 dan f105UY003_IL sama-sama di-tap dari Q1 RS_002b yang sama (T-junction eksplisit di gambar), bukan dua latch terpisah.",
     "RS latch tetap pakai konvensi pulse-to-set yang sudah dikonfirmasi user (lihat ARSITEKTUR.md): S FALSE -> Q langsung FALSE & terkunci; S TRUE + pulsa R 0->1 -> Q terkunci TRUE."
   ]
