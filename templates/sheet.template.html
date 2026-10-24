@@ -243,6 +243,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 
   <div class="subnav">
     <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="ceLink" href="#">Lihat versi sederhana (Cause &amp; Effect) →</a>
     <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
     <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
     <div class="spacer"></div>
@@ -779,6 +780,7 @@ if(notes.length){
 
 /* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
 document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+if(NAV && NAV.ceUrl) document.getElementById('ceLink').href = NAV.ceUrl;
 const prevLink = document.getElementById('prevLink');
 if(NAV && NAV.prev){
   prevLink.href = NAV.prev.url;

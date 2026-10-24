@@ -243,6 +243,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 
   <div class="subnav">
     <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="ceLink" href="#">Lihat versi sederhana (Cause &amp; Effect) →</a>
     <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
     <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
     <div class="spacer"></div>
@@ -453,7 +454,7 @@ const NETLIST = {
   "nodes": {
     "in_m105LSHH003": { "type": "INPUT", "label": "m105LSHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
     "in_f105LAHH003": { "type": "INPUT", "label": "f105LAHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm (lewat NOT, fail-safe: sehat=TRUE)", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
-    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "isMOS": true, "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
 
     "in_f105HS001AE": { "type": "INPUT", "label": "f105HS001AE", "desc": "ESD Button Fire/Leak 105-V501 (DCS)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
     "in_f105HS001B":  { "type": "INPUT", "label": "f105HS001B",  "desc": "ESD Button Fire/Leak 105-V501 (Local)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
@@ -486,7 +487,7 @@ const NETLIST = {
 }
 ;
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":6,"tag":"105-UC-009","url":"sheet-006.html"}};
+const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":6,"tag":"105-UC-009","url":"sheet-006.html"},"ceUrl":"sheet-002-ce.html"};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -965,6 +966,7 @@ if(notes.length){
 
 /* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
 document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+if(NAV && NAV.ceUrl) document.getElementById('ceLink').href = NAV.ceUrl;
 const prevLink = document.getElementById('prevLink');
 if(NAV && NAV.prev){
   prevLink.href = NAV.prev.url;

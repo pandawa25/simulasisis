@@ -14,7 +14,7 @@
   "nodes": {
     "in_m105LSHH003": { "type": "INPUT", "label": "m105LSHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
     "in_f105LAHH003": { "type": "INPUT", "label": "f105LAHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm (lewat NOT, fail-safe: sehat=TRUE)", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
-    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "isMOS": true, "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
 
     "in_f105HS001AE": { "type": "INPUT", "label": "f105HS001AE", "desc": "ESD Button Fire/Leak 105-V501 (DCS)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
     "in_f105HS001B":  { "type": "INPUT", "label": "f105HS001B",  "desc": "ESD Button Fire/Leak 105-V501 (Local)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },

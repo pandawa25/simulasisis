@@ -8,7 +8,8 @@
       "tag": "P02",
       "note": "Cover / index sheet",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 2,
@@ -16,7 +17,8 @@
       "tag": "105-UC-001 / 002 / 024",
       "note": "",
       "status": "done",
-      "url": "sheets/sheet-002.html"
+      "url": "sheets/sheet-002.html",
+      "ceUrl": "sheets/sheet-002-ce.html"
     },
     {
       "sheet": 3,
@@ -24,7 +26,8 @@
       "tag": "105-UC-005 / 025",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 4,
@@ -32,7 +35,8 @@
       "tag": "105-UC-007",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 5,
@@ -40,7 +44,8 @@
       "tag": "105-UC-032 / 011 / 012 / 027",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 6,
@@ -48,7 +53,8 @@
       "tag": "105-UC-009",
       "note": "",
       "status": "done",
-      "url": "sheets/sheet-006.html"
+      "url": "sheets/sheet-006.html",
+      "ceUrl": "sheets/sheet-006-ce.html"
     },
     {
       "sheet": 7,
@@ -56,7 +62,8 @@
       "tag": "105-UC-010",
       "note": "bagian a",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 8,
@@ -64,7 +71,8 @@
       "tag": "105-UC-010",
       "note": "bagian b",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 9,
@@ -72,7 +80,8 @@
       "tag": "105-UC-010",
       "note": "bagian c",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 10,
@@ -80,7 +89,8 @@
       "tag": "105-UC-010",
       "note": "bagian d",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 11,
@@ -88,7 +98,8 @@
       "tag": "105-UC-010",
       "note": "bagian e",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 12,
@@ -96,7 +107,8 @@
       "tag": "105-UC-010",
       "note": "bagian f",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 13,
@@ -104,7 +116,8 @@
       "tag": "105-UC-003",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 14,
@@ -112,7 +125,8 @@
       "tag": "105-UC-004",
       "note": "bagian a",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 15,
@@ -120,7 +134,8 @@
       "tag": "105-UC-004",
       "note": "bagian b",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 16,
@@ -128,7 +143,8 @@
       "tag": "105-UC-006",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 17,
@@ -136,7 +152,8 @@
       "tag": "105-UC-008",
       "note": "+ 026",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 18,
@@ -144,7 +161,8 @@
       "tag": "105-UC-013",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 19,
@@ -152,7 +170,8 @@
       "tag": "105-UC-014",
       "note": "+ 016",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 20,
@@ -160,7 +179,8 @@
       "tag": "105-UC-015",
       "note": "+ 018, 028",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 21,
@@ -168,7 +188,8 @@
       "tag": "105-UC-021",
       "note": "+ 022, 023",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 22,
@@ -176,7 +197,8 @@
       "tag": "105-UC-019",
       "note": "+ 029",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 23,
@@ -184,7 +206,8 @@
       "tag": "105-UC-020",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 24,
@@ -192,7 +215,8 @@
       "tag": "105-UC-030",
       "note": "bagian 1",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 25,
@@ -200,7 +224,8 @@
       "tag": "105-UC-017-030",
       "note": "bagian 2a",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 26,
@@ -208,7 +233,8 @@
       "tag": "105-UC-017-030",
       "note": "bagian 2b",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 27,
@@ -216,7 +242,8 @@
       "tag": "105-UC-017-030",
       "note": "bagian 2c",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 28,
@@ -224,7 +251,8 @@
       "tag": "105-UC-030",
       "note": "bagian 3a",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 29,
@@ -232,7 +260,8 @@
       "tag": "105-UC-030",
       "note": "bagian 3b",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 30,
@@ -240,7 +269,8 @@
       "tag": "105-UC-031",
       "note": "bagian 1",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 31,
@@ -248,7 +278,8 @@
       "tag": "105-UC-031",
       "note": "bagian 2",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 32,
@@ -256,7 +287,8 @@
       "tag": "CPRS",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 33,
@@ -264,7 +296,8 @@
       "tag": "XA003",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     },
     {
       "sheet": 34,
@@ -272,7 +305,8 @@
       "tag": "XA009",
       "note": "",
       "status": "pending",
-      "url": null
+      "url": null,
+      "ceUrl": null
     }
   ]
 }

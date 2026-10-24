@@ -83,8 +83,7 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
   display:flex; flex-direction:column; gap:8px; text-decoration:none; color:inherit;
   transition:border-color .15s, transform .1s;
 }
-.card.done{cursor:pointer}
-.card.done:hover{border-color:var(--accent); transform:translateY(-1px)}
+.card.done:hover{border-color:var(--accent)}
 .card.pending{opacity:.62}
 .card-top{display:flex; align-items:center; justify-content:space-between; gap:8px}
 .sheet-no{font-family:var(--mono); font-size:.68rem; color:var(--fg-dim); letter-spacing:.04em}
@@ -97,6 +96,14 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 .card-tag{font-family:var(--mono); font-size:.92rem; font-weight:650; line-height:1.3}
 .card-note{font-size:.76rem; color:var(--fg-dim)}
 .card-action{font-size:.74rem; font-weight:650; color:var(--accent); margin-top:2px}
+.card-actions{display:flex; gap:6px; margin-top:4px; flex-wrap:wrap}
+.card-action-btn{
+  flex:1 1 auto; text-align:center; font-size:.72rem; font-weight:650; text-decoration:none;
+  color:var(--accent-fg); background:var(--done-bg); border:1px solid var(--done); border-radius:7px;
+  padding:6px 8px; white-space:nowrap;
+}
+.card-action-btn.secondary{color:var(--fg); background:var(--panel-2); border-color:var(--border)}
+.card-action-btn:hover{opacity:.85}
 
 .empty{padding:40px 4px; text-align:center; color:var(--fg-dim); font-size:.86rem}
 .footnote{padding:24px 4px 4px; font-size:.74rem; color:var(--fg-dim); line-height:1.6}
@@ -183,9 +190,8 @@ function render(){
     if(!matches(item, q)) return;
     shown++;
     const isDone = item.status === 'done';
-    const tag = isDone ? document.createElement('a') : document.createElement('div');
+    const tag = document.createElement('div');
     tag.className = 'card ' + item.status;
-    if(isDone){ tag.href = item.url; }
     const sheetLabel = 'Sheet ' + String(item.sheet).padStart(3, '0');
     tag.innerHTML =
       '<div class="card-top">' +
@@ -194,7 +200,11 @@ function render(){
       '</div>' +
       '<div class="card-tag">' + item.tag + '</div>' +
       (item.note ? '<div class="card-note">' + item.note + '</div>' : '') +
-      (isDone ? '<div class="card-action">Buka simulator →</div>' : '');
+      (isDone ?
+        '<div class="card-actions">' +
+          '<a class="card-action-btn" href="' + item.url + '">Logic Detail →</a>' +
+          (item.ceUrl ? '<a class="card-action-btn secondary" href="' + item.ceUrl + '">Cause &amp; Effect →</a>' : '') +
+        '</div>' : '');
     grid.appendChild(tag);
   });
   emptyMsg.style.display = shown === 0 ? 'block' : 'none';

@@ -31,6 +31,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const ENGINE_PATH = path.join(ROOT, 'engine', 'sim-engine.js');
 const SHEET_TPL_PATH = path.join(ROOT, 'templates', 'sheet.template.html');
+const CE_TPL_PATH = path.join(ROOT, 'templates', 'causeeffect.template.html');
 const PORTAL_TPL_PATH = path.join(ROOT, 'templates', 'portal.template.html');
 const SHEETS_JSON_PATH = path.join(ROOT, 'data', 'sheets.json');
 const NETLIST_DIR = path.join(ROOT, 'data', 'netlists');
@@ -46,6 +47,7 @@ function writeFile(p, content) {
 function main() {
   const engineJs = read(ENGINE_PATH);
   const sheetTpl = read(SHEET_TPL_PATH);
+  const ceTpl = read(CE_TPL_PATH);
   const portalTpl = read(PORTAL_TPL_PATH);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
@@ -63,6 +65,7 @@ function main() {
     if (!fs.existsSync(netlistPath)) {
       entry.status = 'pending';
       entry.url = null;
+      entry.ceUrl = null;
       return;
     }
     const netlistJson = read(netlistPath);
@@ -71,10 +74,22 @@ function main() {
     const doneIdx = doneEntries.indexOf(entry);
     const prevEntry = doneEntries[doneIdx - 1] || null;
     const nextEntry = doneEntries[doneIdx + 1] || null;
-    const nav = {
+    const ceSlug = entry.slug + '-ce';
+    // nav utk halaman logic detail: portal + prev/next (versi detail) +
+    // link ke versi Cause & Effect sheet yang sama
+    const navDetail = {
       portalUrl: '../index.html',
       prev: prevEntry ? { sheet: prevEntry.sheet, tag: prevEntry.tag, url: prevEntry.slug + '.html' } : null,
-      next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '.html' } : null
+      next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '.html' } : null,
+      ceUrl: ceSlug + '.html'
+    };
+    // nav utk halaman Cause & Effect: portal + prev/next (versi CE) +
+    // link balik ke versi logic detail sheet yang sama
+    const navCE = {
+      portalUrl: '../index.html',
+      prev: prevEntry ? { sheet: prevEntry.sheet, tag: prevEntry.tag, url: prevEntry.slug + '-ce.html' } : null,
+      next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '-ce.html' } : null,
+      detailUrl: entry.slug + '.html'
     };
 
     let html = sheetTpl;
@@ -82,13 +97,22 @@ function main() {
     html = html.replace('<!--TITLE_TAG-->', '');
     html = html.replace('<!--ENGINE_JS-->', engineJs);
     html = html.replace('<!--NETLIST_JSON-->', netlistJson);
-    html = html.replace('<!--NAV_JSON-->', JSON.stringify(nav));
-
+    html = html.replace('<!--NAV_JSON-->', JSON.stringify(navDetail));
     writeFile(path.join(OUT_SHEETS_DIR, entry.slug + '.html'), html);
+
+    let ceHtml = ceTpl;
+    ceHtml = ceHtml.replace('<!--TITLE_BLOCK-->', '<title>Cause & Effect ' + (netlist.title || netlist.id || entry.slug) + '</title>');
+    ceHtml = ceHtml.replace('<!--TITLE_TAG-->', '');
+    ceHtml = ceHtml.replace('<!--ENGINE_JS-->', engineJs);
+    ceHtml = ceHtml.replace('<!--NETLIST_JSON-->', netlistJson);
+    ceHtml = ceHtml.replace('<!--NAV_JSON-->', JSON.stringify(navCE));
+    writeFile(path.join(OUT_SHEETS_DIR, ceSlug + '.html'), ceHtml);
+
     entry.status = 'done';
     entry.url = 'sheets/' + entry.slug + '.html';
+    entry.ceUrl = 'sheets/' + ceSlug + '.html';
     builtCount++;
-    console.log('  + sheet ' + String(entry.sheet).padStart(3, '0') + ' (' + entry.tag + ') -> docs/sheets/' + entry.slug + '.html');
+    console.log('  + sheet ' + String(entry.sheet).padStart(3, '0') + ' (' + entry.tag + ') -> docs/sheets/' + entry.slug + '.html (+ CE)');
   });
 
   // portal

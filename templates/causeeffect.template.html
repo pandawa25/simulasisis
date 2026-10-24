@@ -1,0 +1,368 @@
+<!--TITLE_BLOCK-->
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --accent:#b9770e;
+  --accent-fg:#5c3a07;
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--disp); margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:20; background:var(--panel); }
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1500px; margin:0 auto; padding-bottom:40px}
+
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:14px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.05rem; font-weight:650; letter-spacing:.01em}
+.topbar .sheetref{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
+
+.layout{padding:20px 4px; display:grid; grid-template-columns:1fr 240px 1fr; gap:18px; align-items:start}
+@media (max-width:860px){ .layout{grid-template-columns:1fr} }
+
+.panel-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.panel-head{
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+  padding:10px 14px; font-weight:700; font-size:.82rem; letter-spacing:.04em; text-transform:uppercase;
+}
+.ce-table{width:100%; border-collapse:collapse}
+.ce-table thead th{
+  text-align:left; font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim);
+  padding:8px 10px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.ce-row{border-bottom:1px solid var(--border); cursor:default}
+.ce-row.clickable{cursor:pointer}
+.ce-row.clickable:hover{background:var(--panel-2)}
+.ce-row td{padding:8px 10px; vertical-align:middle}
+.ce-group-row td{
+  padding:8px 10px 4px; font-size:.68rem; font-weight:700; color:var(--accent);
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+}
+.stat-dot{width:16px; height:16px; border-radius:4px; display:inline-block; border:1px solid var(--border)}
+.stat-dot.off{background:var(--false-bg); border-color:var(--false)}
+.stat-dot.on{background:var(--true-bg); border-color:var(--true)}
+.svc{font-size:.8rem; line-height:1.35}
+.tagno{font-family:var(--mono); font-size:.74rem; color:var(--fg-dim); white-space:nowrap}
+.valword{font-family:var(--mono); font-size:.68rem; font-weight:700; white-space:nowrap}
+.valword.off{color:var(--false)}
+.valword.on{color:var(--true)}
+
+.center-col{display:flex; flex-direction:column; gap:14px; position:sticky; top:84px}
+.uc-box{
+  background:var(--panel); border:2px solid var(--accent); border-radius:12px;
+  padding:16px; text-align:center;
+}
+.uc-box .ucid{font-family:var(--mono); font-size:.8rem; color:var(--accent); font-weight:700}
+.uc-box .uctitle{font-size:.92rem; font-weight:700; margin-top:4px}
+.arrow-row{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--fg-dim); font-size:1.1rem}
+.summary-mini{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:.78rem; line-height:1.55; color:var(--fg-dim)}
+.summary-mini p{margin:0 0 8px}
+.summary-mini p:last-child{margin-bottom:0}
+
+/* status strip MOS/Reset — ditaruh di bawah kolom CAUSE, bukan baris
+   biasa di tabel, sesuai permintaan: cukup status aktif/tidak saja */
+.status-strip{margin-top:12px; display:flex; flex-direction:column; gap:8px}
+.status-chip-card{
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+  padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:pointer;
+}
+.status-chip-card:hover{border-color:var(--accent)}
+.status-chip-card .label{flex:1; font-size:.76rem}
+.status-chip-card .label b{font-family:var(--mono); display:block; font-size:.72rem; color:var(--fg-dim); font-weight:600}
+.chip{font-family:var(--mono); font-size:.68rem; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap}
+.chip.off{background:var(--false-bg); color:var(--false)}
+.chip.on{background:var(--true-bg); color:var(--true)}
+.status-strip-title{font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim); margin:4px 0 2px}
+</style>
+<!--TITLE_TAG-->
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Cause &amp; Effect — 105-UC-009</h1>
+      <div class="sheetref" id="sheetRef"></div>
+    </div>
+    <div class="legend">
+      <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> Normal
+      <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> Aktif
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+    <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
+  </div>
+
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="detailLink" href="#">Lihat Logic Detail →</a>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Versi sederhana (Cause &amp; Effect) — klik baris CAUSE/MOS/Reset untuk uji skenario, atau buka versi logic detail untuk lihat jalur gate lengkap.</span>
+  </div>
+
+  <div class="layout">
+    <div class="panel-card">
+      <div class="panel-head">Cause</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="causeBody"></tbody>
+      </table>
+      <div class="status-strip" id="statusStrip" style="padding:0 14px 14px"></div>
+    </div>
+
+    <div class="center-col">
+      <div class="uc-box">
+        <div class="ucid" id="ucId"></div>
+        <div class="uctitle" id="ucTitle"></div>
+      </div>
+      <div class="arrow-row">CAUSE ▶ &nbsp;●&nbsp; ▶ EFFECT</div>
+      <div class="summary-mini" id="summaryMini"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">Effect</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="effectBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= sim-engine.js (inline) ======================= */
+<!--ENGINE_JS-->
+/* ======================= netlist data (inline) ======================= */
+const NETLIST = <!--NETLIST_JSON-->;
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = <!--NAV_JSON-->;
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-sim-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-sim-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= data prep ======================= */
+const nodes = NETLIST.nodes;
+const ids = Object.keys(nodes);
+const INPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'INPUT'; });
+const OUTPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+
+/* CAUSE utama = INPUT biasa (bukan Reset, bukan MOS — keduanya cukup
+   ditampilkan statusnya saja di strip bawah, sesuai permintaan: "untuk
+   logic MOS, Reset tuliskan statusnya dibawah saja, sedang di MOS/Reset
+   atau tidak" */
+const CAUSE_MAIN_IDS = INPUT_IDS.filter(function(id){ return !nodes[id].isReset && !nodes[id].isMOS; });
+const RESET_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isReset; });
+const MOS_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isMOS; });
+
+function groupSort(idList, groupOrder){
+  const rank = {};
+  (groupOrder || []).forEach(function(g, i){ rank[g] = i; });
+  return idList.slice().sort(function(a, b){
+    const ga = nodes[a].group, gb = nodes[b].group;
+    const ra = ga in rank ? rank[ga] : 999, rb = gb in rank ? rank[gb] : 999;
+    if(ra !== rb) return ra - rb;
+    return idList.indexOf(a) - idList.indexOf(b);
+  });
+}
+const causeSorted = groupSort(CAUSE_MAIN_IDS, NETLIST.causeGroups);
+const effectSorted = groupSort(OUTPUT_IDS, NETLIST.effectGroups);
+
+/* ======================= sim instance ======================= */
+const sim = SimEngine.createSim(NETLIST);
+const inputState = {};
+INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+
+/* ======================= render: CAUSE table (per grup) ======================= */
+const causeBody = document.getElementById('causeBody');
+const rowEls = {}; // id -> { dot, val }
+let lastGroup = null;
+causeSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    causeBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row clickable';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  tr.addEventListener('click', function(){
+    inputState[id] = !inputState[id];
+    simulate();
+  });
+  causeBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: EFFECT table (per grup) ======================= */
+const effectBody = document.getElementById('effectBody');
+lastGroup = null;
+effectSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    effectBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  effectBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: status strip (MOS / Reset) ======================= */
+const statusStrip = document.getElementById('statusStrip');
+function buildStatusGroup(title, idList){
+  if(!idList.length) return;
+  const h = document.createElement('div');
+  h.className = 'status-strip-title';
+  h.textContent = title;
+  statusStrip.appendChild(h);
+  idList.forEach(function(id){
+    const n = nodes[id];
+    const card = document.createElement('div');
+    card.className = 'status-chip-card';
+    card.innerHTML =
+      '<span class="label">' + (n.desc || n.label) + '<b>' + n.label + '</b></span>' +
+      '<span class="chip off" id="chip_' + id + '">TIDAK AKTIF</span>';
+    card.addEventListener('click', function(){
+      inputState[id] = !inputState[id];
+      simulate();
+    });
+    statusStrip.appendChild(card);
+    rowEls[id] = { chip: card.querySelector('.chip') };
+  });
+}
+buildStatusGroup('Status MOS', MOS_IDS);
+buildStatusGroup('Status Reset', RESET_IDS);
+
+/* ======================= header / center / nav ======================= */
+document.getElementById('pageTitle').textContent = 'Cause & Effect — ' + (NETLIST.title || NETLIST.id);
+document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
+document.getElementById('ucId').textContent = NETLIST.id || '';
+document.getElementById('ucTitle').textContent = NETLIST.title || '';
+
+const summaryMini = document.getElementById('summaryMini');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  summaryParas.forEach(function(para){
+    const p = document.createElement('p');
+    p.textContent = para;
+    summaryMini.appendChild(p);
+  });
+} else {
+  summaryMini.style.display = 'none';
+}
+
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+document.getElementById('detailLink').href = (NAV && NAV.detailUrl) || '#';
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
+
+/* ======================= simulate + repaint ======================= */
+function simulate(){
+  const v = sim.step(inputState);
+  ids.forEach(function(id){
+    const re = rowEls[id];
+    if(!re) return;
+    const on = !!v[id];
+    if(re.dot){ re.dot.classList.toggle('on', on); re.dot.classList.toggle('off', !on); }
+    if(re.chip){ re.chip.textContent = on ? 'AKTIF' : 'TIDAK AKTIF'; re.chip.className = 'chip ' + (on ? 'on' : 'off'); }
+  });
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+  sim.reset();
+  simulate();
+});
+
+simulate();
+</script>

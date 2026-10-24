@@ -243,6 +243,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 
   <div class="subnav">
     <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="ceLink" href="#">Lihat versi sederhana (Cause &amp; Effect) →</a>
     <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
     <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
     <div class="spacer"></div>
@@ -472,14 +473,14 @@ const NETLIST = {
     "in_f105HS019B":  { "type": "INPUT", "label": "f105HS019B", "desc": "Push", "group": "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)" },
 
     "in_m105LSHH019": { "type": "INPUT", "label": "m105LSHH019", "desc": "HDS", "group": "Level / MOS" },
-    "in_f105HS019M":  { "type": "INPUT", "label": "f105HS019M", "desc": "MOS", "group": "Level / MOS" },
+    "in_f105HS019M":  { "type": "INPUT", "label": "f105HS019M", "desc": "MOS", "isMOS": true, "group": "Level / MOS" },
     "in_m105LSLL009": { "type": "INPUT", "label": "m105LSLL009", "desc": "Level in", "group": "Level / MOS" },
-    "in_f105HS009M":  { "type": "INPUT", "label": "f105HS009M", "desc": "MOS", "group": "Level / MOS" },
+    "in_f105HS009M":  { "type": "INPUT", "label": "f105HS009M", "desc": "MOS", "isMOS": true, "group": "Level / MOS" },
 
     "in_m105LSHH030": { "type": "INPUT", "label": "m105LSHH030", "desc": "Recycle", "group": "Recycle / MOS" },
-    "in_f105HS030LM": { "type": "INPUT", "label": "f105HS030LM", "desc": "MOS", "group": "Recycle / MOS" },
+    "in_f105HS030LM": { "type": "INPUT", "label": "f105HS030LM", "desc": "MOS", "isMOS": true, "group": "Recycle / MOS" },
     "in_m105FSLL030": { "type": "INPUT", "label": "m105FSLL030", "desc": "Recycle", "group": "Recycle / MOS" },
-    "in_f105HS030M":  { "type": "INPUT", "label": "f105HS030M", "desc": "MOS", "group": "Recycle / MOS" },
+    "in_f105HS030M":  { "type": "INPUT", "label": "f105HS030M", "desc": "MOS", "isMOS": true, "group": "Recycle / MOS" },
 
     "in_f105HS010A":  { "type": "INPUT", "label": "f105HS010A", "desc": "ESD", "group": "Push (langsung ke AND014)" },
     "in_f105HS010B":  { "type": "INPUT", "label": "f105HS010B", "desc": "Push", "group": "Push (langsung ke AND014)" },
@@ -569,7 +570,7 @@ const NETLIST = {
 }
 ;
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html"},"next":null};
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html"},"next":null,"ceUrl":"sheet-006-ce.html"};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -1048,6 +1049,7 @@ if(notes.length){
 
 /* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
 document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+if(NAV && NAV.ceUrl) document.getElementById('ceLink').href = NAV.ceUrl;
 const prevLink = document.getElementById('prevLink');
 if(NAV && NAV.prev){
   prevLink.href = NAV.prev.url;
