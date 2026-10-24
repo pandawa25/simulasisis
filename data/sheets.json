@@ -1,0 +1,278 @@
+{
+  "docTitle": "P02_UNIT_105 — Logic Diagram / Unit Control (SIS)",
+  "docVersion": "v1.175",
+  "sheets": [
+    {
+      "sheet": 1,
+      "slug": "sheet-001",
+      "tag": "P02",
+      "note": "Cover / index sheet",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 2,
+      "slug": "sheet-002",
+      "tag": "105-UC-001 / 002 / 024",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 3,
+      "slug": "sheet-003",
+      "tag": "105-UC-005 / 025",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 4,
+      "slug": "sheet-004",
+      "tag": "105-UC-007",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 5,
+      "slug": "sheet-005",
+      "tag": "105-UC-032 / 011 / 012 / 027",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 6,
+      "slug": "sheet-006",
+      "tag": "105-UC-009",
+      "note": "",
+      "status": "done",
+      "url": "sheets/sheet-006.html"
+    },
+    {
+      "sheet": 7,
+      "slug": "sheet-007",
+      "tag": "105-UC-010",
+      "note": "bagian a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 8,
+      "slug": "sheet-008",
+      "tag": "105-UC-010",
+      "note": "bagian b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 9,
+      "slug": "sheet-009",
+      "tag": "105-UC-010",
+      "note": "bagian c",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 10,
+      "slug": "sheet-010",
+      "tag": "105-UC-010",
+      "note": "bagian d",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 11,
+      "slug": "sheet-011",
+      "tag": "105-UC-010",
+      "note": "bagian e",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 12,
+      "slug": "sheet-012",
+      "tag": "105-UC-010",
+      "note": "bagian f",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 13,
+      "slug": "sheet-013",
+      "tag": "105-UC-003",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 14,
+      "slug": "sheet-014",
+      "tag": "105-UC-004",
+      "note": "bagian a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 15,
+      "slug": "sheet-015",
+      "tag": "105-UC-004",
+      "note": "bagian b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 16,
+      "slug": "sheet-016",
+      "tag": "105-UC-006",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 17,
+      "slug": "sheet-017",
+      "tag": "105-UC-008",
+      "note": "+ 026",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 18,
+      "slug": "sheet-018",
+      "tag": "105-UC-013",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 19,
+      "slug": "sheet-019",
+      "tag": "105-UC-014",
+      "note": "+ 016",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 20,
+      "slug": "sheet-020",
+      "tag": "105-UC-015",
+      "note": "+ 018, 028",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 21,
+      "slug": "sheet-021",
+      "tag": "105-UC-021",
+      "note": "+ 022, 023",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 22,
+      "slug": "sheet-022",
+      "tag": "105-UC-019",
+      "note": "+ 029",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 23,
+      "slug": "sheet-023",
+      "tag": "105-UC-020",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 24,
+      "slug": "sheet-024",
+      "tag": "105-UC-030",
+      "note": "bagian 1",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 25,
+      "slug": "sheet-025",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 26,
+      "slug": "sheet-026",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 27,
+      "slug": "sheet-027",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2c",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 28,
+      "slug": "sheet-028",
+      "tag": "105-UC-030",
+      "note": "bagian 3a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 29,
+      "slug": "sheet-029",
+      "tag": "105-UC-030",
+      "note": "bagian 3b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 30,
+      "slug": "sheet-030",
+      "tag": "105-UC-031",
+      "note": "bagian 1",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 31,
+      "slug": "sheet-031",
+      "tag": "105-UC-031",
+      "note": "bagian 2",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 32,
+      "slug": "sheet-032",
+      "tag": "CPRS",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 33,
+      "slug": "sheet-033",
+      "tag": "XA003",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 34,
+      "slug": "sheet-034",
+      "tag": "XA009",
+      "note": "",
+      "status": "pending",
+      "url": null
+    }
+  ]
+}

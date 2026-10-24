@@ -1,0 +1,125 @@
+{
+  "id": "105-UC-009",
+  "title": "105-UC-009",
+  "sheetRef": "Sheet 6 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)",
+    "ESD Pushbutton — Grup B (→ RS_B)",
+    "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)",
+    "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)",
+    "Level / MOS",
+    "Recycle / MOS",
+    "Push (langsung ke AND014)",
+    "Valve Position",
+    "Lainnya",
+    "Reset (manual, per latch)",
+    "Voting Temperature HH — 2oo9"
+  ],
+  "effectGroups": [
+    "Output Proses (ke lapangan)",
+    "Internal HMI (monitor saja)"
+  ],
+  "nodes": {
+    "in_f105HS007A":  { "type": "INPUT", "label": "f105HS007A", "desc": "ESD", "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)" },
+    "in_f105HS007B":  { "type": "INPUT", "label": "f105HS007B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)" },
+
+    "in_f105HS002AE": { "type": "INPUT", "label": "f105HS002AE", "desc": "ESD", "group": "ESD Pushbutton — Grup B (→ RS_B)" },
+    "in_f105HS002B":  { "type": "INPUT", "label": "f105HS002B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup B (→ RS_B)" },
+
+    "in_f105HS006A":  { "type": "INPUT", "label": "f105HS006A", "desc": "ESD Button", "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)" },
+    "in_f105HS006B":  { "type": "INPUT", "label": "f105HS006B", "desc": "ESD Button", "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)" },
+
+    "in_f105HS019AE": { "type": "INPUT", "label": "f105HS019AE", "desc": "ESD", "group": "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)" },
+    "in_f105HS019B":  { "type": "INPUT", "label": "f105HS019B", "desc": "Push", "group": "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)" },
+
+    "in_m105LSHH019": { "type": "INPUT", "label": "m105LSHH019", "desc": "HDS", "group": "Level / MOS" },
+    "in_f105HS019M":  { "type": "INPUT", "label": "f105HS019M", "desc": "MOS", "group": "Level / MOS" },
+    "in_m105LSLL009": { "type": "INPUT", "label": "m105LSLL009", "desc": "Level in", "group": "Level / MOS" },
+    "in_f105HS009M":  { "type": "INPUT", "label": "f105HS009M", "desc": "MOS", "group": "Level / MOS" },
+
+    "in_m105LSHH030": { "type": "INPUT", "label": "m105LSHH030", "desc": "Recycle", "group": "Recycle / MOS" },
+    "in_f105HS030LM": { "type": "INPUT", "label": "f105HS030LM", "desc": "MOS", "group": "Recycle / MOS" },
+    "in_m105FSLL030": { "type": "INPUT", "label": "m105FSLL030", "desc": "Recycle", "group": "Recycle / MOS" },
+    "in_f105HS030M":  { "type": "INPUT", "label": "f105HS030M", "desc": "MOS", "group": "Recycle / MOS" },
+
+    "in_f105HS010A":  { "type": "INPUT", "label": "f105HS010A", "desc": "ESD", "group": "Push (langsung ke AND014)" },
+    "in_f105HS010B":  { "type": "INPUT", "label": "f105HS010B", "desc": "Push", "group": "Push (langsung ke AND014)" },
+
+    "in_f105ZSO010":  { "type": "INPUT", "label": "f105ZSO010", "desc": "Open", "group": "Valve Position" },
+
+    "in_f105XS012":   { "type": "INPUT", "label": "f105XS012", "desc": "-", "group": "Lainnya" },
+
+    "in_f105HS005UCR":{ "type": "INPUT", "label": "f105HS005UCR", "desc": "Reset RS_A", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS025UCR":{ "type": "INPUT", "label": "f105HS025UCR", "desc": "Reset RS_B", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS009UCR":{ "type": "INPUT", "label": "f105HS009UCR", "desc": "Reset RST_F", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS007UCR":{ "type": "INPUT", "label": "f105HS007UCR", "desc": "Reset RST_D", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS012UCR":{ "type": "INPUT", "label": "f105HS012UCR", "desc": "Reset RST_C", "isReset": true, "group": "Reset (manual, per latch)" },
+
+    "in_m105TSHH072": { "type": "INPUT", "label": "m105TSHH072", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH093": { "type": "INPUT", "label": "m105TSHH093", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH094": { "type": "INPUT", "label": "m105TSHH094", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH095": { "type": "INPUT", "label": "m105TSHH095", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH096": { "type": "INPUT", "label": "m105TSHH096", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH097": { "type": "INPUT", "label": "m105TSHH097", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH098": { "type": "INPUT", "label": "m105TSHH098", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH099": { "type": "INPUT", "label": "m105TSHH099", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+    "in_m105TSHH100": { "type": "INPUT", "label": "m105TSHH100", "desc": "HDS", "group": "Voting Temperature HH — 2oo9" },
+
+    "g001_OR":  { "type": "OR", "gateId": "001", "inputs": ["in_m105LSHH019", "in_f105HS019M"] },
+    "g004_OR":  { "type": "OR", "gateId": "004", "inputs": ["in_m105LSLL009", "in_f105HS009M"] },
+    "g005_AND": { "type": "AND", "gateId": "005", "inputs": ["in_f105HS007A", "in_f105HS007B"] },
+    "g006_OR":  { "type": "OR", "gateId": "006", "inputs": ["in_m105FSLL030", "in_f105HS030M"] },
+    "g007_AND": { "type": "AND", "gateId": "007", "inputs": ["in_f105HS002AE", "in_f105HS002B"] },
+    "g011_AND": { "type": "AND", "gateId": "011", "inputs": ["in_f105HS006A", "in_f105HS006B"] },
+    "g012_OR":  { "type": "OR", "gateId": "012", "inputs": ["in_m105LSHH030", "in_f105HS030LM"] },
+    "g013_AND": { "type": "AND", "gateId": "013", "inputs": ["in_f105HS019AE", "in_f105HS019B"] },
+
+    "rsA_006":  { "type": "RS", "gateId": "006", "label": "RS_105UC009_A", "s": "g005_AND", "r": "in_f105HS005UCR" },
+    "rsB_008":  { "type": "RS", "gateId": "008", "label": "RS_105UC009_B", "s": "g007_AND", "r": "in_f105HS025UCR" },
+    "rstF_002": { "type": "RS", "gateId": "002", "label": "RST_105UC009_F", "s": "g001_OR", "r": "in_f105HS009UCR" },
+
+    "g009_AND": { "type": "AND", "gateId": "009", "inputs": ["rsA_006", "g004_OR", "g006_OR"] },
+    "rstD_010": { "type": "RS", "gateId": "010", "label": "RST_105UC009_D", "s": "g009_AND", "r": "in_f105HS007UCR" },
+
+    "g014_AND": { "type": "AND", "gateId": "014", "inputs": ["g011_AND", "g012_OR", "in_f105HS010A", "in_f105HS010B", "g013_AND"] },
+    "rstC_015": { "type": "RS", "gateId": "015", "label": "RST_105UC009_C", "s": "g014_AND", "r": "in_f105HS012UCR" },
+
+    "vot_017": { "type": "VOTING", "gateId": "017", "label": "VOT_009_105UC009", "k": 2,
+      "inputs": ["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"] },
+
+    "g018_AND": { "type": "AND", "gateId": "018", "inputs": ["rstD_010", "rsB_008", "rstC_015", "vot_017"] },
+
+    "rstE_019": { "type": "RS", "gateId": "019", "label": "RST_105UC009_E", "s": "rstF_002", "r": "g018_AND" },
+
+    "g020_AND": { "type": "AND", "gateId": "020", "inputs": ["rstE_019", "in_f105ZSO010"] },
+
+    "g003_AND": { "type": "AND", "gateId": "003", "inputs": ["rstF_002", "g020_AND"] },
+
+    "mv_feed1": { "type": "BUFFER", "gateId": "021", "label": "MOVE (FEED1)", "input": "g020_AND" },
+
+    "mv_xs012": { "type": "BUFFER", "gateId": "022", "label": "MOVE", "input": "in_f105XS012" },
+    "not_023":  { "type": "NOT", "gateId": "023", "input": "mv_xs012" },
+
+    "out_f105UY011":  { "type": "OUTPUT", "label": "f105UY011", "desc": "Splitter", "source": "g003_AND", "group": "Output Proses (ke lapangan)" },
+    "out_HDSReedAE":  { "type": "OUTPUT", "label": "f105HS505AE", "desc": "HDS Reed", "source": "mv_feed1", "group": "Output Proses (ke lapangan)" },
+    "out_HDSReedBE":  { "type": "OUTPUT", "label": "f105HS505BE", "desc": "HDS Reed", "source": "mv_feed1", "group": "Output Proses (ke lapangan)" },
+    "out_f105XA097":  { "type": "OUTPUT", "label": "f105XA097", "desc": "HDS", "source": "vot_017", "group": "Output Proses (ke lapangan)" },
+    "out_f105FALL030":{ "type": "OUTPUT", "label": "f105FALL030", "desc": "RECYCLE", "source": "not_023", "group": "Output Proses (ke lapangan)" },
+
+    "out_RS1_HMI":    { "type": "OUTPUT", "label": "RS_1_105UC009", "desc": "Internal HMI", "source": "rstF_002", "group": "Internal HMI (monitor saja)" },
+    "out_AND1_HMI":   { "type": "OUTPUT", "label": "AND_1_105UC009", "desc": "Internal HMI", "source": "g018_AND", "group": "Internal HMI (monitor saja)" },
+    "out_VOT1_HMI":   { "type": "OUTPUT", "label": "VOT_1_105UC009", "desc": "Internal HMI", "source": "vot_017", "group": "Internal HMI (monitor saja)" },
+    "out_FEED1_tag":  { "type": "OUTPUT", "label": "AND_105UC009_FEED1", "desc": "Sinyal internal (dipakai ulang di AND003)", "source": "g020_AND", "group": "Internal HMI (monitor saja)" }
+  },
+  "notes": [
+    "RS latch = pulse-to-set (dikonfirmasi user, BUKAN set-dominant klasik): S FALSE -> Q langsung FALSE & terkunci di situ (apapun R-nya). S TRUE -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja naik 0->1 (pulsa sesaat) pada saat S TRUE, baru Q jadi TRUE. Jadi mengunci true butuh: S TRUE dulu, lalu pulsa R 0->1->0.",
+    "Simbol lingkaran kecil di pin R1 pada semua blok RS adalah simbol standar pin Reset pada block RS di gambar asli (konsisten di 6 blok RS), BUKAN inversi logika — jadi R1 diperlakukan non-inverted.",
+    "AND_105UC009_FEED1 adalah sinyal internal: dihitung di output AND020, lalu direferensikan ulang sebagai input kedua AND003 (bukan feedback loop, murni feedforward karena AND020 tidak bergantung pada AND003).",
+    "RST_105UC009_E.S = RST_105UC009_F.Q1 (dikonfirmasi via T-junction eksplisit pada wire Q1 RST_F).",
+    "AND009 = AND 3-input (RS_A.Q1, OR004.out, OR006.out) — dikonfirmasi via jumlah pin.",
+    "AND014 = AND 5-input, AND018 = AND 4-input — dikonfirmasi via jumlah pin + tracing junction.",
+    "VOT_009_105UC009 = voting 2 dari 9 (2oo9) sesuai label block.",
+    "Koreksi logika VOTING (dikonfirmasi user): bertipe 'sehat jika kompak', BUKAN klasik k-of-n TRUE. Input normal/sehat = TRUE; output voting langsung jadi FALSE begitu jumlah input yang FALSE mencapai k (2oo9 -> output FALSE kalau >=2 dari 9 input FALSE). Jadi output = (jumlah input FALSE < k).",
+    "Perhatian logika: AND018 (gabungan RST_D, RS_B, RST_C, Voting) adalah pin R (pulsa-set, lihat konvensi RS di atas) untuk RST_E, bukan S — jadi RST_E baru bisa 'diset ulang' kalau keempat initiator itu kompak TRUE bersamaan DAN S-nya (RST_F.Q1) juga TRUE."
+  ]
+}

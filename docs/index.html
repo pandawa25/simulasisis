@@ -1,0 +1,496 @@
+<title>Portal Simulator SIS — 105-UC (34 Sheet)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --accent:#b9770e;
+  --accent-fg:#5c3a07;
+  --done:#1f8a4c;
+  --done-bg:#e4f6ec;
+  --pending-fg:#8793a6;
+  --pending-bg:#eef1f5;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+    --done:#36c17a; --done-bg:#0f2a1b; --pending-fg:#5b6676; --pending-bg:#171f2e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+  --done:#36c17a; --done-bg:#0f2a1b; --pending-fg:#5b6676; --pending-bg:#171f2e;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--disp); margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:20; background:var(--panel); }
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1200px; margin:0 auto; padding-bottom:48px}
+
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:16px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.1rem; font-weight:700; letter-spacing:.01em}
+.topbar .sub{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.active{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.toolbar{display:flex; align-items:center; gap:10px; padding:16px 4px 4px; flex-wrap:wrap}
+.search{
+  flex:1 1 220px; font-family:var(--disp); font-size:.86rem; padding:9px 12px;
+  border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--fg);
+}
+.search:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.filter-group{display:flex; gap:6px}
+
+.progress-bar{
+  margin:14px 4px 0; height:8px; border-radius:5px; background:var(--panel-2);
+  border:1px solid var(--border); overflow:hidden;
+}
+.progress-bar > div{height:100%; background:var(--done); transition:width .3s}
+.progress-label{font-size:.72rem; color:var(--fg-dim); margin:6px 4px 0; font-family:var(--mono)}
+
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:12px;
+  padding:16px 4px 4px;
+}
+.card{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px;
+  display:flex; flex-direction:column; gap:8px; text-decoration:none; color:inherit;
+  transition:border-color .15s, transform .1s;
+}
+.card.done{cursor:pointer}
+.card.done:hover{border-color:var(--accent); transform:translateY(-1px)}
+.card.pending{opacity:.62}
+.card-top{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.sheet-no{font-family:var(--mono); font-size:.68rem; color:var(--fg-dim); letter-spacing:.04em}
+.badge{
+  font-family:var(--mono); font-size:.65rem; font-weight:700; padding:3px 9px; border-radius:20px;
+  white-space:nowrap;
+}
+.badge.done{background:var(--done-bg); color:var(--done)}
+.badge.pending{background:var(--pending-bg); color:var(--pending-fg)}
+.card-tag{font-family:var(--mono); font-size:.92rem; font-weight:650; line-height:1.3}
+.card-note{font-size:.76rem; color:var(--fg-dim)}
+.card-action{font-size:.74rem; font-weight:650; color:var(--accent); margin-top:2px}
+
+.empty{padding:40px 4px; text-align:center; color:var(--fg-dim); font-size:.86rem}
+.footnote{padding:24px 4px 4px; font-size:.74rem; color:var(--fg-dim); line-height:1.6}
+</style>
+
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Portal Simulator Logic — <span id="docTitle"></span></h1>
+      <div class="sub" id="docVersion"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+  </div>
+
+  <div class="toolbar">
+    <input class="search" id="searchBox" type="text" placeholder="Cari nomor sheet atau tag UC (mis. 009, UC-010, CPRS)...">
+    <div class="filter-group">
+      <button class="btn active" id="filterAll" type="button">Semua</button>
+      <button class="btn" id="filterDone" type="button">Selesai</button>
+      <button class="btn" id="filterPending" type="button">Belum</button>
+    </div>
+  </div>
+
+  <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
+  <div class="progress-label" id="progressLabel"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyMsg" style="display:none">Tidak ada sheet yang cocok dengan pencarian/filter.</div>
+
+  <div class="footnote">
+    Setiap sheet dikerjakan bertahap: kirim gambar logic diagram sheet berikutnya untuk di-reverse-engineering jadi simulator interaktif (netlist JSON + engine RS/VOTING/AND/OR yang sama dipakai ulang di semua sheet). Sheet berstatus <b>Selesai</b> bisa diklik untuk membuka simulatornya; <b>Belum</b> masih menunggu giliran.
+  </div>
+</div>
+
+<script>
+const DATA = {
+  "docTitle": "P02_UNIT_105 — Logic Diagram / Unit Control (SIS)",
+  "docVersion": "v1.175",
+  "sheets": [
+    {
+      "sheet": 1,
+      "slug": "sheet-001",
+      "tag": "P02",
+      "note": "Cover / index sheet",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 2,
+      "slug": "sheet-002",
+      "tag": "105-UC-001 / 002 / 024",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 3,
+      "slug": "sheet-003",
+      "tag": "105-UC-005 / 025",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 4,
+      "slug": "sheet-004",
+      "tag": "105-UC-007",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 5,
+      "slug": "sheet-005",
+      "tag": "105-UC-032 / 011 / 012 / 027",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 6,
+      "slug": "sheet-006",
+      "tag": "105-UC-009",
+      "note": "",
+      "status": "done",
+      "url": "sheets/sheet-006.html"
+    },
+    {
+      "sheet": 7,
+      "slug": "sheet-007",
+      "tag": "105-UC-010",
+      "note": "bagian a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 8,
+      "slug": "sheet-008",
+      "tag": "105-UC-010",
+      "note": "bagian b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 9,
+      "slug": "sheet-009",
+      "tag": "105-UC-010",
+      "note": "bagian c",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 10,
+      "slug": "sheet-010",
+      "tag": "105-UC-010",
+      "note": "bagian d",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 11,
+      "slug": "sheet-011",
+      "tag": "105-UC-010",
+      "note": "bagian e",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 12,
+      "slug": "sheet-012",
+      "tag": "105-UC-010",
+      "note": "bagian f",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 13,
+      "slug": "sheet-013",
+      "tag": "105-UC-003",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 14,
+      "slug": "sheet-014",
+      "tag": "105-UC-004",
+      "note": "bagian a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 15,
+      "slug": "sheet-015",
+      "tag": "105-UC-004",
+      "note": "bagian b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 16,
+      "slug": "sheet-016",
+      "tag": "105-UC-006",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 17,
+      "slug": "sheet-017",
+      "tag": "105-UC-008",
+      "note": "+ 026",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 18,
+      "slug": "sheet-018",
+      "tag": "105-UC-013",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 19,
+      "slug": "sheet-019",
+      "tag": "105-UC-014",
+      "note": "+ 016",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 20,
+      "slug": "sheet-020",
+      "tag": "105-UC-015",
+      "note": "+ 018, 028",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 21,
+      "slug": "sheet-021",
+      "tag": "105-UC-021",
+      "note": "+ 022, 023",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 22,
+      "slug": "sheet-022",
+      "tag": "105-UC-019",
+      "note": "+ 029",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 23,
+      "slug": "sheet-023",
+      "tag": "105-UC-020",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 24,
+      "slug": "sheet-024",
+      "tag": "105-UC-030",
+      "note": "bagian 1",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 25,
+      "slug": "sheet-025",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 26,
+      "slug": "sheet-026",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 27,
+      "slug": "sheet-027",
+      "tag": "105-UC-017-030",
+      "note": "bagian 2c",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 28,
+      "slug": "sheet-028",
+      "tag": "105-UC-030",
+      "note": "bagian 3a",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 29,
+      "slug": "sheet-029",
+      "tag": "105-UC-030",
+      "note": "bagian 3b",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 30,
+      "slug": "sheet-030",
+      "tag": "105-UC-031",
+      "note": "bagian 1",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 31,
+      "slug": "sheet-031",
+      "tag": "105-UC-031",
+      "note": "bagian 2",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 32,
+      "slug": "sheet-032",
+      "tag": "CPRS",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 33,
+      "slug": "sheet-033",
+      "tag": "XA003",
+      "note": "",
+      "status": "pending",
+      "url": null
+    },
+    {
+      "sheet": 34,
+      "slug": "sheet-034",
+      "tag": "XA009",
+      "note": "",
+      "status": "pending",
+      "url": null
+    }
+  ]
+};
+
+document.getElementById('docTitle').textContent = DATA.docTitle || '';
+document.getElementById('docVersion').textContent = DATA.docVersion || '';
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-portal-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-portal-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= render grid ======================= */
+const grid = document.getElementById('grid');
+const emptyMsg = document.getElementById('emptyMsg');
+const searchBox = document.getElementById('searchBox');
+const filterBtns = {
+  all: document.getElementById('filterAll'),
+  done: document.getElementById('filterDone'),
+  pending: document.getElementById('filterPending')
+};
+let activeFilter = 'all';
+
+function matches(item, q){
+  if(!q) return true;
+  const hay = (String(item.sheet) + ' ' + item.tag + ' ' + (item.note || '')).toLowerCase();
+  return hay.indexOf(q.toLowerCase()) !== -1;
+}
+
+function render(){
+  const q = searchBox.value.trim();
+  grid.innerHTML = '';
+  let shown = 0;
+  DATA.sheets.forEach(function(item){
+    if(activeFilter !== 'all' && item.status !== activeFilter) return;
+    if(!matches(item, q)) return;
+    shown++;
+    const isDone = item.status === 'done';
+    const tag = isDone ? document.createElement('a') : document.createElement('div');
+    tag.className = 'card ' + item.status;
+    if(isDone){ tag.href = item.url; tag.target = '_blank'; tag.rel = 'noopener noreferrer'; }
+    const sheetLabel = 'Sheet ' + String(item.sheet).padStart(3, '0');
+    tag.innerHTML =
+      '<div class="card-top">' +
+        '<span class="sheet-no">' + sheetLabel + '</span>' +
+        '<span class="badge ' + item.status + '">' + (isDone ? 'SELESAI' : 'BELUM') + '</span>' +
+      '</div>' +
+      '<div class="card-tag">' + item.tag + '</div>' +
+      (item.note ? '<div class="card-note">' + item.note + '</div>' : '') +
+      (isDone ? '<div class="card-action">Buka simulator →</div>' : '');
+    grid.appendChild(tag);
+  });
+  emptyMsg.style.display = shown === 0 ? 'block' : 'none';
+}
+
+searchBox.addEventListener('input', render);
+Object.keys(filterBtns).forEach(function(key){
+  filterBtns[key].addEventListener('click', function(){
+    activeFilter = key;
+    Object.keys(filterBtns).forEach(function(k){ filterBtns[k].classList.toggle('active', k === key); });
+    render();
+  });
+});
+
+/* ======================= progress ======================= */
+const total = DATA.sheets.length;
+const doneCount = DATA.sheets.filter(function(s){ return s.status === 'done'; }).length;
+document.getElementById('progressFill').style.width = (total ? (doneCount / total * 100) : 0) + '%';
+document.getElementById('progressLabel').textContent = doneCount + ' dari ' + total + ' sheet selesai (' + Math.round(total ? doneCount / total * 100 : 0) + '%)';
+
+render();
+</script>
