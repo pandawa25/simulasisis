@@ -1,0 +1,13 @@
+{
+  "name": "simulasisis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulator SIS/Unit-Control P02_UNIT_105 — portal + simulator interaktif per sheet",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

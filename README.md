@@ -11,9 +11,16 @@ docs/sheets/*.html      # simulator tiap sheet
 ```
 Buka `docs/index.html` di browser mana pun (double-click / `file://`, atau serve pakai web server statis apa saja). Tidak perlu `npm install`, tidak perlu server khusus.
 
-**Hosting via GitHub Pages (opsional, supaya ada link publik):**
+**Hosting via GitHub Pages (opsional, supaya ada link publik gratis):**
 1. Settings → Pages → Source: `Deploy from a branch` → Branch `main`, folder `/docs`.
 2. Tunggu beberapa menit, portal akan live di `https://<username>.github.io/simulasisis/`.
+
+**Deploy ke Railway:**
+1. Railway → New Project → Deploy from GitHub repo → pilih `simulasisis`.
+2. Railway otomatis mendeteksi `package.json` → jalankan build command dari `railway.json` (`node scripts/build.js`, merender ulang `docs/` dari source terbaru) lalu start command (`node server.js`, static file server bawaan yang serve folder `docs/`).
+3. Tidak perlu env var khusus — `server.js` sudah otomatis pakai `PORT` yang di-inject Railway.
+4. Settings → Networking → Generate Domain untuk dapat URL publik (`*.up.railway.app`), atau pasang custom domain.
+5. Setiap push ke `main` otomatis re-deploy (build ulang `docs/` + restart server) — jadi sheet baru yang di-commit langsung live tanpa langkah manual tambahan.
 
 ## Struktur repo
 
@@ -24,7 +31,10 @@ templates/portal.template.html # template UI portal/menu 34 sheet
 data/sheets.json               # daftar master 34 sheet: nomor, tag UC, status, slug
 data/netlists/<slug>.json      # netlist per sheet (hasil reverse-engineering dari gambar) — hanya ada utk sheet yg sudah digarap
 scripts/build.js                # build script (Node.js core only, tanpa dependency) — rakit template+engine+netlist -> docs/
-docs/                            # OUTPUT HASIL BUILD — siap di-serve langsung atau via GitHub Pages
+docs/                            # OUTPUT HASIL BUILD — siap di-serve langsung, via GitHub Pages, atau Railway
+server.js                        # static file server (Node core only, tanpa dependency) — serve docs/, dipakai saat deploy ke Railway
+package.json                     # scripts.build (rebuild docs/) & scripts.start (jalankan server.js) — dipakai Railway
+railway.json                     # config eksplisit build/start command untuk Railway
 ARSITEKTUR.md                    # catatan arsitektur & konvensi logic detail (RS, VOTING, dst)
 ```
 
@@ -51,6 +61,12 @@ Build script otomatis:
 ## Status
 
 34 sheet total dari dokumen `P02_UNIT_105 v1.175`. Progress terkini ada di portal (`docs/index.html`, progress bar + filter Selesai/Belum) dan di `data/sheets.json`. Dikerjakan bertahap, satu sheet per reverse-engineering gambar logic diagram aslinya.
+
+## Troubleshooting deploy Railway
+
+- **"Railpack failed to prepare the build"** — biasanya karena belum ada `package.json`/`railway.json` sama sekali (repo keliatan sebagai folder statis biasa, bukan project yang jelas cara build/run-nya). Sudah diatasi dengan menambahkan `package.json`, `server.js`, dan `railway.json` di root repo.
+- **Build jalan tapi "Service offline" / app crash setelah start** — cek tab `Console`/`View logs` di Railway. Penyebab umum: app listen di port hardcode (mis. `3000`) padahal Railway inject port dinamis lewat env var `PORT` — `server.js` di repo ini sudah menangani ini (`process.env.PORT`), jadi seharusnya tidak kena masalah ini.
+- **Portal/sheet baru tidak muncul walau sudah di-commit** — pastikan `node scripts/build.js` sempat dijalankan (baik manual sebelum commit, atau otomatis lewat `buildCommand` di `railway.json` saat Railway deploy) sebelum `docs/` dibaca oleh `server.js`.
 
 ## Catatan teknis penting
 
