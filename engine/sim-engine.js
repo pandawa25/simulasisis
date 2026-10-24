@@ -61,11 +61,11 @@
     const nodes = netlist.nodes;
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
-    // (Q_prev untuk hold, R_prev untuk deteksi pulsa 0->1 pada pin R/"Reset")
-    const state = { values: {}, rsPrev: {}, rPrev: {} };
+    // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
+    const state = { values: {}, rsPrev: {} };
     for (const id in nodes) {
       state.values[id] = false;
-      if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
     }
 
     function step(inputOverrides) {
@@ -100,19 +100,22 @@
             break;
           }
           case "RS": {
-            // Pulse-to-set, S sebagai enable + clear-langsung:
-            //  - S=FALSE  -> Q langsung FALSE dan terkunci di situ (apapun R-nya).
-            //  - S=TRUE   -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja
-            //               naik dari 0->1 (pulsa sesaat) pada step ini -> Q jadi TRUE.
+            // Bistable Reset Dominant, PERSIS formula resmi IEC 61131-3
+            // "RS.ST" (dikonfirmasi user lewat source function block asli):
+            //   Q1 := (Q1 OR S) AND NOT R1
+            // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
+            // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
+            // ini, lihat ARSITEKTUR.md Koreksi #9).
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = NOT(R1_vendor)
+            // = sinyal sehat/health (dominant-clear); 'r' = S_vendor mentah
+            // (tag reset manual, vendor menyebutnya "Set" krn menyetel Q1
+            // TRUE, meski secara SIS itu tombol reset).
             const s = v[n.s];
             const r = v[n.r];
-            const rPrevVal = state.rPrev[id];
             const qPrev = state.rsPrev[id];
-            const risingEdge = r && !rPrevVal;
-            const next = !s ? false : (risingEdge ? true : qPrev);
+            const next = s && (qPrev || r);
             v[id] = next;
             state.rsPrev[id] = next;
-            state.rPrev[id] = r;
             break;
           }
           case "OUTPUT":
@@ -128,7 +131,7 @@
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
-        if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
       }
     }
 

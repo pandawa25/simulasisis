@@ -360,11 +360,11 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     const nodes = netlist.nodes;
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
-    // (Q_prev untuk hold, R_prev untuk deteksi pulsa 0->1 pada pin R/"Reset")
-    const state = { values: {}, rsPrev: {}, rPrev: {} };
+    // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
+    const state = { values: {}, rsPrev: {} };
     for (const id in nodes) {
       state.values[id] = false;
-      if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
     }
 
     function step(inputOverrides) {
@@ -399,19 +399,22 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             break;
           }
           case "RS": {
-            // Pulse-to-set, S sebagai enable + clear-langsung:
-            //  - S=FALSE  -> Q langsung FALSE dan terkunci di situ (apapun R-nya).
-            //  - S=TRUE   -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja
-            //               naik dari 0->1 (pulsa sesaat) pada step ini -> Q jadi TRUE.
+            // Bistable Reset Dominant, PERSIS formula resmi IEC 61131-3
+            // "RS.ST" (dikonfirmasi user lewat source function block asli):
+            //   Q1 := (Q1 OR S) AND NOT R1
+            // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
+            // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
+            // ini, lihat ARSITEKTUR.md Koreksi #9).
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = NOT(R1_vendor)
+            // = sinyal sehat/health (dominant-clear); 'r' = S_vendor mentah
+            // (tag reset manual, vendor menyebutnya "Set" krn menyetel Q1
+            // TRUE, meski secara SIS itu tombol reset).
             const s = v[n.s];
             const r = v[n.r];
-            const rPrevVal = state.rPrev[id];
             const qPrev = state.rsPrev[id];
-            const risingEdge = r && !rPrevVal;
-            const next = !s ? false : (risingEdge ? true : qPrev);
+            const next = s && (qPrev || r);
             v[id] = next;
             state.rsPrev[id] = next;
-            state.rPrev[id] = r;
             break;
           }
           case "OUTPUT":
@@ -427,7 +430,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
-        if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
       }
     }
 
@@ -566,7 +569,7 @@ const NETLIST = {
     "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."
   ],
   "notes": [
-    "Aturan latch RS: begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output baru menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) dipulsa sesaat (bukan ditahan terus).",
+    "Aturan latch RS (formula resmi IEC 61131-3 'RS.ST', lihat Koreksi #9 di ARSITEKTUR.md): Q1 := (Q1 OR S) AND NOT R1. Begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (murni kombinasional, bukan rising-edge).",
     "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
     "AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
     "Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.",

@@ -126,7 +126,7 @@
     "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."
   ],
   "notes": [
-    "Aturan latch RS: begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output baru menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) dipulsa sesaat (bukan ditahan terus).",
+    "Aturan latch RS (formula resmi IEC 61131-3 'RS.ST', lihat Koreksi #9 di ARSITEKTUR.md): Q1 := (Q1 OR S) AND NOT R1. Begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (murni kombinasional, bukan rising-edge).",
     "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
     "AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)",
     "Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.",
