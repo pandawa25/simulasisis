@@ -106,6 +106,16 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
 .btn:focus-visible, .pin:focus-visible, summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+/* subnav: navigasi ke portal + sheet sebelumnya/berikutnya, supaya
+   halaman-halaman yang berkaitan gampang dijangkau (bukan dead-end). */
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
 
 /* layout */
 .layout{padding:16px 4px}
@@ -173,11 +183,15 @@ details{border:1px solid var(--border); border-radius:10px; padding:8px 12px; ba
 summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .notes{margin:10px 0 0; padding-left:18px; font-size:.78rem; color:var(--fg-dim); line-height:1.55}
 .notes li{margin-bottom:6px}
-textarea.jsonbox{
-  width:100%; height:220px; margin-top:8px; font-family:var(--mono); font-size:.68rem;
-  background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px; resize:vertical;
-}
-.copybtn{margin-top:6px}
+
+/* ringkasan cara kerja — bahasa biasa, bukan istilah teknis netlist */
+.summary-text{font-size:.86rem; line-height:1.6; color:var(--fg)}
+.summary-text p{margin:0 0 10px}
+.summary-text p:last-child{margin-bottom:0}
+
+/* detail tambahan (catatan teknis/asumsi) — ditaruh di paling bawah
+   halaman, collapsed by default, untuk yang perlu cek lebih dalam saja */
+.detail-section{margin:16px 4px 0}
 
 /* svg node styling */
 .node-rect{fill:var(--panel-2); stroke:var(--border); stroke-width:1.3}
@@ -227,6 +241,14 @@ textarea.jsonbox{
     <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
   </div>
 
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Simulator ini bagian dari 34 sheet logic diagram — klik "Semua Sheet" untuk balik ke daftar lengkap.</span>
+  </div>
+
   <div class="layout">
     <div class="canvas-toolbar">
       <div class="zoom-ctrl">
@@ -247,16 +269,18 @@ textarea.jsonbox{
         <h2>Status Latch (RS)</h2>
         <div class="dock-row" id="latchList"></div>
       </div>
-      <details>
-        <summary>Asumsi &amp; catatan verifikasi</summary>
-        <ol class="notes" id="notesList"></ol>
-      </details>
-      <details>
-        <summary>Netlist JSON (untuk cek / edit / arsip halaman lain)</summary>
-        <textarea class="jsonbox" id="jsonBox" readonly></textarea>
-        <button class="btn copybtn" id="copyBtn" type="button">Salin JSON</button>
-      </details>
+      <div class="card" id="summaryCard">
+        <h2>Cara Kerja (Ringkasan)</h2>
+        <div class="summary-text" id="summaryText"></div>
+      </div>
     </div>
+  </div>
+
+  <div class="detail-section" id="detailSection" style="display:none">
+    <details>
+      <summary>Detail tambahan &amp; catatan teknis</summary>
+      <ol class="notes" id="notesList"></ol>
+    </details>
   </div>
 </div>
 
@@ -275,6 +299,8 @@ textarea.jsonbox{
 <!--ENGINE_JS-->
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = <!--NETLIST_JSON-->;
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = <!--NAV_JSON-->;
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -725,29 +751,46 @@ OUT_IDS.forEach(function(id){
 document.getElementById('pageTitle').textContent = 'Simulator Logic — ' + (NETLIST.title || NETLIST.id);
 document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
 
-const notesList = document.getElementById('notesList');
-(NETLIST.notes || []).forEach(function(note){
-  const li = document.createElement('li');
-  li.textContent = note;
-  notesList.appendChild(li);
-});
+/* ======================= ringkasan cara kerja (bahasa biasa) ======================= */
+const summaryCard = document.getElementById('summaryCard');
+const summaryText = document.getElementById('summaryText');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  summaryParas.forEach(function(para){
+    const p = document.createElement('p');
+    p.textContent = para;
+    summaryText.appendChild(p);
+  });
+} else {
+  summaryCard.style.display = 'none';
+}
 
-const jsonBox = document.getElementById('jsonBox');
-jsonBox.value = JSON.stringify(NETLIST, null, 2);
-document.getElementById('copyBtn').addEventListener('click', function(){
-  const btn = this;
-  function fallback(){
-    jsonBox.focus(); jsonBox.select();
-    btn.textContent = 'Tersalin ✓';
-    setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
-  }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(jsonBox.value).then(function(){
-      btn.textContent = 'Tersalin ✓';
-      setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
-    }).catch(fallback);
-  } else { fallback(); }
-});
+/* ======================= detail tambahan / catatan teknis (collapsed, di bawah) ======================= */
+const notesList = document.getElementById('notesList');
+const notes = NETLIST.notes || [];
+if(notes.length){
+  notes.forEach(function(note){
+    const li = document.createElement('li');
+    li.textContent = note;
+    notesList.appendChild(li);
+  });
+  document.getElementById('detailSection').style.display = '';
+}
+
+/* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
 
 /* ======================= status dock (panel bawah) ======================= */
 const statusDock = document.getElementById('statusDock');

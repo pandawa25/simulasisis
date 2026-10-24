@@ -49,6 +49,13 @@ function main() {
   const portalTpl = read(PORTAL_TPL_PATH);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
+  // pass 1: tentukan sheet mana yang punya netlist (sudah "done") —
+  // urutannya mengikuti urutan nomor sheet di sheets.json, dipakai untuk
+  // link navigasi "sheet sebelumnya/berikutnya" di tiap halaman simulator.
+  const doneEntries = sheetsData.sheets.filter(function (entry) {
+    return entry.slug && fs.existsSync(path.join(NETLIST_DIR, entry.slug + '.json'));
+  });
+
   let builtCount = 0;
   sheetsData.sheets.forEach(function (entry) {
     if (!entry.slug) return;
@@ -60,11 +67,22 @@ function main() {
     }
     const netlistJson = read(netlistPath);
     const netlist = JSON.parse(netlistJson); // validasi JSON sekalian
+
+    const doneIdx = doneEntries.indexOf(entry);
+    const prevEntry = doneEntries[doneIdx - 1] || null;
+    const nextEntry = doneEntries[doneIdx + 1] || null;
+    const nav = {
+      portalUrl: '../index.html',
+      prev: prevEntry ? { sheet: prevEntry.sheet, tag: prevEntry.tag, url: prevEntry.slug + '.html' } : null,
+      next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '.html' } : null
+    };
+
     let html = sheetTpl;
     html = html.replace('<!--TITLE_BLOCK-->', '<title>Simulator ' + (netlist.title || netlist.id || entry.slug) + '</title>');
     html = html.replace('<!--TITLE_TAG-->', '');
     html = html.replace('<!--ENGINE_JS-->', engineJs);
     html = html.replace('<!--NETLIST_JSON-->', netlistJson);
+    html = html.replace('<!--NAV_JSON-->', JSON.stringify(nav));
 
     writeFile(path.join(OUT_SHEETS_DIR, entry.slug + '.html'), html);
     entry.status = 'done';

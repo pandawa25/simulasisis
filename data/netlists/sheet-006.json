@@ -111,15 +111,18 @@
     "out_VOT1_HMI":   { "type": "OUTPUT", "label": "VOT_1_105UC009", "desc": "Internal HMI", "source": "vot_017", "group": "Internal HMI (monitor saja)" },
     "out_FEED1_tag":  { "type": "OUTPUT", "label": "AND_105UC009_FEED1", "desc": "Sinyal internal (dipakai ulang di AND003)", "source": "g020_AND", "group": "Internal HMI (monitor saja)" }
   },
+  "summary": [
+    "Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.",
+    "RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.",
+    "RST_E baru bisa menyala kalau RST_F juga dalam kondisi sehat DAN tombol resetnya ditekan — tapi reset ini sendiri cuma berhasil kalau 4 syarat kompak sehat bersamaan: Grup A (ESD), Grup B (ESD), Grup C (ESD + level + posisi valve), dan voting temperature (2 dari 9 sensor HH).",
+    "Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.",
+    "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke initiator Grup A/B/C atau voting temperature satu-satu."
+  ],
   "notes": [
-    "RS latch = pulse-to-set (dikonfirmasi user, BUKAN set-dominant klasik): S FALSE -> Q langsung FALSE & terkunci di situ (apapun R-nya). S TRUE -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja naik 0->1 (pulsa sesaat) pada saat S TRUE, baru Q jadi TRUE. Jadi mengunci true butuh: S TRUE dulu, lalu pulsa R 0->1->0.",
-    "Simbol lingkaran kecil di pin R1 pada semua blok RS adalah simbol standar pin Reset pada block RS di gambar asli (konsisten di 6 blok RS), BUKAN inversi logika — jadi R1 diperlakukan non-inverted.",
-    "AND_105UC009_FEED1 adalah sinyal internal: dihitung di output AND020, lalu direferensikan ulang sebagai input kedua AND003 (bukan feedback loop, murni feedforward karena AND020 tidak bergantung pada AND003).",
-    "RST_105UC009_E.S = RST_105UC009_F.Q1 (dikonfirmasi via T-junction eksplisit pada wire Q1 RST_F).",
-    "AND009 = AND 3-input (RS_A.Q1, OR004.out, OR006.out) — dikonfirmasi via jumlah pin.",
-    "AND014 = AND 5-input, AND018 = AND 4-input — dikonfirmasi via jumlah pin + tracing junction.",
-    "VOT_009_105UC009 = voting 2 dari 9 (2oo9) sesuai label block.",
-    "Koreksi logika VOTING (dikonfirmasi user): bertipe 'sehat jika kompak', BUKAN klasik k-of-n TRUE. Input normal/sehat = TRUE; output voting langsung jadi FALSE begitu jumlah input yang FALSE mencapai k (2oo9 -> output FALSE kalau >=2 dari 9 input FALSE). Jadi output = (jumlah input FALSE < k).",
-    "Perhatian logika: AND018 (gabungan RST_D, RS_B, RST_C, Voting) adalah pin R (pulsa-set, lihat konvensi RS di atas) untuk RST_E, bukan S — jadi RST_E baru bisa 'diset ulang' kalau keempat initiator itu kompak TRUE bersamaan DAN S-nya (RST_F.Q1) juga TRUE."
+    "Aturan latch RS: begitu sinyal pemicunya (S) hilang, output langsung mati & terkunci di situ, apapun kondisi tombol reset (R). Output baru menyala lagi kalau S aktif DAN tombol reset ditekan sesaat (bukan ditahan terus).",
+    "Lingkaran kecil di pin R1 pada gambar asli cuma simbol standar pin reset, bukan tanda sinyal dibalik.",
+    "Sinyal 'AND_105UC009_FEED1' (hasil AND020) dipakai dua kali: langsung jadi status HDS Reed AE/BE, dan digabung lagi dengan RST_F untuk jadi syarat f105UY011 (Splitter).",
+    "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
+    "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) dan sambungan RST_E–RST_F sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi."
   ]
 }

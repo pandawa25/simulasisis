@@ -185,7 +185,7 @@ function render(){
     const isDone = item.status === 'done';
     const tag = isDone ? document.createElement('a') : document.createElement('div');
     tag.className = 'card ' + item.status;
-    if(isDone){ tag.href = item.url; tag.target = '_blank'; tag.rel = 'noopener noreferrer'; }
+    if(isDone){ tag.href = item.url; }
     const sheetLabel = 'Sheet ' + String(item.sheet).padStart(3, '0');
     tag.innerHTML =
       '<div class="card-top">' +

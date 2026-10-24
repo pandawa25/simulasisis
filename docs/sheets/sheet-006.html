@@ -106,6 +106,16 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
 .btn:focus-visible, .pin:focus-visible, summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+/* subnav: navigasi ke portal + sheet sebelumnya/berikutnya, supaya
+   halaman-halaman yang berkaitan gampang dijangkau (bukan dead-end). */
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
 
 /* layout */
 .layout{padding:16px 4px}
@@ -173,11 +183,15 @@ details{border:1px solid var(--border); border-radius:10px; padding:8px 12px; ba
 summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .notes{margin:10px 0 0; padding-left:18px; font-size:.78rem; color:var(--fg-dim); line-height:1.55}
 .notes li{margin-bottom:6px}
-textarea.jsonbox{
-  width:100%; height:220px; margin-top:8px; font-family:var(--mono); font-size:.68rem;
-  background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px; resize:vertical;
-}
-.copybtn{margin-top:6px}
+
+/* ringkasan cara kerja — bahasa biasa, bukan istilah teknis netlist */
+.summary-text{font-size:.86rem; line-height:1.6; color:var(--fg)}
+.summary-text p{margin:0 0 10px}
+.summary-text p:last-child{margin-bottom:0}
+
+/* detail tambahan (catatan teknis/asumsi) — ditaruh di paling bawah
+   halaman, collapsed by default, untuk yang perlu cek lebih dalam saja */
+.detail-section{margin:16px 4px 0}
 
 /* svg node styling */
 .node-rect{fill:var(--panel-2); stroke:var(--border); stroke-width:1.3}
@@ -227,6 +241,14 @@ textarea.jsonbox{
     <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
   </div>
 
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Simulator ini bagian dari 34 sheet logic diagram — klik "Semua Sheet" untuk balik ke daftar lengkap.</span>
+  </div>
+
   <div class="layout">
     <div class="canvas-toolbar">
       <div class="zoom-ctrl">
@@ -247,16 +269,18 @@ textarea.jsonbox{
         <h2>Status Latch (RS)</h2>
         <div class="dock-row" id="latchList"></div>
       </div>
-      <details>
-        <summary>Asumsi &amp; catatan verifikasi</summary>
-        <ol class="notes" id="notesList"></ol>
-      </details>
-      <details>
-        <summary>Netlist JSON (untuk cek / edit / arsip halaman lain)</summary>
-        <textarea class="jsonbox" id="jsonBox" readonly></textarea>
-        <button class="btn copybtn" id="copyBtn" type="button">Salin JSON</button>
-      </details>
+      <div class="card" id="summaryCard">
+        <h2>Cara Kerja (Ringkasan)</h2>
+        <div class="summary-text" id="summaryText"></div>
+      </div>
     </div>
+  </div>
+
+  <div class="detail-section" id="detailSection" style="display:none">
+    <details>
+      <summary>Detail tambahan &amp; catatan teknis</summary>
+      <ol class="notes" id="notesList"></ol>
+    </details>
   </div>
 </div>
 
@@ -523,19 +547,24 @@ const NETLIST = {
     "out_VOT1_HMI":   { "type": "OUTPUT", "label": "VOT_1_105UC009", "desc": "Internal HMI", "source": "vot_017", "group": "Internal HMI (monitor saja)" },
     "out_FEED1_tag":  { "type": "OUTPUT", "label": "AND_105UC009_FEED1", "desc": "Sinyal internal (dipakai ulang di AND003)", "source": "g020_AND", "group": "Internal HMI (monitor saja)" }
   },
+  "summary": [
+    "Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.",
+    "RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.",
+    "RST_E baru bisa menyala kalau RST_F juga dalam kondisi sehat DAN tombol resetnya ditekan — tapi reset ini sendiri cuma berhasil kalau 4 syarat kompak sehat bersamaan: Grup A (ESD), Grup B (ESD), Grup C (ESD + level + posisi valve), dan voting temperature (2 dari 9 sensor HH).",
+    "Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.",
+    "Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke initiator Grup A/B/C atau voting temperature satu-satu."
+  ],
   "notes": [
-    "RS latch = pulse-to-set (dikonfirmasi user, BUKAN set-dominant klasik): S FALSE -> Q langsung FALSE & terkunci di situ (apapun R-nya). S TRUE -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja naik 0->1 (pulsa sesaat) pada saat S TRUE, baru Q jadi TRUE. Jadi mengunci true butuh: S TRUE dulu, lalu pulsa R 0->1->0.",
-    "Simbol lingkaran kecil di pin R1 pada semua blok RS adalah simbol standar pin Reset pada block RS di gambar asli (konsisten di 6 blok RS), BUKAN inversi logika — jadi R1 diperlakukan non-inverted.",
-    "AND_105UC009_FEED1 adalah sinyal internal: dihitung di output AND020, lalu direferensikan ulang sebagai input kedua AND003 (bukan feedback loop, murni feedforward karena AND020 tidak bergantung pada AND003).",
-    "RST_105UC009_E.S = RST_105UC009_F.Q1 (dikonfirmasi via T-junction eksplisit pada wire Q1 RST_F).",
-    "AND009 = AND 3-input (RS_A.Q1, OR004.out, OR006.out) — dikonfirmasi via jumlah pin.",
-    "AND014 = AND 5-input, AND018 = AND 4-input — dikonfirmasi via jumlah pin + tracing junction.",
-    "VOT_009_105UC009 = voting 2 dari 9 (2oo9) sesuai label block.",
-    "Koreksi logika VOTING (dikonfirmasi user): bertipe 'sehat jika kompak', BUKAN klasik k-of-n TRUE. Input normal/sehat = TRUE; output voting langsung jadi FALSE begitu jumlah input yang FALSE mencapai k (2oo9 -> output FALSE kalau >=2 dari 9 input FALSE). Jadi output = (jumlah input FALSE < k).",
-    "Perhatian logika: AND018 (gabungan RST_D, RS_B, RST_C, Voting) adalah pin R (pulsa-set, lihat konvensi RS di atas) untuk RST_E, bukan S — jadi RST_E baru bisa 'diset ulang' kalau keempat initiator itu kompak TRUE bersamaan DAN S-nya (RST_F.Q1) juga TRUE."
+    "Aturan latch RS: begitu sinyal pemicunya (S) hilang, output langsung mati & terkunci di situ, apapun kondisi tombol reset (R). Output baru menyala lagi kalau S aktif DAN tombol reset ditekan sesaat (bukan ditahan terus).",
+    "Lingkaran kecil di pin R1 pada gambar asli cuma simbol standar pin reset, bukan tanda sinyal dibalik.",
+    "Sinyal 'AND_105UC009_FEED1' (hasil AND020) dipakai dua kali: langsung jadi status HDS Reed AE/BE, dan digabung lagi dengan RST_F untuk jadi syarat f105UY011 (Splitter).",
+    "Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.",
+    "Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) dan sambungan RST_E–RST_F sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi."
   ]
 }
 ;
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html"},"next":null};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -986,29 +1015,46 @@ OUT_IDS.forEach(function(id){
 document.getElementById('pageTitle').textContent = 'Simulator Logic — ' + (NETLIST.title || NETLIST.id);
 document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
 
-const notesList = document.getElementById('notesList');
-(NETLIST.notes || []).forEach(function(note){
-  const li = document.createElement('li');
-  li.textContent = note;
-  notesList.appendChild(li);
-});
+/* ======================= ringkasan cara kerja (bahasa biasa) ======================= */
+const summaryCard = document.getElementById('summaryCard');
+const summaryText = document.getElementById('summaryText');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  summaryParas.forEach(function(para){
+    const p = document.createElement('p');
+    p.textContent = para;
+    summaryText.appendChild(p);
+  });
+} else {
+  summaryCard.style.display = 'none';
+}
 
-const jsonBox = document.getElementById('jsonBox');
-jsonBox.value = JSON.stringify(NETLIST, null, 2);
-document.getElementById('copyBtn').addEventListener('click', function(){
-  const btn = this;
-  function fallback(){
-    jsonBox.focus(); jsonBox.select();
-    btn.textContent = 'Tersalin ✓';
-    setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
-  }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(jsonBox.value).then(function(){
-      btn.textContent = 'Tersalin ✓';
-      setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
-    }).catch(fallback);
-  } else { fallback(); }
-});
+/* ======================= detail tambahan / catatan teknis (collapsed, di bawah) ======================= */
+const notesList = document.getElementById('notesList');
+const notes = NETLIST.notes || [];
+if(notes.length){
+  notes.forEach(function(note){
+    const li = document.createElement('li');
+    li.textContent = note;
+    notesList.appendChild(li);
+  });
+  document.getElementById('detailSection').style.display = '';
+}
+
+/* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
 
 /* ======================= status dock (panel bawah) ======================= */
 const statusDock = document.getElementById('statusDock');
