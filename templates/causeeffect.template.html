@@ -243,7 +243,7 @@ INPUT_IDS.forEach(function(id){ inputState[id] = false; });
    Logic Detail sheet yang sama berbagi netlist (NETLIST.id sama), jadi
    state disinkronkan lewat localStorage (key dari NETLIST.id) supaya
    toggle CAUSE/MOS/Reset di satu halaman kebawa kalau pindah ke halaman
-   satunya, termasuk memory internal RS latch (rsPrev/rPrev) supaya
+   satunya, termasuk memory internal RS latch (rsPrev) supaya
    status trip/reset-nya ikut kebawa, bukan cuma posisi tombol. */
 const SYNC_KEY = 'sis-sim-state-' + (NETLIST.id || NETLIST.title || 'sheet');
 function loadSyncedState(){
@@ -257,12 +257,13 @@ function loadSyncedState(){
       });
     }
     if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
-    if(saved.rPrev) Object.keys(saved.rPrev).forEach(function(id){ if(id in sim.state.rPrev) sim.state.rPrev[id] = !!saved.rPrev[id]; });
+    /* 'rPrev' tidak ada lagi di engine sejak Koreksi #9 (RS bukan
+       edge-triggered lagi) -- baris pemulihannya sengaja dihapus. */
   }catch(e){}
 }
 function saveSyncedState(){
   try{
-    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev, rPrev: sim.state.rPrev }));
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev }));
   }catch(e){}
 }
 loadSyncedState();

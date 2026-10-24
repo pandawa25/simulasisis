@@ -756,7 +756,7 @@ ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false;
    (2 file HTML beda) — tanpa ini, toggle di satu halaman tidak kebawa
    kalau pindah ke halaman satunya. Disimpan ke localStorage per sheet
    (key dari NETLIST.id, jadi tidak bentrok antar sheet), isinya nilai
-   INPUT mentah + memory internal RS latch (rsPrev/rPrev) supaya status
+   INPUT mentah + memory internal RS latch (rsPrev) supaya status
    latch (sudah di-trip / sudah di-reset) ikut kebawa juga, bukan cuma
    posisi tombol. Disimpan tiap kali simulate() jalan, dibaca sekali di
    awal sebelum simulate() pertama. */
@@ -772,12 +772,14 @@ function loadSyncedState(){
       });
     }
     if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
-    if(saved.rPrev) Object.keys(saved.rPrev).forEach(function(id){ if(id in sim.state.rPrev) sim.state.rPrev[id] = !!saved.rPrev[id]; });
+    /* 'rPrev' TIDAK ada lagi di engine sejak Koreksi #9 (RS bukan
+       edge-triggered lagi) -- baris pemulihan rPrev sengaja dihapus,
+       bukan diset ke objek kosong, supaya tidak ada referensi mati. */
   }catch(e){}
 }
 function saveSyncedState(){
   try{
-    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev, rPrev: sim.state.rPrev }));
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev }));
   }catch(e){}
 }
 loadSyncedState();
