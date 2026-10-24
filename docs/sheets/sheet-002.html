@@ -514,7 +514,7 @@ const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":6,"tag":"10
 function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
-    case 'RS': return [n.s, n.r];
+    case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
     case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
     case 'OUTPUT': return [n.source];
     default: return [];
@@ -876,12 +876,18 @@ function makeGateNode(id, n){
   }
   let stateRectRef = null;
   if(n.type === 'RS'){
+    /* Urutan render pin sengaja mengikuti deps(n) = [n.r, n.s] (lihat
+       fungsi deps() di atas) supaya cocok dgn gambar sumber: pin ATAS =
+       tag reset mentah (field netlist 'r', label gambar "S"), pin BAWAH
+       = gerbang kondisi yg sudah di-NOT (field netlist 's', label
+       gambar "R1" dgn lingkaran/inversi). JANGAN tukar balik tanpa cek
+       ARSITEKTUR.md Koreksi #6/#8. */
     const sY = p.y + s.h / 3, rY = p.y + (s.h * 2) / 3;
     const sLabel = el('text', { x: p.x + 4, y: sY - 3, class: 'pin-label' });
-    sLabel.textContent = 'S';
+    sLabel.textContent = 'S (reset)';
     g.appendChild(sLabel);
     const rLabel = el('text', { x: p.x + 4, y: rY - 3, class: 'pin-label' });
-    rLabel.textContent = 'R (pulsa-set)';
+    rLabel.textContent = 'R1 (kondisi, NOT)';
     g.appendChild(rLabel);
     // state fill rect behind, updated on simulate
     const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
