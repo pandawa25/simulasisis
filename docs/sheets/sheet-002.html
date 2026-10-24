@@ -1,0 +1,966 @@
+<title>Simulator 105-UC-001/002/024</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ===========================================================
+   Design plan
+   Layout: sticky top bar (title + global controls) · left/main =
+   auto-layered left-to-right logic canvas (topological columns,
+   mirrors original sheet's left=input / right=output flow) in its
+   own horizontal-scroll viewport · right rail = latch & output
+   readouts + collapsible netlist / assumption notes.
+   =========================================================== */
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --wire:#9aa5b4;
+  --accent:#b9770e;
+  --accent-fg:#5c3a07;
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16;
+    --panel:#121826;
+    --panel-2:#171f2e;
+    --fg:#e7ecf3;
+    --fg-dim:#8793a6;
+    --border:#263046;
+    --wire:#3c485f;
+    --accent:#e3a13a;
+    --accent-fg:#1c1406;
+    --zone-cause:#131c2c;
+    --zone-logic:#1a1710;
+    --zone-effect:#101d14;
+    --false:#36c17a;
+    --false-bg:#0f2a1b;
+    --true:#f16a5a;
+    --true-bg:#351512;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16;
+  --panel:#121826;
+  --panel-2:#171f2e;
+  --fg:#e7ecf3;
+  --fg-dim:#8793a6;
+  --border:#263046;
+  --wire:#3c485f;
+  --accent:#e3a13a;
+  --accent-fg:#1c1406;
+  --zone-cause:#131c2c;
+  --zone-logic:#1a1710;
+  --zone-effect:#101d14;
+  --false:#36c17a;
+  --false-bg:#0f2a1b;
+  --true:#f16a5a;
+  --true-bg:#351512;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--disp);
+  margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{
+  content:"";
+  position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px);
+  z-index:20; background:var(--panel);
+}
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1600px; margin:0 auto; padding-bottom:40px}
+
+/* header */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:14px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.05rem; font-weight:650; letter-spacing:.01em}
+.topbar .sheetref{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.btn:focus-visible, .pin:focus-visible, summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* layout */
+.layout{padding:16px 4px}
+
+.canvas-toolbar{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap}
+.zoom-ctrl{display:inline-flex; align-items:center; gap:2px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:3px}
+.zoom-ctrl button{
+  min-width:28px; height:28px; padding:0 8px; display:flex; align-items:center; justify-content:center;
+  border:none; background:transparent; color:var(--fg); font-size:.85rem; font-weight:700;
+  cursor:pointer; border-radius:6px; font-family:var(--disp);
+}
+.zoom-ctrl button:hover{background:var(--panel-2)}
+.zoom-pct{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim); min-width:42px; text-align:center}
+.zoom-hint{font-size:.72rem; color:var(--fg-dim)}
+
+.canvas-wrap{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  overflow:auto; position:relative; max-height:72vh; cursor:grab;
+}
+.canvas-wrap svg{display:block}
+
+.ref-section{display:flex; flex-wrap:wrap; gap:12px; margin-top:16px}
+.ref-section > details, .ref-section > .card{flex:1 1 320px}
+
+.card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px}
+.card h2{font-size:.78rem; text-transform:uppercase; letter-spacing:.07em; color:var(--fg-dim); margin-bottom:10px}
+
+/* status dock: panel status (latch + output) mengambang di bawah
+   viewport, selalu terlihat walau canvas sedang discroll/di-zoom —
+   supaya kondisi output selalu kelihatan tanpa cari-cari */
+.status-dock{
+  position:fixed; left:0; right:0; bottom:0; z-index:12;
+  background:var(--panel); border-top:1px solid var(--border);
+  box-shadow:0 -6px 18px rgba(0,0,0,.12);
+  padding:10px max(16px, env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-right,0px));
+}
+.status-dock-inner{max-width:1600px; margin:0 auto; display:flex; align-items:flex-start; gap:10px}
+.status-dock-col{flex:1; min-width:0}
+.status-dock-col h2{font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim); margin:0 0 4px}
+.dock-toggle{
+  flex:0 0 auto; width:26px; height:26px; margin-top:16px; border:1px solid var(--border);
+  background:var(--panel-2); color:var(--fg); border-radius:6px; cursor:pointer; font-size:.8rem;
+}
+.status-dock.collapsed .status-dock-col{display:none}
+.dock-row{display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px}
+@media (max-width:640px){ .status-dock-inner{flex-direction:column; gap:6px} .dock-toggle{margin-top:0} }
+
+.latch-row, .out-row{
+  display:flex; align-items:center; gap:8px; flex:0 0 auto;
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+  padding:6px 10px; white-space:nowrap;
+}
+.latch-name{font-family:var(--mono); color:var(--fg-dim); font-size:.72rem}
+.chip{
+  font-family:var(--mono); font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:20px;
+  min-width:52px; text-align:center;
+}
+.chip.off{background:var(--false-bg); color:var(--false)}
+.chip.on{background:var(--true-bg); color:var(--true)}
+
+.out-name{font-family:var(--mono); font-size:.74rem}
+.out-desc{font-size:.64rem; color:var(--fg-dim); display:block; max-width:160px; overflow:hidden; text-overflow:ellipsis}
+
+details{border:1px solid var(--border); border-radius:10px; padding:8px 12px; background:var(--panel-2)}
+summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
+.notes{margin:10px 0 0; padding-left:18px; font-size:.78rem; color:var(--fg-dim); line-height:1.55}
+.notes li{margin-bottom:6px}
+textarea.jsonbox{
+  width:100%; height:220px; margin-top:8px; font-family:var(--mono); font-size:.68rem;
+  background:var(--bg); color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px; resize:vertical;
+}
+.copybtn{margin-top:6px}
+
+/* svg node styling */
+.node-rect{fill:var(--panel-2); stroke:var(--border); stroke-width:1.3}
+.node-rect.outline-only{fill:none}
+.zone-title{font-family:var(--disp); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; fill:var(--fg-dim)}
+.zone-divider{stroke:var(--border); stroke-width:1; stroke-dasharray:3 4}
+.group-title{font-family:var(--disp); font-size:9.5px; font-weight:650; fill:var(--accent)}
+.node-label{font-family:var(--disp); font-size:11px; fill:var(--fg); font-weight:600}
+.gate-id{font-family:var(--mono); font-size:8.5px; fill:var(--fg-dim)}
+.pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
+.pin-tick{stroke:var(--wire); stroke-width:1.4}
+.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55}
+.wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
+.wire.highlight{stroke:var(--accent); stroke-width:3; opacity:1; stroke-dasharray:none}
+.trace-ring{fill:none; stroke:var(--accent); stroke-width:2.5; opacity:0; pointer-events:none}
+.trace-ring.show{opacity:1}
+.tag{cursor:default}
+.tag.input{cursor:pointer}
+.tag rect{stroke-width:1.2}
+.tag.off rect{fill:var(--false-bg); stroke:var(--false)}
+.tag.on rect{fill:var(--true-bg); stroke:var(--true)}
+.tag text.val{font-family:var(--mono); font-weight:700; font-size:9px}
+.tag.off text.val{fill:var(--false)}
+.tag.on text.val{fill:var(--true)}
+.tag text.name{font-family:var(--mono); font-size:9.5px; fill:var(--fg)}
+.tag text.desc{font-family:var(--disp); font-size:8px; fill:var(--fg-dim)}
+.tag.input:hover rect{stroke-width:2.2}
+.latch-fill-off{fill:var(--false-bg)}
+.latch-fill-on{fill:var(--true-bg)}
+</style>
+
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Simulator Logic — 105-UC-009</h1>
+      <div class="sheetref" id="sheetRef"></div>
+    </div>
+    <div class="legend">
+      <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> FALSE
+      <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> TRUE
+      <span class="swatch" style="background:var(--panel-2); border-color:var(--accent)"></span> Jejak (klik node)
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+    <button class="btn" id="clearTraceBtn" type="button">Bersihkan Jejak</button>
+    <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
+  </div>
+
+  <div class="layout">
+    <div class="canvas-toolbar">
+      <div class="zoom-ctrl">
+        <button id="zoomOutBtn" type="button" title="Perkecil">−</button>
+        <span class="zoom-pct" id="zoomPct">100%</span>
+        <button id="zoomInBtn" type="button" title="Perbesar">+</button>
+        <button id="zoomFitBtn" type="button" title="Sesuaikan ke lebar panel">Fit</button>
+        <button id="zoomResetBtn" type="button" title="Reset ke 100%">100%</button>
+      </div>
+      <span class="zoom-hint">Seret kanvas untuk geser · Ctrl/Cmd + scroll untuk zoom</span>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="ref-section">
+      <div class="card">
+        <h2>Status Latch (RS)</h2>
+        <div class="dock-row" id="latchList"></div>
+      </div>
+      <details>
+        <summary>Asumsi &amp; catatan verifikasi</summary>
+        <ol class="notes" id="notesList"></ol>
+      </details>
+      <details>
+        <summary>Netlist JSON (untuk cek / edit / arsip halaman lain)</summary>
+        <textarea class="jsonbox" id="jsonBox" readonly></textarea>
+        <button class="btn copybtn" id="copyBtn" type="button">Salin JSON</button>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="status-dock" id="statusDock">
+  <div class="status-dock-inner">
+    <button class="dock-toggle" id="dockToggleBtn" type="button" title="Tutup/buka panel status">▾</button>
+    <div class="status-dock-col">
+      <h2>Output / Effect — status live</h2>
+      <div class="dock-row" id="outList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= sim-engine.js (inline) ======================= */
+/*
+  SIS Logic Sim Engine — generic, reusable untuk semua halaman (105-UC-009, dst).
+  Tidak ada dependency eksternal. Dipakai di browser maupun Node.
+
+  Netlist schema:
+  {
+    id, title, sheetRef,
+    nodes: {
+      "<nodeId>": {
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "RS" | "VOTING" | "OUTPUT",
+        label, desc, gateId,
+        // AND/OR/VOTING:
+        inputs: ["<nodeId>", ...],
+        k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
+                      // output ikut jatuh ke FALSE (lihat case "VOTING" di
+                      // step() — bukan threshold "k dari n TRUE")
+        // RS:
+        s: "<nodeId>", r: "<nodeId>"
+        // NOT/BUFFER:
+        input: "<nodeId>"
+        // OUTPUT:
+        source: "<nodeId>"
+      }
+    },
+    notes: [...]
+  }
+*/
+(function (global) {
+  function topoOrder(nodes) {
+    const deps = {};
+    for (const id in nodes) {
+      const n = nodes[id];
+      let refs = [];
+      switch (n.type) {
+        case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
+        case "RS": refs = [n.s, n.r]; break;
+        case "NOT": case "BUFFER": refs = [n.input]; break;
+        case "OUTPUT": refs = [n.source]; break;
+        case "INPUT": refs = []; break;
+      }
+      deps[id] = refs;
+    }
+    const visited = {}, temp = {}, order = [];
+    function visit(id) {
+      if (visited[id]) return;
+      if (temp[id]) throw new Error("Algebraic loop terdeteksi melibatkan node: " + id);
+      temp[id] = true;
+      (deps[id] || []).forEach(visit);
+      temp[id] = false;
+      visited[id] = true;
+      order.push(id);
+    }
+    Object.keys(nodes).forEach(visit);
+    return order;
+  }
+
+  function createSim(netlist) {
+    const nodes = netlist.nodes;
+    const order = topoOrder(nodes);
+    // state: nilai boolean saat ini per node, plus memory khusus utk RS
+    // (Q_prev untuk hold, R_prev untuk deteksi pulsa 0->1 pada pin R/"Reset")
+    const state = { values: {}, rsPrev: {}, rPrev: {} };
+    for (const id in nodes) {
+      state.values[id] = false;
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+    }
+
+    function step(inputOverrides) {
+      // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
+      const v = state.values;
+      for (const id of order) {
+        const n = nodes[id];
+        switch (n.type) {
+          case "INPUT":
+            v[id] = !!inputOverrides[id];
+            break;
+          case "AND":
+            v[id] = n.inputs.every((i) => v[i]);
+            break;
+          case "OR":
+            v[id] = n.inputs.some((i) => v[i]);
+            break;
+          case "NOT":
+            v[id] = !v[n.input];
+            break;
+          case "BUFFER":
+            v[id] = v[n.input];
+            break;
+          case "VOTING": {
+            // Voting k-of-n bertipe "sehat jika kompak" (dikonfirmasi user,
+            // BUKAN "trip jika k dari n TRUE" seperti versi awal):
+            // input normal/sehat = TRUE; output jadi FALSE begitu jumlah
+            // input yang FALSE mencapai k (mis. 2oo9 -> output FALSE kalau
+            // >=2 dari 9 input FALSE). Jadi output = (jumlah FALSE < k).
+            const countFalse = n.inputs.reduce((acc, i) => acc + (v[i] ? 0 : 1), 0);
+            v[id] = countFalse < n.k;
+            break;
+          }
+          case "RS": {
+            // Pulse-to-set, S sebagai enable + clear-langsung:
+            //  - S=FALSE  -> Q langsung FALSE dan terkunci di situ (apapun R-nya).
+            //  - S=TRUE   -> Q ikut nilai sebelumnya (hold), KECUALI R baru saja
+            //               naik dari 0->1 (pulsa sesaat) pada step ini -> Q jadi TRUE.
+            const s = v[n.s];
+            const r = v[n.r];
+            const rPrevVal = state.rPrev[id];
+            const qPrev = state.rsPrev[id];
+            const risingEdge = r && !rPrevVal;
+            const next = !s ? false : (risingEdge ? true : qPrev);
+            v[id] = next;
+            state.rsPrev[id] = next;
+            state.rPrev[id] = r;
+            break;
+          }
+          case "OUTPUT":
+            v[id] = v[n.source];
+            break;
+          default:
+            throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
+        }
+      }
+      return v;
+    }
+
+    function reset() {
+      for (const id in nodes) {
+        state.values[id] = false;
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; state.rPrev[id] = false; }
+      }
+    }
+
+    return { nodes, order, state, step, reset };
+  }
+
+  global.SimEngine = { createSim, topoOrder };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ======================= netlist data (inline) ======================= */
+const NETLIST = {
+  "id": "105-UC-001-002-024",
+  "title": "105-UC-001/002/024",
+  "sheetRef": "Sheet 2 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)",
+    "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)",
+    "Reset (manual, per latch)"
+  ],
+  "effectGroups": [
+    "Output Proses (ke lapangan)",
+    "Internal HMI (monitor saja)"
+  ],
+  "nodes": {
+    "in_m105LSHH003": { "type": "INPUT", "label": "m105LSHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105LAHH003": { "type": "INPUT", "label": "f105LAHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm (lewat NOT, fail-safe: sehat=TRUE)", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+
+    "in_f105HS001AE": { "type": "INPUT", "label": "f105HS001AE", "desc": "ESD Button Fire/Leak 105-V501 (DCS)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
+    "in_f105HS001B":  { "type": "INPUT", "label": "f105HS001B",  "desc": "ESD Button Fire/Leak 105-V501 (Local)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
+
+    "in_f105HS003UCR": { "type": "INPUT", "label": "f105HS003UCR", "desc": "Reset 105-UY-001 (105-UC-001/002)", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS024UCR": { "type": "INPUT", "label": "f105HS024UCR", "desc": "Reset 105-UY-003 (105-UC-024)",     "isReset": true, "group": "Reset (manual, per latch)" },
+
+    "not_001": { "type": "NOT", "gateId": "001", "input": "in_f105LAHH003" },
+    "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["not_001", "in_m105LSHH003", "in_f105HS003M"] },
+    "rs_003":  { "type": "RS",  "gateId": "003", "label": "RT_105HS003U", "s": "or_002", "r": "in_f105HS003UCR" },
+
+    "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
+    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "RT_105HS024U", "s": "and_001b", "r": "in_f105HS024UCR" },
+
+    "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RECC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
+    "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
+    "out_f105UY003_IL": { "type": "OUTPUT", "label": "f105UY003_IL", "desc": "105-UY-003 Interlock Signal",        "source": "rs_002b", "group": "Internal HMI (monitor saja)" }
+  },
+  "notes": [
+    "Sheet ini menggabungkan 3 UC sekaligus (judul '105-UC-001/002/024'): blok logika bernomor '00002' (di drawing, kiri-atas tiap blok) men-drive f105UY001 dan resetnya ditandai '(105-UC-001/002)' -> blok ini mewakili UC-001/002 digabung; blok '00003' men-drive f105UY003 & f105UY003_IL dan resetnya ditandai '(105-UC-024)' -> blok ini mewakili UC-024. Nomor '00002'/'00003' itu nomor rung/blok internal drawing, BUKAN nomor sheet.",
+    "f105LAHH003 melewati gerbang NOT sebelum masuk OR — konsisten dengan konvensi fail-safe 'sehat/normal = TRUE' yang sudah dikonfirmasi di VOTING sheet 105-UC-009: field instrument ini dianggap TRUE saat kondisi normal, dan trip/alarm direpresentasikan saat sinyalnya jatuh ke FALSE, sehingga NOT(sinyal) baru TRUE saat alarm betulan aktif dan ikut men-trigger OR. Pada screenshot sumber, node ini memang tampil TRUE (merah) sebagai kondisi default/sehatnya — bukan indikasi alarm aktif.",
+    "RS block label pada gambar asli terlihat terpotong di tepi kiri box ('T_105HS003U' / 'T_105HS024U') — huruf 'R' di depannya kemungkinan terpotong garis box (konsisten pola penamaan RS/RST di sheet lain). Diasumsikan 'RT_105HS003U' dan 'RT_105HS024U'. Perlu dikonfirmasi ulang kalau ada crop/zoom yang lebih jelas.",
+    "f105UY003 dan f105UY003_IL sama-sama di-tap dari Q1 RS_002b yang sama (T-junction eksplisit di gambar), bukan dua latch terpisah.",
+    "RS latch tetap pakai konvensi pulse-to-set yang sudah dikonfirmasi user (lihat ARSITEKTUR.md): S FALSE -> Q langsung FALSE & terkunci; S TRUE + pulsa R 0->1 -> Q terkunci TRUE."
+  ]
+}
+;
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-sim-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-sim-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= layout ======================= */
+function deps(n){
+  switch(n.type){
+    case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
+    case 'RS': return [n.s, n.r];
+    case 'NOT': case 'BUFFER': return [n.input];
+    case 'OUTPUT': return [n.source];
+    default: return [];
+  }
+}
+const nodes = NETLIST.nodes;
+const ids = Object.keys(nodes);
+const layerMemo = {};
+function layerOf(id){
+  if(layerMemo[id] !== undefined) return layerMemo[id];
+  const d = deps(nodes[id]);
+  const l = d.length === 0 ? 0 : 1 + Math.max.apply(null, d.map(layerOf));
+  layerMemo[id] = l;
+  return l;
+}
+/* Zona: semua OUTPUT (effect/tag akhir) dipaksa ke satu kolom paling kanan,
+   terlepas dari layer topological aslinya — supaya "effect" selalu
+   terkumpul jelas di kanan, bukan tersebar sesuai kedalaman gate. */
+const byLayerRaw = {};
+ids.forEach(function(id){
+  if(nodes[id].type === 'OUTPUT') return;
+  const l = layerOf(id);
+  (byLayerRaw[l] = byLayerRaw[l] || []).push(id);
+});
+const maxLogicLayer = Math.max.apply(null, Object.keys(byLayerRaw).map(Number));
+const EFFECT_COL = maxLogicLayer + 1;
+const byLayer = Object.assign({}, byLayerRaw);
+byLayer[EFFECT_COL] = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+const maxLayer = EFFECT_COL;
+
+/* urutkan kolom CAUSE (layer 0) & EFFECT (kolom terakhir) berdasarkan
+   causeGroups / effectGroups dari netlist, supaya tag sejenis mengumpul */
+function groupSort(colIds, groupOrder){
+  const rank = {};
+  (groupOrder || []).forEach(function(g, i){ rank[g] = i; });
+  return colIds.slice().sort(function(a, b){
+    const ga = nodes[a].group, gb = nodes[b].group;
+    const ra = ga in rank ? rank[ga] : 999, rb = gb in rank ? rank[gb] : 999;
+    if(ra !== rb) return ra - rb;
+    return colIds.indexOf(a) - colIds.indexOf(b);
+  });
+}
+byLayer[0] = groupSort(byLayer[0] || [], NETLIST.causeGroups);
+byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups);
+
+/* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
+   input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
+   di sisi kiri box (lihat centerOf di bawah) dan tidak numpuk di satu
+   titik tengah box saat gate punya banyak input (mis. VOT 9 input,
+   AND014 5 input) — itu sumber utama kabel "bertumpuk" di zona LOGIC. */
+function boxSize(n){
+  if(n.type === 'INPUT' || n.type === 'OUTPUT') return { w: 130, h: 34 };
+  if(n.type === 'RS') return { w: 120, h: 48 };
+  if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
+  if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
+  return { w: 70, h: 34 }; // NOT/BUFFER (1 input)
+}
+
+const COL_W = 248, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;
+const pos = {};
+const groupHeaders = []; // { x, y, text } untuk label kelompok di kolom CAUSE/EFFECT
+let maxColHeight = 0;
+for(let l = 0; l <= maxLayer; l++){
+  const col = byLayer[l] || [];
+  let y = PAD + ZONE_HEAD_H;
+  let lastGroup = null;
+  col.forEach(function(id, i){
+    const grp = nodes[id].group || null;
+    if(grp !== null && grp !== lastGroup){
+      if(lastGroup !== null) y += GROUP_GAP;
+      groupHeaders.push({ x: PAD + l * COL_W, y: y, text: grp });
+      y += 16;
+      lastGroup = grp;
+    }
+    pos[id] = { x: PAD + l * COL_W, y: y, layer: l, idx: i };
+    // baris berikutnya turun sesuai tinggi box SEBENARNYA (bukan ROW_H
+    // tetap) supaya gate tinggi (banyak pin) tidak tumpang tindih baris
+    // di bawahnya
+    y += Math.max(ROW_H, boxSize(nodes[id]).h + 18);
+  });
+  if(y > maxColHeight) maxColHeight = y;
+}
+const canvasW = PAD * 2 + (maxLayer + 1) * COL_W + 140;
+const canvasH = maxColHeight + PAD;
+
+/* batas-batas zona (x) untuk pita latar belakang CAUSE / LOGIC / EFFECT */
+const zoneCauseX1 = PAD + COL_W - 14;
+const zoneEffectX0 = PAD + EFFECT_COL * COL_W - 14;
+
+/* ======================= sim instance ======================= */
+const sim = SimEngine.createSim(NETLIST);
+const inputState = {};
+ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false; });
+
+/* ======================= render ======================= */
+const svg = document.getElementById('svg');
+svg.setAttribute('viewBox', '0 0 ' + canvasW + ' ' + canvasH);
+svg.setAttribute('width', canvasW);
+svg.setAttribute('height', canvasH);
+
+/* ======================= zoom & pan ======================= */
+const canvasWrap = document.getElementById('canvasWrap');
+let zoom = 1;
+const ZOOM_MIN = 0.3, ZOOM_MAX = 3, ZOOM_STEP = 0.15;
+const zoomPct = document.getElementById('zoomPct');
+function applyZoom(){
+  zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+  svg.setAttribute('width', Math.round(canvasW * zoom));
+  svg.setAttribute('height', Math.round(canvasH * zoom));
+  zoomPct.textContent = Math.round(zoom * 100) + '%';
+}
+document.getElementById('zoomInBtn').addEventListener('click', function(){ zoom += ZOOM_STEP; applyZoom(); });
+document.getElementById('zoomOutBtn').addEventListener('click', function(){ zoom -= ZOOM_STEP; applyZoom(); });
+document.getElementById('zoomResetBtn').addEventListener('click', function(){ zoom = 1; applyZoom(); });
+document.getElementById('zoomFitBtn').addEventListener('click', function(){
+  const avail = canvasWrap.clientWidth - 20;
+  zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, avail / canvasW));
+  applyZoom();
+});
+canvasWrap.addEventListener('wheel', function(e){
+  if(!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  zoom += (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+  applyZoom();
+}, { passive: false });
+(function(){
+  let dragging = false, startX = 0, startY = 0, scrollX0 = 0, scrollY0 = 0;
+  canvasWrap.addEventListener('mousedown', function(e){
+    if(e.target.closest && e.target.closest('.tag')) return;
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    scrollX0 = canvasWrap.scrollLeft; scrollY0 = canvasWrap.scrollTop;
+    canvasWrap.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', function(e){
+    if(!dragging) return;
+    canvasWrap.scrollLeft = scrollX0 - (e.clientX - startX);
+    canvasWrap.scrollTop = scrollY0 - (e.clientY - startY);
+  });
+  window.addEventListener('mouseup', function(){ dragging = false; canvasWrap.style.cursor = 'grab'; });
+})();
+applyZoom();
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/* --- pita zona CAUSE / LOGIC / EFFECT (paling belakang) --- */
+const zoneLayer = el('g', {});
+svg.appendChild(zoneLayer);
+
+function zoneBand(x0, x1, fillVar, title){
+  zoneLayer.appendChild(el('rect', { x: x0, y: 0, width: Math.max(0, x1 - x0), height: canvasH, fill: fillVar }));
+  const t = el('text', { x: x0 + 10, y: 22, class: 'zone-title' });
+  t.textContent = title;
+  zoneLayer.appendChild(t);
+}
+zoneBand(0, zoneCauseX1, 'var(--zone-cause)', 'CAUSE / INITIATOR');
+zoneBand(zoneCauseX1, zoneEffectX0, 'var(--zone-logic)', 'LOGIC & PERMISSIVE  (RS Latch · AND/OR · Voting)');
+zoneBand(zoneEffectX0, canvasW, 'var(--zone-effect)', 'EFFECT / OUTPUT');
+zoneLayer.appendChild(el('line', { x1: zoneCauseX1, x2: zoneCauseX1, y1: 0, y2: canvasH, class: 'zone-divider' }));
+zoneLayer.appendChild(el('line', { x1: zoneEffectX0, x2: zoneEffectX0, y1: 0, y2: canvasH, class: 'zone-divider' }));
+
+/* label kelompok (mis. "ESD Pushbutton - Grup A") di kolom CAUSE/EFFECT */
+const groupLayer = el('g', {});
+svg.appendChild(groupLayer);
+groupHeaders.forEach(function(gh){
+  const t = el('text', { x: gh.x, y: gh.y, class: 'group-title' });
+  t.textContent = gh.text;
+  groupLayer.appendChild(t);
+});
+
+const wireLayer = el('g', {});
+const nodeLayer = el('g', {});
+svg.appendChild(wireLayer);
+svg.appendChild(nodeLayer);
+
+const nodeEls = {}; // id -> {g, rect, valText,...}
+const wireRecords = []; // { path, from } untuk pewarnaan live
+const wireByPair = {}; // "from→to" -> path, untuk highlight trace
+
+/* Titik sambung kabel pada box. Sisi 'out' selalu satu titik di tengah
+   kanan. Sisi 'in' DISEBAR per-pin sepanjang sisi kiri box berdasar
+   urutan input node tsb (pakai counterpartId = id node sumber kabel) —
+   supaya gate multi-input (AND/OR/VOTING/RS) tidak membuat semua kabel
+   masuk numpuk di satu titik tengah yang sama (itu penyebab utama
+   tumpukan di zona LOGIC & PERMISSIVE sebelumnya). */
+function centerOf(id, side, counterpartId){
+  const p = pos[id], s = boxSize(nodes[id]);
+  if(side === 'out') return { x: p.x + s.w, y: p.y + s.h / 2 };
+  const slots = deps(nodes[id]);
+  if(slots && slots.length > 1 && counterpartId != null){
+    let idx = slots.indexOf(counterpartId);
+    if(idx < 0) idx = 0;
+    return { x: p.x, y: p.y + (idx + 1) / (slots.length + 1) * s.h };
+  }
+  return { x: p.x, y: p.y + s.h / 2 };
+}
+
+/* lane kabel: dikelompokkan per kolom-asal, diurutkan berdasar posisi Y
+   tujuan, lalu disebar sebagai posisi-X ABSOLUT (bukan fraksi dari jarak
+   total) di dalam gap antar-kolom yang tersedia setelah node asal —
+   setiap kabel dapat satu lane unik (tidak ada yang berbagi/numpuk),
+   dan karena berbasis piksel nyata bukan fraksi jarak, lane tidak lagi
+   "mengempis" jadi rapat saat target dekat (sumber masalah numpuk di
+   kolom CAUSE sebelumnya). Hasilnya: deretan belokan rapi seperti sisir,
+   jauh lebih mudah ditelusuri manual. */
+const edgeList = [];
+ids.forEach(function(id){
+  deps(nodes[id]).forEach(function(d){ edgeList.push({ from: d, to: id }); });
+});
+const LANE_MARGIN = 8;
+const byFromCol = {};
+edgeList.forEach(function(e){
+  const col = pos[e.from].layer;
+  (byFromCol[col] = byFromCol[col] || []).push(e);
+});
+const laneForEdge = {}; // "from→to" -> posisi-X absolut tempat kabel berbelok vertikal
+Object.keys(byFromCol).forEach(function(col){
+  const nextColX = PAD + (Number(col) + 1) * COL_W;
+  const group = byFromCol[col].slice().sort(function(a, b){
+    return centerOf(a.to, 'in', a.from).y - centerOf(b.to, 'in', b.from).y;
+  });
+  const n = group.length;
+  group.forEach(function(e, i){
+    const a = centerOf(e.from, 'out');
+    const b = centerOf(e.to, 'in', e.from);
+    const gap = Math.max(nextColX - a.x - LANE_MARGIN * 2, 10);
+    const t = n <= 1 ? 0.5 : i / (n - 1);
+    const x = a.x + LANE_MARGIN + gap * t;
+    laneForEdge[e.from + '→' + e.to] = Math.min(x, b.x - 6);
+  });
+});
+
+/* rute kabel siku (orthogonal, gaya ladder/logic diagram asli):
+   keluar horizontal → belok vertikal pada "lane" dekat node asal →
+   masuk horizontal. Belokan yang terkumpul dekat asal membuat sisa
+   jalur jadi garis horizontal lurus yang gampang diikuti mata —
+   jauh lebih mudah ditelusuri manual dibanding kurva lengkung. */
+function drawWire(fromId, toId){
+  const a = centerOf(fromId, 'out');
+  const b = centerOf(toId, 'in', fromId);
+  const lane = laneForEdge[fromId + '→' + toId];
+  const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
+  const d = 'M ' + a.x + ' ' + a.y + ' H ' + midx + ' V ' + b.y + ' H ' + b.x;
+  const path = el('path', { d: d, class: 'wire', 'data-from': fromId, 'data-to': toId });
+  wireRecords.push({ path: path, from: fromId });
+  wireByPair[fromId + '→' + toId] = path;
+  return path;
+}
+
+/* draw wires (edge = dep -> node) */
+edgeList.forEach(function(e){
+  wireLayer.appendChild(drawWire(e.from, e.to));
+});
+
+function makeGateNode(id, n){
+  const p = pos[id], s = boxSize(n);
+  const g = el('g', { class: 'tag', 'data-id': id });
+  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'node-rect' });
+  g.appendChild(rect);
+  const label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
+  t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
+  g.appendChild(t);
+  if(n.gateId){
+    const gid = el('text', { x: p.x + 4, y: p.y + s.h - 4, class: 'gate-id' });
+    gid.textContent = '#' + n.gateId;
+    g.appendChild(gid);
+  }
+  /* tanda pin (garis kecil) di sisi kiri box, persis di titik tempat
+     setiap kabel input masuk — gate multi-input (AND/OR/VOTING/RS) jadi
+     kelihatan jelas berapa pin & yang mana, bukan numpuk di satu titik
+     tengah seperti sebelumnya. */
+  const inSlots = deps(n);
+  if(inSlots && inSlots.length > 1){
+    inSlots.forEach(function(depId, idx){
+      const py = p.y + (idx + 1) / (inSlots.length + 1) * s.h;
+      g.appendChild(el('line', { x1: p.x - 7, x2: p.x, y1: py, y2: py, class: 'pin-tick' }));
+    });
+  }
+  let stateRectRef = null;
+  if(n.type === 'RS'){
+    const sY = p.y + s.h / 3, rY = p.y + (s.h * 2) / 3;
+    const sLabel = el('text', { x: p.x + 4, y: sY - 3, class: 'pin-label' });
+    sLabel.textContent = 'S';
+    g.appendChild(sLabel);
+    const rLabel = el('text', { x: p.x + 4, y: rY - 3, class: 'pin-label' });
+    rLabel.textContent = 'R (pulsa-set)';
+    g.appendChild(rLabel);
+    // state fill rect behind, updated on simulate
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+  } else if(n.type === 'VOTING'){
+    const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
+    g.appendChild(kLabel);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+  }
+  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 8, class: 'trace-ring' });
+  g.appendChild(ring);
+  g.addEventListener('click', function(){ traceUpstream(id); });
+  nodeLayer.appendChild(g);
+  nodeEls[id] = { stateRect: stateRectRef, ring: ring };
+}
+
+function makeTagNode(id, n){
+  const p = pos[id], s = boxSize(n);
+  const isInput = n.type === 'INPUT';
+  const g = el('g', { class: 'tag off' + (isInput ? ' input' : ''), 'data-id': id });
+  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 17 });
+  g.appendChild(rect);
+  const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
+  name.textContent = n.label;
+  g.appendChild(name);
+  const desc = el('text', { x: p.x + 10, y: p.y + 26, class: 'desc' });
+  desc.textContent = n.desc || '';
+  g.appendChild(desc);
+  const val = el('text', { x: p.x + s.w - 10, y: p.y + s.h / 2 + 4, 'text-anchor': 'end', class: 'val' });
+  val.textContent = 'FALSE';
+  g.appendChild(val);
+  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 20, class: 'trace-ring' });
+  g.appendChild(ring);
+  if(isInput){
+    g.addEventListener('click', function(){
+      inputState[id] = !inputState[id];
+      simulate();
+    });
+  } else {
+    g.addEventListener('click', function(){ traceUpstream(id); });
+  }
+  nodeLayer.appendChild(g);
+  nodeEls[id] = { g: g, val: val, ring: ring };
+}
+
+ids.forEach(function(id){
+  const n = nodes[id];
+  if(n.type === 'INPUT' || n.type === 'OUTPUT') makeTagNode(id, n);
+  else makeGateNode(id, n);
+});
+
+/* ======================= status rail ======================= */
+const RS_IDS = ids.filter(function(id){ return nodes[id].type === 'RS'; });
+const OUT_IDS = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+
+const latchList = document.getElementById('latchList');
+RS_IDS.forEach(function(id){
+  const n = nodes[id];
+  const row = document.createElement('div');
+  row.className = 'latch-row';
+  row.innerHTML = '<span class="latch-name">' + (n.label || id) + '</span><span class="chip off" id="chip_' + id + '">FALSE</span>';
+  latchList.appendChild(row);
+});
+
+const outList = document.getElementById('outList');
+OUT_IDS.forEach(function(id){
+  const n = nodes[id];
+  const row = document.createElement('div');
+  row.className = 'out-row';
+  row.innerHTML = '<span><span class="out-name">' + n.label + '</span><span class="out-desc">' + (n.desc || '') + '</span></span><span class="chip off" id="chip_' + id + '">FALSE</span>';
+  outList.appendChild(row);
+});
+
+document.getElementById('pageTitle').textContent = 'Simulator Logic — ' + (NETLIST.title || NETLIST.id);
+document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
+
+const notesList = document.getElementById('notesList');
+(NETLIST.notes || []).forEach(function(note){
+  const li = document.createElement('li');
+  li.textContent = note;
+  notesList.appendChild(li);
+});
+
+const jsonBox = document.getElementById('jsonBox');
+jsonBox.value = JSON.stringify(NETLIST, null, 2);
+document.getElementById('copyBtn').addEventListener('click', function(){
+  const btn = this;
+  function fallback(){
+    jsonBox.focus(); jsonBox.select();
+    btn.textContent = 'Tersalin ✓';
+    setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(jsonBox.value).then(function(){
+      btn.textContent = 'Tersalin ✓';
+      setTimeout(function(){ btn.textContent = 'Salin JSON'; }, 1400);
+    }).catch(fallback);
+  } else { fallback(); }
+});
+
+/* ======================= status dock (panel bawah) ======================= */
+const statusDock = document.getElementById('statusDock');
+const dockToggleBtn = document.getElementById('dockToggleBtn');
+function syncDockPadding(){
+  const h = statusDock.getBoundingClientRect().height;
+  document.body.style.paddingBottom = (h + 16) + 'px';
+}
+dockToggleBtn.addEventListener('click', function(){
+  statusDock.classList.toggle('collapsed');
+  dockToggleBtn.textContent = statusDock.classList.contains('collapsed') ? '▴' : '▾';
+  syncDockPadding();
+});
+window.addEventListener('resize', syncDockPadding);
+syncDockPadding();
+
+/* ======================= simulate + repaint ======================= */
+function simulate(){
+  const v = sim.step(inputState);
+  ids.forEach(function(id){
+    const n = nodes[id];
+    const val = v[id];
+    if(n.type === 'INPUT' || n.type === 'OUTPUT'){
+      const ne = nodeEls[id];
+      ne.g.classList.toggle('on', val);
+      ne.g.classList.toggle('off', !val);
+      ne.val.textContent = val ? 'TRUE' : 'FALSE';
+    } else if(nodeEls[id] && nodeEls[id].stateRect){
+      nodeEls[id].stateRect.setAttribute('class', val ? 'latch-fill-on' : 'latch-fill-off');
+    }
+  });
+  RS_IDS.forEach(function(id){
+    const chip = document.getElementById('chip_' + id);
+    const on = v[id];
+    chip.textContent = on ? 'TRUE' : 'FALSE';
+    chip.className = 'chip ' + (on ? 'on' : 'off');
+  });
+  OUT_IDS.forEach(function(id){
+    const chip = document.getElementById('chip_' + id);
+    const on = v[id];
+    chip.textContent = on ? 'TRUE' : 'FALSE';
+    chip.className = 'chip ' + (on ? 'on' : 'off');
+  });
+  /* warnai kabel sesuai nilai live sinyal yang dibawanya (hijau=FALSE,
+     merah=TRUE) — kabel TRUE ditebalkan & dipindah ke depan supaya
+     jalur aktif gampang diikuti mata di antara kabel hijau lainnya */
+  wireRecords.forEach(function(rec){
+    const on = v[rec.from];
+    rec.path.classList.toggle('on', on);
+    if(on) wireLayer.appendChild(rec.path);
+  });
+}
+
+/* ======================= trace / tracing manual ======================= */
+let tracedNode = null;
+function clearTrace(){
+  tracedNode = null;
+  Object.keys(nodeEls).forEach(function(id){
+    if(nodeEls[id].ring) nodeEls[id].ring.classList.remove('show');
+  });
+  wireRecords.forEach(function(rec){ rec.path.classList.remove('highlight'); });
+}
+function traceUpstream(id){
+  if(tracedNode === id){ clearTrace(); return; } // klik node yang sama = lepas jejak
+  clearTrace();
+  tracedNode = id;
+  const visited = {};
+  const queue = [id];
+  while(queue.length){
+    const cur = queue.shift();
+    if(visited[cur]) continue;
+    visited[cur] = true;
+    if(nodeEls[cur] && nodeEls[cur].ring) nodeEls[cur].ring.classList.add('show');
+    deps(nodes[cur]).forEach(function(d){
+      const w = wireByPair[d + '→' + cur];
+      if(w){ w.classList.add('highlight'); wireLayer.appendChild(w); }
+      queue.push(d);
+    });
+  }
+}
+document.getElementById('clearTraceBtn').addEventListener('click', clearTrace);
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false; });
+  sim.reset();
+  simulate();
+});
+
+simulate();
+</script>

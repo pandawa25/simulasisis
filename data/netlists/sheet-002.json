@@ -1,0 +1,43 @@
+{
+  "id": "105-UC-001-002-024",
+  "title": "105-UC-001/002/024",
+  "sheetRef": "Sheet 2 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)",
+    "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)",
+    "Reset (manual, per latch)"
+  ],
+  "effectGroups": [
+    "Output Proses (ke lapangan)",
+    "Internal HMI (monitor saja)"
+  ],
+  "nodes": {
+    "in_m105LSHH003": { "type": "INPUT", "label": "m105LSHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105LAHH003": { "type": "INPUT", "label": "f105LAHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm (lewat NOT, fail-safe: sehat=TRUE)", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
+
+    "in_f105HS001AE": { "type": "INPUT", "label": "f105HS001AE", "desc": "ESD Button Fire/Leak 105-V501 (DCS)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
+    "in_f105HS001B":  { "type": "INPUT", "label": "f105HS001B",  "desc": "ESD Button Fire/Leak 105-V501 (Local)", "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
+
+    "in_f105HS003UCR": { "type": "INPUT", "label": "f105HS003UCR", "desc": "Reset 105-UY-001 (105-UC-001/002)", "isReset": true, "group": "Reset (manual, per latch)" },
+    "in_f105HS024UCR": { "type": "INPUT", "label": "f105HS024UCR", "desc": "Reset 105-UY-003 (105-UC-024)",     "isReset": true, "group": "Reset (manual, per latch)" },
+
+    "not_001": { "type": "NOT", "gateId": "001", "input": "in_f105LAHH003" },
+    "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["not_001", "in_m105LSHH003", "in_f105HS003M"] },
+    "rs_003":  { "type": "RS",  "gateId": "003", "label": "RT_105HS003U", "s": "or_002", "r": "in_f105HS003UCR" },
+
+    "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
+    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "RT_105HS024U", "s": "and_001b", "r": "in_f105HS024UCR" },
+
+    "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RECC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
+    "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
+    "out_f105UY003_IL": { "type": "OUTPUT", "label": "f105UY003_IL", "desc": "105-UY-003 Interlock Signal",        "source": "rs_002b", "group": "Internal HMI (monitor saja)" }
+  },
+  "notes": [
+    "Sheet ini menggabungkan 3 UC sekaligus (judul '105-UC-001/002/024'): blok logika bernomor '00002' (di drawing, kiri-atas tiap blok) men-drive f105UY001 dan resetnya ditandai '(105-UC-001/002)' -> blok ini mewakili UC-001/002 digabung; blok '00003' men-drive f105UY003 & f105UY003_IL dan resetnya ditandai '(105-UC-024)' -> blok ini mewakili UC-024. Nomor '00002'/'00003' itu nomor rung/blok internal drawing, BUKAN nomor sheet.",
+    "f105LAHH003 melewati gerbang NOT sebelum masuk OR — konsisten dengan konvensi fail-safe 'sehat/normal = TRUE' yang sudah dikonfirmasi di VOTING sheet 105-UC-009: field instrument ini dianggap TRUE saat kondisi normal, dan trip/alarm direpresentasikan saat sinyalnya jatuh ke FALSE, sehingga NOT(sinyal) baru TRUE saat alarm betulan aktif dan ikut men-trigger OR. Pada screenshot sumber, node ini memang tampil TRUE (merah) sebagai kondisi default/sehatnya — bukan indikasi alarm aktif.",
+    "RS block label pada gambar asli terlihat terpotong di tepi kiri box ('T_105HS003U' / 'T_105HS024U') — huruf 'R' di depannya kemungkinan terpotong garis box (konsisten pola penamaan RS/RST di sheet lain). Diasumsikan 'RT_105HS003U' dan 'RT_105HS024U'. Perlu dikonfirmasi ulang kalau ada crop/zoom yang lebih jelas.",
+    "f105UY003 dan f105UY003_IL sama-sama di-tap dari Q1 RS_002b yang sama (T-junction eksplisit di gambar), bukan dua latch terpisah.",
+    "RS latch tetap pakai konvensi pulse-to-set yang sudah dikonfirmasi user (lihat ARSITEKTUR.md): S FALSE -> Q langsung FALSE & terkunci; S TRUE + pulsa R 0->1 -> Q terkunci TRUE."
+  ]
+}
