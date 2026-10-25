@@ -847,7 +847,14 @@ function boxSize(n){
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
 }
 
-const COL_W = 248, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;
+/* COL_W dinaikkan dari 248 -> 420: sheet padat (mis. sheet-006) punya
+   SATU kolom sumber dgn sampai 26 kabel berbagi "lane" (lihat
+   laneForEdge di bawah) -- dgn COL_W lama, 26 lane itu cuma dapat ruang
+   total ~82px (~3px per lane), jadi kelihatan berdempetan/numpuk
+   (dilaporkan user). COL_W lebih lebar + LANE_MARGIN lebih besar
+   memberi tiap lane jarak yg jelas terlihat mata (~9-10px), berlaku ke
+   SEMUA sheet lewat template bersama (bukan per-sheet). */
+const COL_W = 420, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;
 const pos = {};
 const groupHeaders = []; // { x, y, text } untuk label kelompok di kolom CAUSE/EFFECT
 let maxColHeight = 0;
@@ -891,7 +898,7 @@ ids.forEach(function(id){
   });
 });
 const canvasW = PAD * 2 + (maxLayer + 1) * COL_W + 140;
-let canvasH = maxColHeight + PAD + (skipEdgeCount > 0 ? 16 + skipEdgeCount * 12 : 0);
+let canvasH = maxColHeight + PAD + (skipEdgeCount > 0 ? 16 + skipEdgeCount * 16 : 0);
 
 /* batas-batas zona (x) untuk pita latar belakang CAUSE / LOGIC / EFFECT */
 const zoneCauseX1 = PAD + COL_W - 14;
@@ -1060,18 +1067,18 @@ ids.forEach(function(id){
    biasa & diberi jalur-bawah sendiri, masing-masing baris unik, supaya
    garis horizontalnya jelas lewat DI BAWAH semua box (tidak pernah
    sejajar dgn baris pin box manapun yang dilewati). */
-const SKIP_BOTTOM_BASE = canvasH - PAD - skipEdgeCount * 12;
+const SKIP_BOTTOM_BASE = canvasH - PAD - skipEdgeCount * 16;
 const skipLaneForEdge = {};
 let skipIdx = 0;
 edgeList.forEach(function(e){
   if(pos[e.from] && pos[e.to] && (pos[e.to].layer - pos[e.from].layer) > 1){
-    skipLaneForEdge[e.from + '→' + e.to] = SKIP_BOTTOM_BASE + skipIdx * 12;
+    skipLaneForEdge[e.from + '→' + e.to] = SKIP_BOTTOM_BASE + skipIdx * 16;
     skipIdx++;
   }
 });
 const nonSkipEdges = edgeList.filter(function(e){ return skipLaneForEdge[e.from + '→' + e.to] == null; });
 
-const LANE_MARGIN = 8;
+const LANE_MARGIN = 14;
 const byFromCol = {};
 nonSkipEdges.forEach(function(e){
   const col = pos[e.from].layer;
