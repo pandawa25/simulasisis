@@ -1069,12 +1069,37 @@ ids.forEach(function(id){
    sejajar dgn baris pin box manapun yang dilewati). */
 const SKIP_BOTTOM_BASE = canvasH - PAD - skipEdgeCount * 16;
 const skipLaneForEdge = {};
+/* Koreksi (2026-10-25): segmen VERTICAL naik/turun jalur-bawah sebelumnya
+   pakai offset TETAP (a.x+10 dari node asal, b.x-10 dari node tujuan) --
+   kalau >1 kabel lompat-kolom kebetulan berangkat dari KOLOM yang sama
+   (a.x sama persis, krn semua node di satu kolom berbagi x yang sama)
+   atau tiba di kolom yang sama, segmen vertical2 itu NUMPUK PERSIS (0px
+   gap, bukan cuma rapat) -- ketemu di sheet-006: 8 kabel lompat-kolom
+   berangkat dari kolom CAUSE yang sama, & 3 kabel berbeda semua menuju
+   g018_AND. Fix: offset disebar per grup (dikelompokkan per x asal &
+   per x tujuan terpisah), bukan angka tetap. */
+const skipX1ForEdge = {}, skipX2ForEdge = {};
+const skipByFromX = {}, skipByToX = {};
 let skipIdx = 0;
 edgeList.forEach(function(e){
   if(pos[e.from] && pos[e.to] && (pos[e.to].layer - pos[e.from].layer) > 1){
     skipLaneForEdge[e.from + '→' + e.to] = SKIP_BOTTOM_BASE + skipIdx * 16;
+    const ax = centerOf(e.from, 'out').x, bx = centerOf(e.to, 'in', e.from).x;
+    (skipByFromX[ax] = skipByFromX[ax] || []).push(e);
+    (skipByToX[bx] = skipByToX[bx] || []).push(e);
     skipIdx++;
   }
+});
+const SKIP_X_STEP = 7;
+Object.keys(skipByFromX).forEach(function(ax){
+  skipByFromX[ax].forEach(function(e, i){
+    skipX1ForEdge[e.from + '→' + e.to] = Number(ax) + 10 + i * SKIP_X_STEP;
+  });
+});
+Object.keys(skipByToX).forEach(function(bx){
+  skipByToX[bx].forEach(function(e, i){
+    skipX2ForEdge[e.from + '→' + e.to] = Number(bx) - 10 - i * SKIP_X_STEP;
+  });
 });
 const nonSkipEdges = edgeList.filter(function(e){ return skipLaneForEdge[e.from + '→' + e.to] == null; });
 
@@ -1120,8 +1145,9 @@ function wirePoints(fromId, toId){
        di bawah semua box pada ketinggian unik (skipY), baru naik ke
        pin tujuan dekat node tujuan — tidak pernah sejajar/numpuk dgn
        baris pin kolom manapun yang dilewati di tengah. */
-    const x1 = a.x + 10;
-    const x2 = b.x - 10;
+    const key = fromId + '→' + toId;
+    const x1 = skipX1ForEdge[key] != null ? skipX1ForEdge[key] : a.x + 10;
+    const x2 = skipX2ForEdge[key] != null ? skipX2ForEdge[key] : b.x - 10;
     return [ { x: a.x, y: a.y }, { x: x1, y: a.y }, { x: x1, y: skipY }, { x: x2, y: skipY }, { x: x2, y: b.y }, { x: b.x, y: b.y } ];
   }
   const lane = laneForEdge[fromId + '→' + toId];
