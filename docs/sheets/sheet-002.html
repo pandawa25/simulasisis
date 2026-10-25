@@ -237,6 +237,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .xlink-text{font-size:7.5px; font-weight:650; fill:var(--accent-text); text-decoration:underline}
 .xlink{cursor:pointer}
 .xlink:hover .xlink-text{fill:var(--accent)}
+.tof-countdown{font-size:7.5px; font-weight:700; fill:var(--accent-text); font-family:var(--mono)}
 .junction{fill:var(--false); opacity:.8}
 .junction.on{fill:var(--true); opacity:1}
 .junction.dimmed{opacity:.32; filter:blur(1.8px)}
@@ -384,10 +385,15 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
         k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
                       // output ikut jatuh ke FALSE (lihat case "VOTING" di
                       // step() — bukan threshold "k dari n TRUE")
@@ -397,6 +403,11 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
         // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
         // (passthrough nilai apa adanya), bedanya cuma label yang tampil
         // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -414,8 +425,12 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
         case "INPUT": refs = []; break;
       }
       deps[id] = refs;
@@ -439,26 +454,57 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
     // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
-    const state = { values: {}, rsPrev: {} };
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
     for (const id in nodes) {
       state.values[id] = false;
+      state.prevValues[id] = false;
       if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
     }
 
-    function step(inputOverrides) {
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
       // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
       const v = state.values;
+      const prev = state.prevValues;
       for (const id of order) {
         const n = nodes[id];
         switch (n.type) {
           case "INPUT":
             v[id] = !!inputOverrides[id];
             break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
           case "AND":
-            v[id] = n.inputs.every((i) => v[i]);
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "OR":
-            v[id] = n.inputs.some((i) => v[i]);
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "NOT":
             v[id] = !v[n.input];
@@ -504,6 +550,30 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             state.rsPrev[id] = next;
             break;
           }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
           case "OUTPUT":
             v[id] = v[n.source];
             break;
@@ -511,17 +581,22 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
         }
       }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
       return v;
     }
 
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
+        state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
   }
 
   global.SimEngine = { createSim, topoOrder };
@@ -675,7 +750,7 @@ var SheetStatus = (function(){
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = {"id":"105-UC-001-002-024","title":"105-UC-001/002/024","sheetRef":"Sheet 2 of 34 — P02_UNIT_105 v1.175","causeGroups":["Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)","ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)","Reset (manual, per latch)"],"effectGroups":["Output Proses (ke lapangan)","Internal HMI (monitor saja)","Effect — dipakai sheet lain (bukan output lapangan)"],"nodes":{"in_m105LSHH003":{"type":"INPUT","label":"m105LSHH003","desc":"SHU Feed Surge Drum 105-V501 HH Alm","group":"Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"},"in_f105HS003M":{"type":"INPUT","label":"f105HS003M","desc":"MOS 105-LSHH/LLSLL-003","isMOS":true,"group":"Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"},"in_f105HS001AE":{"type":"INPUT","label":"f105HS001AE","desc":"ESD Button Fire/Leak 105-V501 (DCS) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE","healthyWhenTrue":true,"group":"ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"},"in_f105HS001B":{"type":"INPUT","label":"f105HS001B","desc":"ESD Button Fire/Leak 105-V501 (Local) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE","healthyWhenTrue":true,"group":"ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"},"in_f105HS003UCR":{"type":"INPUT","label":"f105HS003UCR","desc":"Reset 105-UY-001 (105-UC-001/002)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105HS024UCR":{"type":"INPUT","label":"f105HS024UCR","desc":"Reset 105-UY-003 (105-UC-024)","isReset":true,"group":"Reset (manual, per latch)"},"not_001":{"type":"NOT","gateId":"001","input":"in_m105LSHH003"},"or_002":{"type":"OR","gateId":"002","inputs":["in_m105LSHH003","in_f105HS003M"]},"rs_003":{"type":"RS","gateId":"003","label":"ST_105HS003UC","s":"or_002","r":"in_f105HS003UCR"},"and_001b":{"type":"AND","gateId":"001","inputs":["in_f105HS001AE","in_f105HS001B"]},"rs_002b":{"type":"RS","gateId":"002","label":"ST_105HS024UC","s":"and_001b","r":"in_f105HS024UCR"},"out_f105UY001":{"type":"OUTPUT","label":"f105UY001","desc":"RFCC Gasoline From 102-E-509","source":"rs_003","group":"Output Proses (ke lapangan)"},"out_f105UY003":{"type":"OUTPUT","label":"f105UY003","desc":"SHU Feed Surge Drum 105-V501 Outlet","source":"rs_002b","group":"Output Proses (ke lapangan)"},"out_f105UY003_IL":{"type":"OUTPUT","label":"f105UY003_IL","desc":"105-UY-003 Interlock Signal","source":"rs_002b","group":"Internal HMI (monitor saja)"},"out_f105LAHH003":{"type":"OUTPUT","label":"f105LAHH003","desc":"SHU Feed Surge Drum 105-V501 HH Alm — hasil NOT dari m105LSHH003, dipakai sebagai input di sheet lain (sehat=TRUE)","source":"not_001","group":"Effect — dipakai sheet lain (bukan output lapangan)","internalOnly":true}},"summary":["Halaman ini sebenarnya menggabungkan 2 jalur trip yang independen satu sama lain, walau sama-sama berasal dari drum 105-V501.","Jalur pertama mematikan f105UY001 (RFCC Gasoline from 102-E-509). Koreksi (2026-10-25, #13): trip terjadi kalau SALAH SATU dari 2 kondisi ini aktif: alarm level tinggi-tinggi m105LSHH003, ATAU switch manual f105HS003M diaktifkan — HANYA 2 kondisi, bukan 3 seperti catatan versi lama. f105LAHH003 BUKAN kondisi trip ketiga yang terpisah — dia adalah EFFECT (hasil NOT dari m105LSHH003 itu sendiri, label mirip tapi pasangan prefix beda: 'm'=measurement/alarm, 'f'=field/efek), dipakai sebagai input di SHEET LAIN (bukan dibaca balik oleh gerbang OR di sheet ini). Setelah trip, output tetap terkunci mati sampai operator menekan tombol reset f105HS003UCR.","Jalur kedua mematikan f105UY003 (outlet 105-V501) dan mengirim sinyal yang sama ke f105UY003_IL (hanya untuk dipantau di HMI). Koreksi (2026-10-24, #11): kedua tombol ESD (f105HS001AE/f105HS001B) ternyata NC (Normally Closed) — sirkit utuh/belum ditekan = TRUE = sehat, bukan NO seperti diasumsikan sebelumnya. Jadi AND(#001) = TRUE hanya kalau KEDUA sirkit utuh (fully sehat), dan trip terjadi begitu SALAH SATU sirkit terbuka — baik karena ditekan SENDIRI-SENDIRI (tidak perlu bersamaan) ATAU karena kabel putus (fail-safe 1oo2 voting, lebih aman daripada butuh dua konfirmasi). Setelah trip, output terkunci mati sampai reset f105HS024UCR ditekan SAAT kedua sirkit sudah utuh lagi.","Intinya: jalur 1 = proteksi level drum (OR, gampang trip — satu kondisi saja cukup, alarm/MOS polaritas biasa: TRUE=alarm). Jalur 2 = tombol ESD fisik NC (AND dari 2 sirkit sehat=TRUE, fail-safe 1oo2 — SALAH SATU sirkit terbuka saja sudah cukup bikin trip, BUKAN butuh dua konfirmasi seperti versi lama catatan ini)."],"notes":["Nomor '00002'/'00003' yang muncul di gambar itu nomor blok/rangkaian internal di dalam dokumen, bukan nomor halaman — halaman ini sendiri tetap disebut Sheet 2.","Label latch yang benar (dikonfirmasi lewat gambar zoom): ST_105HS003UC untuk jalur f105UY001, dan ST_105HS024UC untuk jalur f105UY003/f105UY003_IL.","Semua latch (RS) di simulator ini pakai formula resmi IEC 61131-3 'RS.ST' (bistable reset-dominant): Q1 := (Q1 OR S) AND NOT R1. Begitu sinyal pemicunya (field 's' di netlist = NOT kondisi) hilang, output langsung mati dan terkunci. Output menyala lagi kalau 's' TRUE dan field 'r' (tag reset) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (lihat Koreksi #9 di ARSITEKTUR.md).","Koreksi (2026-10-24, #6): konvensi pin RS SEBELUMNYA salah (field 's' diisi gerbang kondisi mentah, field 'r' diisi tag reset, tanpa NOT). Setelah re-trace pixel gambar sumber berulang kali dan dikonfirmasi user: pin S pada gambar = tag reset manual (bukan kondisi), pin R1 (yang ada lingkaran kecil) = gerbang kondisi (OR002/AND001) DENGAN inversi (NOT). Bug fungsionalnya: dengan wiring lama, saat plant benar-benar sehat (semua alarm FALSE), field 's' = FALSE sehingga Q dipaksa FALSE terus-menerus dan reset TIDAK PERNAH bisa berhasil -- kebalikan dari perilaku SIS yang benar. Fix: tambahkan node NOT eksplisit (not_s003, not_s002b) yang membalik or_002/and_001b sebelum masuk field 's', field 'r' tetap tag reset mentah (tidak berubah). Tervalidasi lewat skenario Node: sehat+reset->TRUE, trip+reset-attempt->tetap FALSE, trip lepas+reset->TRUE.","Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet) — detail lengkap di ARSITEKTUR.md Koreksi #9. Field s/r di netlist ini TIDAK berubah.","Koreksi (2026-10-24, #10): node NOT terpisah (not_s003, not_s002b) dihapus dari netlist ini -- inversi R1 sekarang dibaca lewat flag 'sInvert: true' langsung di node RS (rs_003.s = 'or_002' + sInvert, rs_002b.s = 'and_001b' + sInvert), supaya struktur netlist & render cocok gambar sumber (lingkaran inversi melekat di pin R1 block RS, bukan gerbang NOT berdiri sendiri). Perilaku logic sama persis dgn sebelumnya, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10.","Koreksi (2026-10-24, #11 — PENTING, membatalkan asumsi polaritas di #10 KHUSUS utk rs_002b): dikonfirmasi user (instrumentasi, tahu wiring field sesungguhnya): f105HS001AE & f105HS001B itu NC (Normally Closed) -- TRUE = sirkit utuh/tombol belum ditekan = SEHAT, bukan 'alarm=TRUE' spt tag biasa. Jadi and_001b (AND dari keduanya) outputnya SUDAH berpolaritas sehat=TRUE secara alami (AND dari 2 sinyal sehat=TRUE = sehat=TRUE), BEDA dari or_002 (rs_003) yang memang dibangun murni dari tag alarm=TRUE biasa. Krn 'sInvert: true' di rs_002b mengasumsikan raw gate SELALU alarm=TRUE-polarity (aturan seragam #10), menerapkannya ke and_001b yang justru sehat=TRUE-polarity MEMBALIK logic jadi salah arah total (reset cuma 'berhasil' pas salah satu sirkit ESD terbuka -- bahaya, kebalikan dr fail-safe yg benar). Fix: hapus 'sInvert' dari rs_002b (s='and_001b' dipakai APA ADANYA, tanpa invert) -- krn and_001b SUDAH sehat=TRUE-polarity, tidak butuh inversi lagi sebelum jadi field 's'. rs_003 (s='or_002') TIDAK diubah -- or_002 tetap alarm=TRUE-polarity murni, sInvert:true tetap benar di situ. Konsekuensi fungsional yg berubah: trip jalur f105UY003/UC-024 sekarang terjadi begitu SALAH SATU sirkit ESD terbuka (fail-safe 1oo2), BUKAN butuh KEDUA ditekan bersamaan spt tercatat di summary versi lama (sudah diperbaiki juga). PENTING UTK DICEK ULANG: 4 pasang tombol ESD serupa di sheet-006 (g005_AND f105HS007A/B, g007_AND f105HS002AE/B, g011_AND f105HS006A/B, g013_AND f105HS019AE/B) KEMUNGKINAN BESAR punya masalah polaritas yg sama (NC vs NO belum dikonfirmasi) -- JANGAN asumsikan otomatis sama tanpa konfirmasi user per sheet/per tag, krn polaritas field wiring adalah fakta instrumentasi riil, bukan sesuatu yg bisa ditebak dari gambar logic diagram semata.","Koreksi (2026-10-24, #12 -- MEMBATALKAN kesimpulan 'rs_003 TIDAK diubah' di Koreksi #11): user kasih 2 screenshot LANGSUNG dari software vendor (before/after tekan reset, R1 dari or_002 TETAP merah/TRUE di kedua gambar, Q1 berubah FALSE->TRUE) -- bukti langsung reset BERHASIL saat R1 mentah=TRUE, GAGAL saat R1 mentah=FALSE (dikonfirmasi eksplisit user juga). Ternyata bukan soal polaritas NC/NO seperti rs_002b -- field 'sInvert' dihapus TOTAL dari rs_003 juga (s='or_002' dipakai apa adanya, tanpa invert), sama seperti rs_002b. Detail lengkap & penjelasan kenapa 'satu inversi seragam' (Koreksi #10) ternyata salah: ARSITEKTUR.md Koreksi #12. Tervalidasi lewat replikasi exact 2 screenshot vendor via Playwright, cocok 100%.","Koreksi (2026-10-25, #13 -- PENTING, salah arah wiring NOT(#001)/f105LAHH003 sejak awal): user kasih screenshot FULL software vendor (bukan crop sempit spt sebelumnya) yang memperlihatkan dgn jelas arah wire masuk/keluar NOT(#001): terminal 'f105LAHH003' ada di SEBELAH KIRI pill-nya (tanda dia PENERIMA sinyal), bukan di kanan (yg berarti SUMBER). Yang benar: NOT(#001) input = in_m105LSHH003 (BUKAN in_f105LAHH003), dan NOT(#001) output ditulis ke f105LAHH003 (jadi f105LAHH003 itu EFFECT/tag hasil kalkulasi, bukan INPUT independen). f105LAHH003 di sheet ini TIDAK nyambung ke mana pun lagi (dead-end di layout gambar sheet 2) -- user konfirmasi dia dipakai sbg INPUT di sheet lain (bukan di sheet 2 ini). OR(#002) ternyata cuma 2 input (m105LSHH003 langsung + f105HS003M), BUKAN 3 input spt dimodelkan sebelumnya (not_001 SEHARUSNYA TIDAK PERNAH jadi salah satu input OR#002 -- itu cabang terpisah yg nasibnya cuma jadi display f105LAHH003). Fix: hapus node INPUT 'in_f105LAHH003', ganti not_001.input jadi 'in_m105LSHH003', hapus 'not_001' dari daftar inputs or_002 (sisa 2: in_m105LSHH003, in_f105HS003M), tambah node OUTPUT baru 'out_f105LAHH003' (source: not_001, group baru 'Effect — dipakai sheet lain'). Perilaku logic jalur trip f105UY001 TIDAK berubah secara numerik (OR dari 2 input yg sama2 sudah ada, cuma hilang 1 cabang redundant yg sebenarnya memang tidak pernah terhubung balik) -- tapi struktur netlist sekarang akurat sesuai gambar sumber, dan f105LAHH003 kini benar direpresentasikan sbg effect, bukan cause/input."],"slug":"sheet-002"};
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":3,"tag":"105-UC-005 / 025","url":"sheet-003.html"},"ceUrl":"sheet-002-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
+const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":3,"tag":"105-UC-005 / 025","url":"sheet-003.html"},"ceUrl":"sheet-002-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -700,7 +775,10 @@ function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
     case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
-    case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': return [n.input];
+    /* FEEDBACK membaca nilai scan SEBELUMNYA, jadi tanpa dependensi -- itulah
+       yang memutus loop umpan-balik supaya layout & engine tetap acyclic */
+    case 'FEEDBACK': return [];
     case 'OUTPUT': return [n.source];
     default: return [];
   }
@@ -745,6 +823,17 @@ function wrapDesc(text, maxWidth, maxLines){
   return lines;
 }
 
+/* potong label supaya tidak menabrak teks nilai di sisi kanan box */
+const _labelCtx = document.createElement('canvas').getContext('2d');
+_labelCtx.font = "600 9px ui-monospace, SFMono-Regular, Menlo, monospace";
+function fitLabel(text, maxWidth){
+  const t = String(text || '');
+  if(_labelCtx.measureText(t).width <= maxWidth) return t;
+  let cut = t;
+  while(cut.length > 2 && _labelCtx.measureText(cut + '…').width > maxWidth) cut = cut.slice(0, -1);
+  return cut + '…';
+}
+
 /* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
    input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
    di sisi kiri box (lihat portY di blok layout) dan tidak numpuk di satu
@@ -763,6 +852,8 @@ function boxSize(n){
     return { w: w, h: h, descLines: lines, links: links };
   }
   if(n.type === 'RS') return { w: 120, h: 48 };
+  if(n.type === 'TOF') return { w: 132, h: 56 };
+  if(n.type === 'FEEDBACK') return { w: 132, h: 34 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
@@ -845,11 +936,22 @@ const ZONE_HEAD_H = 46, PAD = 28;
 function portY(n, s, i, count){
   return count > 1 ? (i + 1) / (count + 1) * s.h : s.h / 2;
 }
+/* OUTPUT biasanya dikunci ke kolom terakhir (zona EFFECT). Tapi ada tag
+   yang selain jadi effect juga DIPAKAI LAGI sebagai sumber oleh node lain
+   (mis. RST_..._B_FEED di sheet 5 yang masuk MOVE#013) -- tag begitu tidak
+   boleh dikunci di kolom terakhir, karena pemakainya harus berada SESUDAH
+   dia. Tanpa pengecualian ini ELK tidak bisa menyelesaikan layout sama
+   sekali (Koreksi #24). */
+const referencedIds = {};
+ids.forEach(function(id){ deps(nodes[id]).forEach(function(d){ referencedIds[d] = true; }); });
+
 function buildElkGraph(seed){
   const children = ids.map(function(id){
     const n = nodes[id], s = boxSize(n), d = deps(n);
     const ports = [];
-    if(n.type !== 'OUTPUT'){
+    /* OUTPUT yang dipakai lagi sbg sumber (lihat referencedIds) tetap butuh
+       port keluaran, kalau tidak ELK menolak edge-nya */
+    if(n.type !== 'OUTPUT' || referencedIds[id]){
       ports.push({ id: id + '#o', width: 0, height: 0, x: s.w, y: s.h / 2, layoutOptions: { 'elk.port.side': 'EAST' } });
     }
     d.forEach(function(dep, i){
@@ -857,7 +959,7 @@ function buildElkGraph(seed){
     });
     const lo = { 'elk.portConstraints': 'FIXED_POS' };
     if(n.type === 'INPUT') lo['elk.layered.layering.layerConstraint'] = 'FIRST';
-    if(n.type === 'OUTPUT') lo['elk.layered.layering.layerConstraint'] = 'LAST';
+    if(n.type === 'OUTPUT' && !referencedIds[id]) lo['elk.layered.layering.layerConstraint'] = 'LAST';
     return { id: id, width: s.w, height: s.h, ports: ports, layoutOptions: lo };
   });
   const edges = [];
@@ -959,13 +1061,19 @@ function edgeX(filterFn, useRight, pick){
 }
 const isIn = function(id){ return nodes[id].type === 'INPUT'; };
 const isOut = function(id){ return nodes[id].type === 'OUTPUT'; };
-const isLogic = function(id){ return !isIn(id) && !isOut(id); };
+/* FEEDBACK digambar di tengah kanvas tapi bukan penanda batas zona yang
+   bermakna (dia tidak punya dependensi, jadi ELK bisa menaruhnya di kolom
+   paling kiri) -- dikecualikan supaya pita zona tidak jadi melar/terbalik. */
+const isLogic = function(id){ return !isIn(id) && !isOut(id) && nodes[id].type !== 'FEEDBACK'; };
 const inRight = edgeX(isIn, true, Math.max) || PAD;
 const outLeft = edgeX(isOut, false, Math.min) || canvasW - PAD;
 const logicLeft = edgeX(isLogic, false, Math.min);
 const logicRight = edgeX(isLogic, true, Math.max);
-const zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
-const zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+let zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
+let zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+/* jaga urutan pita tetap waras walau ada node yang posisinya tak terduga */
+zoneCauseX1 = Math.max(zoneCauseX1, inRight + 8);
+zoneEffectX0 = Math.max(zoneEffectX0, zoneCauseX1 + 8);
 
 /* ======================= render ======================= */
 const svg = document.getElementById('svg');
@@ -1049,6 +1157,7 @@ svg.appendChild(junctionLayer);
 svg.appendChild(nodeLayer);
 
 const nodeEls = {}; // id -> {g, rect, valText,...}
+const countdownEls = {}; // id TOF -> elemen teks hitung mundur
 const wireRecords = []; // { path, from } untuk pewarnaan live
 const wireByPair = {}; // "from→to" -> path, untuk highlight trace
 
@@ -1089,7 +1198,9 @@ function makeGateNode(id, n){
   const g = el('g', { class: 'tag', 'data-id': id });
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'node-rect' });
   g.appendChild(rect);
-  const label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  let label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  if(n.type === 'TOF') label = 'T_OFF_SP';
+  if(n.type === 'FEEDBACK') label = '↺ umpan balik';
   const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
   t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
   g.appendChild(t);
@@ -1107,6 +1218,11 @@ function makeGateNode(id, n){
     inSlots.forEach(function(depId, idx){
       const py = p.y + (idx + 1) / (inSlots.length + 1) * s.h;
       g.appendChild(el('line', { x1: p.x - 7, x2: p.x, y1: py, y2: py, class: 'pin-tick' }));
+      /* lingkaran inversi yang MELEKAT di pin input tertentu (AND/OR dgn
+         `invertInputs` -- lihat Koreksi #24), persis spt gambar vendor */
+      if(n.invertInputs && n.invertInputs[idx]){
+        g.appendChild(el('circle', { cx: p.x - 3.5, cy: py, r: 3.5, class: 'pin-invert-bubble' }));
+      }
     });
   }
   let stateRectRef = null;
@@ -1139,6 +1255,27 @@ function makeGateNode(id, n){
     g.insertBefore(stateRect, rect);
     rect.setAttribute('class', 'node-rect outline-only');
     stateRectRef = stateRect;
+  } else if(n.type === 'TOF'){
+    /* blok timer: tampilkan setpoint & sisa hitung mundur waktu nyata */
+    const sp = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 11, 'text-anchor': 'middle', class: 'pin-label' });
+    sp.textContent = 'TOF = ' + (n.setpointSec || 0) + ' SEC';
+    g.appendChild(sp);
+    const cd = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 5, 'text-anchor': 'middle', class: 'tof-countdown' });
+    cd.textContent = '';
+    g.appendChild(cd);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+    countdownEls[id] = cd;
+  } else if(n.type === 'FEEDBACK'){
+    const src = nodes[n.input];
+    const t2 = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 6, 'text-anchor': 'middle', class: 'pin-label' });
+    t2.textContent = (src && src.label ? src.label : n.input).slice(0, 26);
+    g.appendChild(t2);
+    const tt = el('title', {});
+    tt.textContent = 'Nilai ' + ((src && src.label) || n.input) + ' dari scan sebelumnya (umpan balik, seperti scan cycle PLC)';
+    g.appendChild(tt);
   } else if(n.type === 'VOTING'){
     const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
     kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
@@ -1162,7 +1299,9 @@ function makeTagNode(id, n){
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 12 });
   g.appendChild(rect);
   const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
-  name.textContent = n.label;
+  /* label tag bisa sangat panjang (mis. RST_105UC032_011_012_027_B_FEED) dan
+     dulu menabrak teks nilai TRUE/FALSE di kanan -- dipotong agar muat */
+  name.textContent = fitLabel(n.label, s.w - 20 - 40);
   g.appendChild(name);
   /* desc di-wrap jadi beberapa baris (lihat wrapDesc/boxSize) supaya
      rapi di dalam box, bukan satu baris panjang yang meluber. */
@@ -1333,8 +1472,28 @@ function simulate(){
     if(on) wireLayer.appendChild(rec.path);
   });
   junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
+  /* hitung mundur timer waktu nyata: tampilkan sisa detik & jadwalkan
+     simulasi ulang selama masih berjalan (lihat case "TOF" di engine) */
+  Object.keys(countdownEls).forEach(function(tid){
+    const left = sim.tofRemaining(tid, Date.now());
+    countdownEls[tid].textContent = left > 0 ? ('sisa ' + left.toFixed(1) + ' s') : '';
+  });
+  scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
+}
+
+/* Selama ada TOF yang sedang menghitung mundur, halaman menjalankan
+   simulate() berkala supaya angka & warna ikut berjalan tanpa interaksi.
+   Begitu semua timer berhenti, tick dimatikan lagi (tidak ada polling sia-sia). */
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null){
+    timerTick = setInterval(function(){ simulate(); }, 200);
+  } else if(!running && timerTick != null){
+    clearInterval(timerTick); timerTick = null;
+  }
 }
 
 /* ======================= trace / tracing manual ======================= */
@@ -1391,6 +1550,10 @@ document.getElementById('resetBtn').addEventListener('click', function(){
   simulate();
 });
 
+/* handle utk verifikasi otomatis (Playwright) & penelusuran manual di
+   console — semua render ada di dalam boot(), jadi tanpa ini tidak ada
+   cara memeriksa state simulasi dari luar */
+window.__sim = sim; window.__simulate = simulate;
 TagSync.onChange(simulate);
 simulate();
 }

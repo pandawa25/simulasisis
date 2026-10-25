@@ -50,6 +50,48 @@
     "f105ZSO010": {
       "tagNo": "12201",
       "desc": "Open Signal to Pump Run Permissive"
+    },
+    "f105HS006A": {
+      "tagNo": "12052",
+      "desc": "Esd Button In Case Of Hds Section Depressurization (AUX)"
+    },
+    "f105HS006B": {
+      "tagNo": "12053",
+      "desc": "Esd Button In Case Of Hds Section Depressurization (Local)"
+    },
+    "m105LSHH030": {
+      "tagNo": "12380",
+      "desc": "Recycle Gas Comp K.O Drum 105-V-505 HH Alm"
+    },
+    "f105HS030LM": {
+      "tagNo": "12105",
+      "desc": "MOS 105-LSHH/LSLL-030",
+      "isMOS": true
+    },
+    "f105XS012": {
+      "tagNo": "12001",
+      "desc": "105-XS-012 Compressor Shutdown"
+    },
+    "f105HS010A": {
+      "tagNo": "12248",
+      "desc": "ESD Button To Stop Recycle Gas Compressor 105-K-501 (AUX)"
+    },
+    "f105HS010B": {
+      "tagNo": "12250",
+      "desc": "Push Button To Stop Recycle Gas Compressor 105-K-501 (Local)"
+    },
+    "f105HS019AE": {
+      "tagNo": "12086",
+      "desc": "ESD Button In Case Fire Or Any Leak At 105-K-501 (DCS)"
+    },
+    "f105HS019B": {
+      "tagNo": "12087",
+      "desc": "Push Button In Case Fire Or Any Leak At 105-K-501 (Local)"
+    },
+    "f105HS012UCR": {
+      "tagNo": "12074",
+      "desc": "Reset 105-UY-019/045, FY-029, HS-010AE (105-UC-012)",
+      "isReset": true
     }
   }
 }

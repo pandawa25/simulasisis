@@ -237,6 +237,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .xlink-text{font-size:7.5px; font-weight:650; fill:var(--accent-text); text-decoration:underline}
 .xlink{cursor:pointer}
 .xlink:hover .xlink-text{fill:var(--accent)}
+.tof-countdown{font-size:7.5px; font-weight:700; fill:var(--accent-text); font-family:var(--mono)}
 .junction{fill:var(--false); opacity:.8}
 .junction.on{fill:var(--true); opacity:1}
 .junction.dimmed{opacity:.32; filter:blur(1.8px)}
@@ -384,10 +385,15 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
         k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
                       // output ikut jatuh ke FALSE (lihat case "VOTING" di
                       // step() — bukan threshold "k dari n TRUE")
@@ -397,6 +403,11 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
         // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
         // (passthrough nilai apa adanya), bedanya cuma label yang tampil
         // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -414,8 +425,12 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
         case "INPUT": refs = []; break;
       }
       deps[id] = refs;
@@ -439,26 +454,57 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
     // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
-    const state = { values: {}, rsPrev: {} };
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
     for (const id in nodes) {
       state.values[id] = false;
+      state.prevValues[id] = false;
       if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
     }
 
-    function step(inputOverrides) {
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
       // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
       const v = state.values;
+      const prev = state.prevValues;
       for (const id of order) {
         const n = nodes[id];
         switch (n.type) {
           case "INPUT":
             v[id] = !!inputOverrides[id];
             break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
           case "AND":
-            v[id] = n.inputs.every((i) => v[i]);
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "OR":
-            v[id] = n.inputs.some((i) => v[i]);
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "NOT":
             v[id] = !v[n.input];
@@ -504,6 +550,30 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             state.rsPrev[id] = next;
             break;
           }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
           case "OUTPUT":
             v[id] = v[n.source];
             break;
@@ -511,17 +581,22 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
         }
       }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
       return v;
     }
 
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
+        state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
   }
 
   global.SimEngine = { createSim, topoOrder };
@@ -673,9 +748,9 @@ var SheetStatus = (function(){
 })();
 
 /* ======================= netlist data (inline) ======================= */
-const NETLIST = {"id":"105-UC-009","title":"105-UC-009","sheetRef":"Sheet 6 of 34 — P02_UNIT_105 v1.175","causeGroups":["ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","ESD Pushbutton — Grup C1 (→ AND014 → RST_C)","ESD Pushbutton — Grup C2 (→ AND014 → RST_C)","Level / MOS","Recycle / MOS","Push (langsung ke AND014)","Valve Position","Lainnya","Reset (manual, per latch)","Voting Temperature HH — 2oo9"],"effectGroups":["Output Proses (ke lapangan)","Internal HMI (monitor saja)"],"nodes":{"in_f105HS007A":{"type":"INPUT","label":"f105HS007A","group":"ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","desc":"12055 — ESD Button In Case Of SHU Reactor (AUX)","tagNo":"12055","alsoIn":["sheet-003","sheet-004"]},"in_f105HS007B":{"type":"INPUT","label":"f105HS007B","group":"ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","desc":"12056 — ESD Button In Case Of SHU Reactor (Local)","tagNo":"12056","alsoIn":["sheet-003","sheet-004"]},"in_f105HS002AE":{"type":"INPUT","label":"f105HS002AE","group":"ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","desc":"12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)","tagNo":"12036","alsoIn":["sheet-003","sheet-004"]},"in_f105HS002B":{"type":"INPUT","label":"f105HS002B","group":"ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","desc":"12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)","tagNo":"12037","alsoIn":["sheet-003","sheet-004"]},"in_f105HS006A":{"type":"INPUT","label":"f105HS006A","desc":"ESD Button","group":"ESD Pushbutton — Grup C1 (→ AND014 → RST_C)"},"in_f105HS006B":{"type":"INPUT","label":"f105HS006B","desc":"ESD Button","group":"ESD Pushbutton — Grup C1 (→ AND014 → RST_C)"},"in_f105HS019AE":{"type":"INPUT","label":"f105HS019AE","desc":"ESD","group":"ESD Pushbutton — Grup C2 (→ AND014 → RST_C)"},"in_f105HS019B":{"type":"INPUT","label":"f105HS019B","desc":"Push","group":"ESD Pushbutton — Grup C2 (→ AND014 → RST_C)"},"in_m105LSHH019":{"type":"INPUT","label":"m105LSHH019","desc":"HDS","group":"Level / MOS"},"in_f105HS019M":{"type":"INPUT","label":"f105HS019M","desc":"MOS","isMOS":true,"group":"Level / MOS"},"in_m105LSLL009":{"type":"INPUT","label":"m105LSLL009","group":"Level / MOS","desc":"12400 — Level in Alm Splitter Bottom LL Alm","tagNo":"12400","alsoIn":["sheet-004"]},"in_f105HS009M":{"type":"INPUT","label":"f105HS009M","group":"Level / MOS","desc":"12065 — MOS 105-LSLL-009","isMOS":true,"tagNo":"12065","alsoIn":["sheet-004"]},"in_m105LSHH030":{"type":"INPUT","label":"m105LSHH030","desc":"Recycle","group":"Recycle / MOS"},"in_f105HS030LM":{"type":"INPUT","label":"f105HS030LM","desc":"MOS","isMOS":true,"group":"Recycle / MOS"},"in_m105FSLL030":{"type":"INPUT","label":"m105FSLL030","desc":"Recycle","group":"Recycle / MOS"},"in_f105HS030M":{"type":"INPUT","label":"f105HS030M","desc":"MOS","isMOS":true,"group":"Recycle / MOS"},"in_f105HS010A":{"type":"INPUT","label":"f105HS010A","desc":"ESD","group":"Push (langsung ke AND014)"},"in_f105HS010B":{"type":"INPUT","label":"f105HS010B","desc":"Push","group":"Push (langsung ke AND014)"},"in_f105ZSO010":{"type":"INPUT","label":"f105ZSO010","group":"Valve Position","desc":"12201 — Open Signal to Pump Run Permissive","tagNo":"12201","alsoIn":["sheet-004"]},"in_f105XS012":{"type":"INPUT","label":"f105XS012","desc":"-","group":"Lainnya"},"in_f105HS005UCR":{"type":"INPUT","label":"f105HS005UCR","group":"Reset (manual, per latch)","desc":"12051 — Reset 105-UY-007/008/023 (105-UC-005)","isReset":true,"tagNo":"12051","alsoIn":["sheet-003","sheet-004"]},"in_f105HS025UCR":{"type":"INPUT","label":"f105HS025UCR","group":"Reset (manual, per latch)","desc":"12098 — Reset 105-UY-010 (105-UC-025)","isReset":true,"tagNo":"12098","alsoIn":["sheet-003","sheet-004"]},"in_f105HS009UCR":{"type":"INPUT","label":"f105HS009UCR","desc":"Reset RST_F & RST_E (satu tag, dua latch)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105HS007UCR":{"type":"INPUT","label":"f105HS007UCR","group":"Reset (manual, per latch)","desc":"12059 — Reset 105-HS-504AE/BE (105-UC-007)","isReset":true,"tagNo":"12059","alsoIn":["sheet-004"]},"in_f105HS012UCR":{"type":"INPUT","label":"f105HS012UCR","desc":"Reset RST_C","isReset":true,"group":"Reset (manual, per latch)"},"in_m105TSHH072":{"type":"INPUT","label":"m105TSHH072","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH093":{"type":"INPUT","label":"m105TSHH093","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH094":{"type":"INPUT","label":"m105TSHH094","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH095":{"type":"INPUT","label":"m105TSHH095","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH096":{"type":"INPUT","label":"m105TSHH096","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH097":{"type":"INPUT","label":"m105TSHH097","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH098":{"type":"INPUT","label":"m105TSHH098","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH099":{"type":"INPUT","label":"m105TSHH099","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH100":{"type":"INPUT","label":"m105TSHH100","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"g001_OR":{"type":"OR","gateId":"001","inputs":["in_m105LSHH019","in_f105HS019M"]},"g004_OR":{"type":"OR","gateId":"004","inputs":["in_m105LSLL009","in_f105HS009M"]},"g005_AND":{"type":"AND","gateId":"005","inputs":["in_f105HS007A","in_f105HS007B"]},"g016_OR":{"type":"OR","gateId":"016","inputs":["in_m105FSLL030","in_f105HS030M"]},"g007_AND":{"type":"AND","gateId":"007","inputs":["in_f105HS002AE","in_f105HS002B"]},"g011_AND":{"type":"AND","gateId":"011","inputs":["in_f105HS006A","in_f105HS006B"]},"g012_OR":{"type":"OR","gateId":"012","inputs":["in_m105LSHH030","in_f105HS030LM"]},"g013_AND":{"type":"AND","gateId":"013","inputs":["in_f105HS019AE","in_f105HS019B"]},"rsA_006":{"type":"RS","gateId":"006","label":"RS_105UC009_A","s":"g005_AND","r":"in_f105HS005UCR"},"rsB_008":{"type":"RS","gateId":"008","label":"RS_105UC009_B","s":"g007_AND","r":"in_f105HS025UCR"},"rstF_002":{"type":"RS","gateId":"002","label":"RST_105UC009_F","s":"g001_OR","r":"in_f105HS009UCR"},"g009_AND":{"type":"AND","gateId":"009","inputs":["rsA_006","g004_OR","rsB_008"]},"rstD_010":{"type":"RS","gateId":"010","label":"RST_105UC009_D","s":"g009_AND","r":"in_f105HS007UCR"},"g014_AND":{"type":"AND","gateId":"014","inputs":["g011_AND","g012_OR","in_f105HS010A","in_f105HS010B","g013_AND"]},"rstC_015":{"type":"RS","gateId":"015","label":"RST_105UC009_C","s":"g014_AND","r":"in_f105HS012UCR"},"vot_017":{"type":"VOTING","gateId":"017","label":"VOT_009_105UC009","k":2,"inputs":["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"]},"g018_AND":{"type":"AND","gateId":"018","inputs":["rstD_010","rstC_015","g016_OR","vot_017"]},"rstE_019":{"type":"RS","gateId":"019","label":"RST_105UC009_E","s":"g018_AND","r":"in_f105HS009UCR"},"g020_AND":{"type":"AND","gateId":"020","inputs":["rstE_019","in_f105ZSO010"]},"g003_AND":{"type":"AND","gateId":"003","inputs":["rstF_002","g020_AND"]},"mv_feed1":{"type":"MOVE","gateId":"021","input":"g020_AND"},"mv_xs012":{"type":"MOVE","gateId":"022","input":"in_f105XS012"},"not_023":{"type":"NOT","gateId":"023","input":"mv_xs012"},"out_f105UY011":{"type":"OUTPUT","label":"f105UY011","desc":"Splitter","source":"g003_AND","group":"Output Proses (ke lapangan)"},"out_HDSReedAE":{"type":"OUTPUT","label":"f105HS505AE","desc":"HDS Reed","source":"mv_feed1","group":"Output Proses (ke lapangan)"},"out_HDSReedBE":{"type":"OUTPUT","label":"f105HS505BE","desc":"HDS Reed","source":"mv_feed1","group":"Output Proses (ke lapangan)"},"out_f105XA097":{"type":"OUTPUT","label":"f105XA097","desc":"HDS","source":"vot_017","group":"Output Proses (ke lapangan)"},"out_f105FALL030":{"type":"OUTPUT","label":"f105FALL030","desc":"RECYCLE","source":"not_023","group":"Output Proses (ke lapangan)"},"out_RS1_HMI":{"type":"OUTPUT","label":"RS_1_105UC009","desc":"Internal HMI","source":"rstF_002","group":"Internal HMI (monitor saja)"},"out_AND1_HMI":{"type":"OUTPUT","label":"AND_1_105UC009","desc":"Internal HMI","source":"g018_AND","group":"Internal HMI (monitor saja)"},"out_VOT1_HMI":{"type":"OUTPUT","label":"VOT_1_105UC009","desc":"Internal HMI","source":"vot_017","group":"Internal HMI (monitor saja)"},"out_FEED1_tag":{"type":"OUTPUT","label":"AND_105UC009_FEED1","desc":"Sinyal internal (dipakai ulang di AND003)","source":"g020_AND","group":"Internal HMI (monitor saja)"}},"summary":["Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.","RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.","RST_E dan RST_F ternyata pakai TOMBOL RESET YANG SAMA (f105HS009UCR, dikonfirmasi lewat trace ulang gambar sumber) — jadi satu pulsa reset mencoba mereset keduanya sekaligus. RST_E baru benar-benar menyala kalau, PADA SAAT tombol itu dipulsa, 4 syarat ini kompak sehat: RST_D (yang sendirinya butuh Grup A DAN Grup B ESD + alarm level m105LSLL009/f105HS009M kompak sehat dulu, direset lewat tombolnya sendiri f105HS007UCR), RST_C (Grup C1+C2 ESD + level + posisi valve, via AND014, direset lewat f105HS012UCR), kondisi Recycle/MOS (m105FSLL030/f105HS030M) sehat, dan voting temperature sehat (kurang dari 2 dari 9 sensor HH alarm). Urutan reset yang benar: reset RS_A/RS_B/RST_D/RST_C dulu satu-satu sampai semua sehat, baru terakhir pulsa f105HS009UCR untuk RST_F+RST_E sekaligus.","Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.","Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."],"notes":["Aturan latch RS (formula resmi IEC 61131-3 'RS.ST', lihat Koreksi #9 di ARSITEKTUR.md): Q1 := (Q1 OR S) AND NOT R1. Begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (murni kombinasional, bukan rising-edge).","Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.","AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)","Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.","Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi.","Koreksi (2026-10-24, #6 — PENTING, membatalkan sebagian catatan lama di atas tentang pin R1/S): konvensi pin RS SEBELUMNYA salah arah & diyakini keliru dua kali sebelum akhirnya di-re-trace tuntas atas desakan user (sudah diingatkan user 3x). Yang benar, dikonfirmasi dari screenshot live DCS beresolusi tinggi di 6 blok RS sheet ini: pin S pada gambar = tag RESET manual (bukan kondisi!), pin R1 (ada lingkaran kecil) = gerbang KONDISI (AND/OR) DENGAN inversi (NOT) sungguhan — lingkaran itu BUKAN sekadar simbol dekoratif seperti diklaim di catatan lama. Temuan tambahan: RST_E (019) pin S-nya BUKAN disambung ke RST_F.Q1 seperti dikira sebelumnya, melainkan ke tag reset f105HS009UCR yang SAMA dengan RST_F (satu tombol, dua latch). Bug fungsional yang terkonfirmasi lewat test Node sebelum fix: dengan wiring lama (field 's' = kondisi mentah tanpa NOT), saat plant benar-benar sehat field 's' selalu FALSE sehingga Q terkunci FALSE permanen dan reset TIDAK PERNAH berhasil. Fix yang diterapkan: (a) untuk latch 'murni' (rsA_006, rsB_008, rstF_002, rstC_015 — gerbang kondisinya cuma AND/OR dari tag mentah, tidak campur dengan Q1 latch lain): tambah node NOT yang membalik gerbang kondisi (not_s006/not_s008/not_s002/not_s015), hasilnya jadi field 's'; (b) untuk latch dgn gerbang kondisi CAMPURAN Q1-latch-lain + tag mentah (rstD_010 via AND009, rstE_019 via AND018): TIDAK cukup NOT di luar AND — harus NOT secara spesifik hanya pada input yang polaritasnya 'alarm=TRUE' (g004_OR utk AND009, g016_OR utk AND018) SEBELUM masuk AND, lalu AND hasil koreksi itu (and009_corrected/and018_corrected, semua input sudah berpolaritas 'sehat=TRUE') dipakai LANGSUNG sebagai field 's' tanpa NOT tambahan di luar; field 'r' rstE_019 diperbaiki dari 'rstF_002' jadi 'in_f105HS009UCR'. Node AND009/AND018 asli dibiarkan apa adanya (masih dipakai utk tampilan HMI out_AND1_HMI, nilainya murni informatif, bukan dasar logic latch lagi). Tervalidasi lewat >10 skenario Node mencakup semua 6 latch: sehat+reset->TRUE, trip (ESD/alarm/voting/recycle)+reset-attempt->tetap FALSE, trip lepas+reset->TRUE, cascade RST_D->RST_E, reset-order-dependency (RST_D/RST_C harus direset dulu sebelum pulsa gabungan RST_F/RST_E).","Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet). Detail di ARSITEKTUR.md Koreksi #9.","Koreksi (2026-10-24, #10): node NOT terpisah (not_s006, not_s008, not_s002, not_s015) dihapus -- inversi R1 utk 4 latch 'murni' ini sekarang dibaca lewat flag 'sInvert: true' langsung di node RS-nya (s menunjuk LANGSUNG ke gerbang mentah g005_AND/g007_AND/g001_OR/g014_AND). rstD_010 & rstE_019 TIDAK dapat sInvert (s tetap and009_corrected/and018_corrected, inversi parsial-per-term sudah terserap di situ, lihat Koreksi #6 bagian b) -- tapi render tetap gambar bulatan di pin R1-nya juga demi kesetiaan visual. not_g004/not_g016 (NOT internal utk koreksi polaritas per-term di and009_corrected/and018_corrected) TIDAK dihapus -- itu beda kasus dari 'NOT wrapper lurus sebelum RS' yg dimaksud user. Perilaku logic sama persis, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10.","Koreksi (2026-10-24, #12 -- MEMBATALKAN 'sInvert: true' di Koreksi #10 utk rsA_006/rsB_008/rstF_002/rstC_015): terbukti lewat 2 screenshot software vendor (sheet-002, tapi prinsipnya berlaku sheet manapun krn ini soal formula block RS, bukan spesifik per-tag) bahwa reset JUSTRU berhasil saat R1 mentah (sebelum lingkaran) = TRUE, gagal saat FALSE -- kebalikan dari 'sInvert: true' yg artinya reset perlu R1 mentah FALSE. 'Satu inversi seragam di pin R1' (Koreksi #10) ternyata salah secara umum, bukan cuma soal polaritas NC/NO per-tag. Fix: 'sInvert' dihapus dari rsA_006, rsB_008, rstF_002, rstC_015 (s dipakai apa adanya). rstD_010/rstE_019 (pakai and009_corrected/and018_corrected) TIDAK berubah -- sudah konsisten (tanpa invert tambahan) dgn aturan baru ini. Detail lengkap: ARSITEKTUR.md Koreksi #12.","Koreksi (2026-10-25, #14 -- MEMBATALKAN asumsi 'per-term inversion' di Koreksi #6 bagian (b)): user menemukan bahwa pin input AND009 yang menuju RST_D ada blok NOT (and009_corrected, invert khusus pada term g004_OR) padahal gambar sumber vendor tidak menunjukkan itu. Di-retrace ulang pixel-by-pixel dari gambar sumber 105-UC-009 resolusi tinggi: 3 pin input AND#009 (RS_A.Q1, OR#004, RS_B.Q1) SEMUA masuk sbg garis lurus, TIDAK ADA lingkaran inversi di pin manapun pada box AND-nya. Untuk konsistensi, AND#018 (pola serupa: RST_D.Q1 + RST_C.Q1 + OR#016 + VOT#017) juga di-cek ulang -- 4 pin inputnya juga semua garis lurus tanpa lingkaran. Jadi asumsi Koreksi #6(b) bahwa perlu NOT khusus per-term (not_g004, not_g016) sebelum masuk AND adalah salah -- ini hasil penalaran logika (supaya field 's' konsisten 'sehat=TRUE'), bukan dari pembacaan gambar langsung, dan ternyata keliru. Fix: rstD_010.s diubah dari 'and009_corrected' -> 'g009_AND' (node AND polos yg sudah ada, sebelumnya cuma dipakai utk tampilan HMI); rstE_019.s diubah dari 'and018_corrected' -> 'g018_AND' (sudah dipakai jadi source out_AND1_HMI, sekarang dipakai juga sbg field 's'). Node and009_corrected/not_g004/and018_corrected/not_g016 dihapus (sudah tidak dipakai). Konsisten dgn Koreksi #12: field 's' pada SEMUA 6 latch RS di sheet ini sekarang dipakai apa adanya, tanpa inversi tambahan di level netlist manapun -- cocok gambar sumber persis. Tervalidasi ulang lewat skenario Node (RS_A/RS_B trip->RST_D FALSE terkunci, reset->TRUE, cascade ke RST_E/AND020/AND003/f105UY011)."],"slug":"sheet-006"};
+const NETLIST = {"id":"105-UC-009","title":"105-UC-009","sheetRef":"Sheet 6 of 34 — P02_UNIT_105 v1.175","causeGroups":["ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","ESD Pushbutton — Grup C1 (→ AND014 → RST_C)","ESD Pushbutton — Grup C2 (→ AND014 → RST_C)","Level / MOS","Recycle / MOS","Push (langsung ke AND014)","Valve Position","Lainnya","Reset (manual, per latch)","Voting Temperature HH — 2oo9"],"effectGroups":["Output Proses (ke lapangan)","Internal HMI (monitor saja)"],"nodes":{"in_f105HS007A":{"type":"INPUT","label":"f105HS007A","group":"ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","desc":"12055 — ESD Button In Case Of SHU Reactor (AUX)","tagNo":"12055","alsoIn":["sheet-003","sheet-004"]},"in_f105HS007B":{"type":"INPUT","label":"f105HS007B","group":"ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)","desc":"12056 — ESD Button In Case Of SHU Reactor (Local)","tagNo":"12056","alsoIn":["sheet-003","sheet-004"]},"in_f105HS002AE":{"type":"INPUT","label":"f105HS002AE","group":"ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","desc":"12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)","tagNo":"12036","alsoIn":["sheet-003","sheet-004"]},"in_f105HS002B":{"type":"INPUT","label":"f105HS002B","group":"ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)","desc":"12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)","tagNo":"12037","alsoIn":["sheet-003","sheet-004"]},"in_f105HS006A":{"type":"INPUT","label":"f105HS006A","group":"ESD Pushbutton — Grup C1 (→ AND014 → RST_C)","desc":"12052 — Esd Button In Case Of Hds Section Depressurization (AUX)","tagNo":"12052","alsoIn":["sheet-005"]},"in_f105HS006B":{"type":"INPUT","label":"f105HS006B","group":"ESD Pushbutton — Grup C1 (→ AND014 → RST_C)","desc":"12053 — Esd Button In Case Of Hds Section Depressurization (Local)","tagNo":"12053","alsoIn":["sheet-005"]},"in_f105HS019AE":{"type":"INPUT","label":"f105HS019AE","group":"ESD Pushbutton — Grup C2 (→ AND014 → RST_C)","desc":"12086 — ESD Button In Case Fire Or Any Leak At 105-K-501 (DCS)","tagNo":"12086","alsoIn":["sheet-005"]},"in_f105HS019B":{"type":"INPUT","label":"f105HS019B","group":"ESD Pushbutton — Grup C2 (→ AND014 → RST_C)","desc":"12087 — Push Button In Case Fire Or Any Leak At 105-K-501 (Local)","tagNo":"12087","alsoIn":["sheet-005"]},"in_m105LSHH019":{"type":"INPUT","label":"m105LSHH019","desc":"HDS","group":"Level / MOS"},"in_f105HS019M":{"type":"INPUT","label":"f105HS019M","desc":"MOS","isMOS":true,"group":"Level / MOS"},"in_m105LSLL009":{"type":"INPUT","label":"m105LSLL009","group":"Level / MOS","desc":"12400 — Level in Alm Splitter Bottom LL Alm","tagNo":"12400","alsoIn":["sheet-004"]},"in_f105HS009M":{"type":"INPUT","label":"f105HS009M","group":"Level / MOS","desc":"12065 — MOS 105-LSLL-009","isMOS":true,"tagNo":"12065","alsoIn":["sheet-004"]},"in_m105LSHH030":{"type":"INPUT","label":"m105LSHH030","group":"Recycle / MOS","desc":"12380 — Recycle Gas Comp K.O Drum 105-V-505 HH Alm","tagNo":"12380","alsoIn":["sheet-005"]},"in_f105HS030LM":{"type":"INPUT","label":"f105HS030LM","group":"Recycle / MOS","desc":"12105 — MOS 105-LSHH/LSLL-030","isMOS":true,"tagNo":"12105","alsoIn":["sheet-005"]},"in_m105FSLL030":{"type":"INPUT","label":"m105FSLL030","desc":"Recycle","group":"Recycle / MOS"},"in_f105HS030M":{"type":"INPUT","label":"f105HS030M","desc":"MOS","isMOS":true,"group":"Recycle / MOS"},"in_f105HS010A":{"type":"INPUT","label":"f105HS010A","group":"Push (langsung ke AND014)","desc":"12248 — ESD Button To Stop Recycle Gas Compressor 105-K-501 (AUX)","tagNo":"12248","alsoIn":["sheet-005"]},"in_f105HS010B":{"type":"INPUT","label":"f105HS010B","group":"Push (langsung ke AND014)","desc":"12250 — Push Button To Stop Recycle Gas Compressor 105-K-501 (Local)","tagNo":"12250","alsoIn":["sheet-005"]},"in_f105ZSO010":{"type":"INPUT","label":"f105ZSO010","group":"Valve Position","desc":"12201 — Open Signal to Pump Run Permissive","tagNo":"12201","alsoIn":["sheet-004"]},"in_f105XS012":{"type":"INPUT","label":"f105XS012","group":"Lainnya","desc":"12001 — 105-XS-012 Compressor Shutdown","tagNo":"12001","alsoIn":["sheet-005"]},"in_f105HS005UCR":{"type":"INPUT","label":"f105HS005UCR","group":"Reset (manual, per latch)","desc":"12051 — Reset 105-UY-007/008/023 (105-UC-005)","isReset":true,"tagNo":"12051","alsoIn":["sheet-003","sheet-004"]},"in_f105HS025UCR":{"type":"INPUT","label":"f105HS025UCR","group":"Reset (manual, per latch)","desc":"12098 — Reset 105-UY-010 (105-UC-025)","isReset":true,"tagNo":"12098","alsoIn":["sheet-003","sheet-004"]},"in_f105HS009UCR":{"type":"INPUT","label":"f105HS009UCR","desc":"Reset RST_F & RST_E (satu tag, dua latch)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105HS007UCR":{"type":"INPUT","label":"f105HS007UCR","group":"Reset (manual, per latch)","desc":"12059 — Reset 105-HS-504AE/BE (105-UC-007)","isReset":true,"tagNo":"12059","alsoIn":["sheet-004"]},"in_f105HS012UCR":{"type":"INPUT","label":"f105HS012UCR","group":"Reset (manual, per latch)","desc":"12074 — Reset 105-UY-019/045, FY-029, HS-010AE (105-UC-012)","isReset":true,"tagNo":"12074","alsoIn":["sheet-005"]},"in_m105TSHH072":{"type":"INPUT","label":"m105TSHH072","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH093":{"type":"INPUT","label":"m105TSHH093","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH094":{"type":"INPUT","label":"m105TSHH094","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH095":{"type":"INPUT","label":"m105TSHH095","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH096":{"type":"INPUT","label":"m105TSHH096","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH097":{"type":"INPUT","label":"m105TSHH097","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH098":{"type":"INPUT","label":"m105TSHH098","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH099":{"type":"INPUT","label":"m105TSHH099","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"in_m105TSHH100":{"type":"INPUT","label":"m105TSHH100","desc":"HDS","group":"Voting Temperature HH — 2oo9"},"g001_OR":{"type":"OR","gateId":"001","inputs":["in_m105LSHH019","in_f105HS019M"]},"g004_OR":{"type":"OR","gateId":"004","inputs":["in_m105LSLL009","in_f105HS009M"]},"g005_AND":{"type":"AND","gateId":"005","inputs":["in_f105HS007A","in_f105HS007B"]},"g016_OR":{"type":"OR","gateId":"016","inputs":["in_m105FSLL030","in_f105HS030M"]},"g007_AND":{"type":"AND","gateId":"007","inputs":["in_f105HS002AE","in_f105HS002B"]},"g011_AND":{"type":"AND","gateId":"011","inputs":["in_f105HS006A","in_f105HS006B"]},"g012_OR":{"type":"OR","gateId":"012","inputs":["in_m105LSHH030","in_f105HS030LM"]},"g013_AND":{"type":"AND","gateId":"013","inputs":["in_f105HS019AE","in_f105HS019B"]},"rsA_006":{"type":"RS","gateId":"006","label":"RS_105UC009_A","s":"g005_AND","r":"in_f105HS005UCR"},"rsB_008":{"type":"RS","gateId":"008","label":"RS_105UC009_B","s":"g007_AND","r":"in_f105HS025UCR"},"rstF_002":{"type":"RS","gateId":"002","label":"RST_105UC009_F","s":"g001_OR","r":"in_f105HS009UCR"},"g009_AND":{"type":"AND","gateId":"009","inputs":["rsA_006","g004_OR","rsB_008"]},"rstD_010":{"type":"RS","gateId":"010","label":"RST_105UC009_D","s":"g009_AND","r":"in_f105HS007UCR"},"g014_AND":{"type":"AND","gateId":"014","inputs":["g011_AND","g012_OR","in_f105HS010A","in_f105HS010B","g013_AND"]},"rstC_015":{"type":"RS","gateId":"015","label":"RST_105UC009_C","s":"g014_AND","r":"in_f105HS012UCR"},"vot_017":{"type":"VOTING","gateId":"017","label":"VOT_009_105UC009","k":2,"inputs":["in_m105TSHH072","in_m105TSHH093","in_m105TSHH094","in_m105TSHH095","in_m105TSHH096","in_m105TSHH097","in_m105TSHH098","in_m105TSHH099","in_m105TSHH100"]},"g018_AND":{"type":"AND","gateId":"018","inputs":["rstD_010","rstC_015","g016_OR","vot_017"]},"rstE_019":{"type":"RS","gateId":"019","label":"RST_105UC009_E","s":"g018_AND","r":"in_f105HS009UCR"},"g020_AND":{"type":"AND","gateId":"020","inputs":["rstE_019","in_f105ZSO010"]},"g003_AND":{"type":"AND","gateId":"003","inputs":["rstF_002","g020_AND"]},"mv_feed1":{"type":"MOVE","gateId":"021","input":"g020_AND"},"mv_xs012":{"type":"MOVE","gateId":"022","input":"in_f105XS012"},"not_023":{"type":"NOT","gateId":"023","input":"mv_xs012"},"out_f105UY011":{"type":"OUTPUT","label":"f105UY011","desc":"Splitter","source":"g003_AND","group":"Output Proses (ke lapangan)"},"out_HDSReedAE":{"type":"OUTPUT","label":"f105HS505AE","desc":"HDS Reed","source":"mv_feed1","group":"Output Proses (ke lapangan)"},"out_HDSReedBE":{"type":"OUTPUT","label":"f105HS505BE","desc":"HDS Reed","source":"mv_feed1","group":"Output Proses (ke lapangan)"},"out_f105XA097":{"type":"OUTPUT","label":"f105XA097","desc":"HDS","source":"vot_017","group":"Output Proses (ke lapangan)"},"out_f105FALL030":{"type":"OUTPUT","label":"f105FALL030","desc":"RECYCLE","source":"not_023","group":"Output Proses (ke lapangan)"},"out_RS1_HMI":{"type":"OUTPUT","label":"RS_1_105UC009","desc":"Internal HMI","source":"rstF_002","group":"Internal HMI (monitor saja)"},"out_AND1_HMI":{"type":"OUTPUT","label":"AND_1_105UC009","desc":"Internal HMI","source":"g018_AND","group":"Internal HMI (monitor saja)"},"out_VOT1_HMI":{"type":"OUTPUT","label":"VOT_1_105UC009","desc":"Internal HMI","source":"vot_017","group":"Internal HMI (monitor saja)"},"out_FEED1_tag":{"type":"OUTPUT","label":"AND_105UC009_FEED1","desc":"Sinyal internal (dipakai ulang di AND003)","source":"g020_AND","group":"Internal HMI (monitor saja)"}},"summary":["Sheet ini punya 6 latch RS yang saling mengunci bertingkat, bukan 6 proteksi yang berdiri sendiri-sendiri — jadi kalau satu trip di hulu, biasanya ikut menjalar ke beberapa output di hilir.","RST_F adalah gerbang paling awal/utama: trip kalau alarm level tinggi-tinggi m105LSHH019 AKTIF, atau MOS f105HS019M diaktifkan. Begitu RST_F trip (mati), RST_E dan semua yang di bawahnya ikut tidak bisa menyala.","RST_E dan RST_F ternyata pakai TOMBOL RESET YANG SAMA (f105HS009UCR, dikonfirmasi lewat trace ulang gambar sumber) — jadi satu pulsa reset mencoba mereset keduanya sekaligus. RST_E baru benar-benar menyala kalau, PADA SAAT tombol itu dipulsa, 4 syarat ini kompak sehat: RST_D (yang sendirinya butuh Grup A DAN Grup B ESD + alarm level m105LSLL009/f105HS009M kompak sehat dulu, direset lewat tombolnya sendiri f105HS007UCR), RST_C (Grup C1+C2 ESD + level + posisi valve, via AND014, direset lewat f105HS012UCR), kondisi Recycle/MOS (m105FSLL030/f105HS030M) sehat, dan voting temperature sehat (kurang dari 2 dari 9 sensor HH alarm). Urutan reset yang benar: reset RS_A/RS_B/RST_D/RST_C dulu satu-satu sampai semua sehat, baru terakhir pulsa f105HS009UCR untuk RST_F+RST_E sekaligus.","Output ke lapangan: f105UY011 (Splitter) trip kalau RST_F ATAU RST_E ATAU posisi valve f105ZSO010 bermasalah. f105HS505AE/BE (HDS Reed) ikut RST_E & posisi valve, tapi TIDAK langsung tergantung RST_F. f105XA097 (HDS) trip langsung dari voting temperature, independen dari jalur RST manapun. f105FALL030 (Recycle) juga independen total — cuma tergantung switch f105XS012.","Kalau ada output yang tiba-tiba mati dan bingung sumbernya, urutan cek yang masuk akal: RST_F dulu (paling hulu) -> RST_E / AND018 -> baru ke RST_D/RST_C/Recycle-MOS/voting temperature satu-satu."],"notes":["Aturan latch RS (formula resmi IEC 61131-3 'RS.ST', lihat Koreksi #9 di ARSITEKTUR.md): Q1 := (Q1 OR S) AND NOT R1. Begitu field 's' (level, hasil olahan pin R1+inversi — lihat Koreksi #6) jatuh FALSE, output langsung mati & terkunci di situ. Output menyala lagi kalau 's' TRUE (sehat) DAN pin reset (field 'r', dari pin S gambar asli) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (murni kombinasional, bukan rising-edge).","Voting temperature pakai aturan 'sehat kalau kompak': dari 9 sensor, begitu 2 atau lebih alarm (sinyal mati) baru dianggap trip.","AND009 (3-input, RAW, dipakai cuma utk tampilan HMI) = Grup A (RS_A.Q1) + alarm level m105LSLL009/f105HS009M (OR004) + Grup B (RS_B.Q1). AND018 (4-input, RAW, idem) = RST_D.Q1 + RST_C.Q1 + Recycle/MOS m105FSLL030/f105HS030M (OR016) + Voting. (Koreksi 2026-10-24: sebelumnya RS_B salah ditaruh di AND018 dan OR016 salah ditaruh/dilabel di AND009 sebagai 'OR006' — sudah diperbaiki & divalidasi ulang dari gambar sumber.)","Block MOVE (gate #021 & #022 di gambar asli) sekarang dirender sebagai 'MOVE', bukan 'BUFFER' — perilakunya tetap sama (meneruskan nilai apa adanya), cuma label di kanvas sekarang cocok persis dengan nama block di dokumen sumber.","Jumlah pin tiap gate (AND009 3-input, AND014 5-input, AND018 4-input, dst) sudah dicek ulang lewat zoom gambar asli, bukan tebakan posisi.","Koreksi (2026-10-24, #6 — PENTING, membatalkan sebagian catatan lama di atas tentang pin R1/S): konvensi pin RS SEBELUMNYA salah arah & diyakini keliru dua kali sebelum akhirnya di-re-trace tuntas atas desakan user (sudah diingatkan user 3x). Yang benar, dikonfirmasi dari screenshot live DCS beresolusi tinggi di 6 blok RS sheet ini: pin S pada gambar = tag RESET manual (bukan kondisi!), pin R1 (ada lingkaran kecil) = gerbang KONDISI (AND/OR) DENGAN inversi (NOT) sungguhan — lingkaran itu BUKAN sekadar simbol dekoratif seperti diklaim di catatan lama. Temuan tambahan: RST_E (019) pin S-nya BUKAN disambung ke RST_F.Q1 seperti dikira sebelumnya, melainkan ke tag reset f105HS009UCR yang SAMA dengan RST_F (satu tombol, dua latch). Bug fungsional yang terkonfirmasi lewat test Node sebelum fix: dengan wiring lama (field 's' = kondisi mentah tanpa NOT), saat plant benar-benar sehat field 's' selalu FALSE sehingga Q terkunci FALSE permanen dan reset TIDAK PERNAH berhasil. Fix yang diterapkan: (a) untuk latch 'murni' (rsA_006, rsB_008, rstF_002, rstC_015 — gerbang kondisinya cuma AND/OR dari tag mentah, tidak campur dengan Q1 latch lain): tambah node NOT yang membalik gerbang kondisi (not_s006/not_s008/not_s002/not_s015), hasilnya jadi field 's'; (b) untuk latch dgn gerbang kondisi CAMPURAN Q1-latch-lain + tag mentah (rstD_010 via AND009, rstE_019 via AND018): TIDAK cukup NOT di luar AND — harus NOT secara spesifik hanya pada input yang polaritasnya 'alarm=TRUE' (g004_OR utk AND009, g016_OR utk AND018) SEBELUM masuk AND, lalu AND hasil koreksi itu (and009_corrected/and018_corrected, semua input sudah berpolaritas 'sehat=TRUE') dipakai LANGSUNG sebagai field 's' tanpa NOT tambahan di luar; field 'r' rstE_019 diperbaiki dari 'rstF_002' jadi 'in_f105HS009UCR'. Node AND009/AND018 asli dibiarkan apa adanya (masih dipakai utk tampilan HMI out_AND1_HMI, nilainya murni informatif, bukan dasar logic latch lagi). Tervalidasi lewat >10 skenario Node mencakup semua 6 latch: sehat+reset->TRUE, trip (ESD/alarm/voting/recycle)+reset-attempt->tetap FALSE, trip lepas+reset->TRUE, cascade RST_D->RST_E, reset-order-dependency (RST_D/RST_C harus direset dulu sebelum pulsa gabungan RST_F/RST_E).","Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet). Detail di ARSITEKTUR.md Koreksi #9.","Koreksi (2026-10-24, #10): node NOT terpisah (not_s006, not_s008, not_s002, not_s015) dihapus -- inversi R1 utk 4 latch 'murni' ini sekarang dibaca lewat flag 'sInvert: true' langsung di node RS-nya (s menunjuk LANGSUNG ke gerbang mentah g005_AND/g007_AND/g001_OR/g014_AND). rstD_010 & rstE_019 TIDAK dapat sInvert (s tetap and009_corrected/and018_corrected, inversi parsial-per-term sudah terserap di situ, lihat Koreksi #6 bagian b) -- tapi render tetap gambar bulatan di pin R1-nya juga demi kesetiaan visual. not_g004/not_g016 (NOT internal utk koreksi polaritas per-term di and009_corrected/and018_corrected) TIDAK dihapus -- itu beda kasus dari 'NOT wrapper lurus sebelum RS' yg dimaksud user. Perilaku logic sama persis, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10.","Koreksi (2026-10-24, #12 -- MEMBATALKAN 'sInvert: true' di Koreksi #10 utk rsA_006/rsB_008/rstF_002/rstC_015): terbukti lewat 2 screenshot software vendor (sheet-002, tapi prinsipnya berlaku sheet manapun krn ini soal formula block RS, bukan spesifik per-tag) bahwa reset JUSTRU berhasil saat R1 mentah (sebelum lingkaran) = TRUE, gagal saat FALSE -- kebalikan dari 'sInvert: true' yg artinya reset perlu R1 mentah FALSE. 'Satu inversi seragam di pin R1' (Koreksi #10) ternyata salah secara umum, bukan cuma soal polaritas NC/NO per-tag. Fix: 'sInvert' dihapus dari rsA_006, rsB_008, rstF_002, rstC_015 (s dipakai apa adanya). rstD_010/rstE_019 (pakai and009_corrected/and018_corrected) TIDAK berubah -- sudah konsisten (tanpa invert tambahan) dgn aturan baru ini. Detail lengkap: ARSITEKTUR.md Koreksi #12.","Koreksi (2026-10-25, #14 -- MEMBATALKAN asumsi 'per-term inversion' di Koreksi #6 bagian (b)): user menemukan bahwa pin input AND009 yang menuju RST_D ada blok NOT (and009_corrected, invert khusus pada term g004_OR) padahal gambar sumber vendor tidak menunjukkan itu. Di-retrace ulang pixel-by-pixel dari gambar sumber 105-UC-009 resolusi tinggi: 3 pin input AND#009 (RS_A.Q1, OR#004, RS_B.Q1) SEMUA masuk sbg garis lurus, TIDAK ADA lingkaran inversi di pin manapun pada box AND-nya. Untuk konsistensi, AND#018 (pola serupa: RST_D.Q1 + RST_C.Q1 + OR#016 + VOT#017) juga di-cek ulang -- 4 pin inputnya juga semua garis lurus tanpa lingkaran. Jadi asumsi Koreksi #6(b) bahwa perlu NOT khusus per-term (not_g004, not_g016) sebelum masuk AND adalah salah -- ini hasil penalaran logika (supaya field 's' konsisten 'sehat=TRUE'), bukan dari pembacaan gambar langsung, dan ternyata keliru. Fix: rstD_010.s diubah dari 'and009_corrected' -> 'g009_AND' (node AND polos yg sudah ada, sebelumnya cuma dipakai utk tampilan HMI); rstE_019.s diubah dari 'and018_corrected' -> 'g018_AND' (sudah dipakai jadi source out_AND1_HMI, sekarang dipakai juga sbg field 's'). Node and009_corrected/not_g004/and018_corrected/not_g016 dihapus (sudah tidak dipakai). Konsisten dgn Koreksi #12: field 's' pada SEMUA 6 latch RS di sheet ini sekarang dipakai apa adanya, tanpa inversi tambahan di level netlist manapun -- cocok gambar sumber persis. Tervalidasi ulang lewat skenario Node (RS_A/RS_B trip->RST_D FALSE terkunci, reset->TRUE, cascade ke RST_E/AND020/AND003/f105UY011)."],"slug":"sheet-006"};
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":{"sheet":4,"tag":"105-UC-007","url":"sheet-004.html"},"next":null,"ceUrl":"sheet-006-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html"},"next":null,"ceUrl":"sheet-006-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -700,7 +775,10 @@ function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
     case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
-    case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': return [n.input];
+    /* FEEDBACK membaca nilai scan SEBELUMNYA, jadi tanpa dependensi -- itulah
+       yang memutus loop umpan-balik supaya layout & engine tetap acyclic */
+    case 'FEEDBACK': return [];
     case 'OUTPUT': return [n.source];
     default: return [];
   }
@@ -745,6 +823,17 @@ function wrapDesc(text, maxWidth, maxLines){
   return lines;
 }
 
+/* potong label supaya tidak menabrak teks nilai di sisi kanan box */
+const _labelCtx = document.createElement('canvas').getContext('2d');
+_labelCtx.font = "600 9px ui-monospace, SFMono-Regular, Menlo, monospace";
+function fitLabel(text, maxWidth){
+  const t = String(text || '');
+  if(_labelCtx.measureText(t).width <= maxWidth) return t;
+  let cut = t;
+  while(cut.length > 2 && _labelCtx.measureText(cut + '…').width > maxWidth) cut = cut.slice(0, -1);
+  return cut + '…';
+}
+
 /* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
    input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
    di sisi kiri box (lihat portY di blok layout) dan tidak numpuk di satu
@@ -763,6 +852,8 @@ function boxSize(n){
     return { w: w, h: h, descLines: lines, links: links };
   }
   if(n.type === 'RS') return { w: 120, h: 48 };
+  if(n.type === 'TOF') return { w: 132, h: 56 };
+  if(n.type === 'FEEDBACK') return { w: 132, h: 34 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
@@ -845,11 +936,22 @@ const ZONE_HEAD_H = 46, PAD = 28;
 function portY(n, s, i, count){
   return count > 1 ? (i + 1) / (count + 1) * s.h : s.h / 2;
 }
+/* OUTPUT biasanya dikunci ke kolom terakhir (zona EFFECT). Tapi ada tag
+   yang selain jadi effect juga DIPAKAI LAGI sebagai sumber oleh node lain
+   (mis. RST_..._B_FEED di sheet 5 yang masuk MOVE#013) -- tag begitu tidak
+   boleh dikunci di kolom terakhir, karena pemakainya harus berada SESUDAH
+   dia. Tanpa pengecualian ini ELK tidak bisa menyelesaikan layout sama
+   sekali (Koreksi #24). */
+const referencedIds = {};
+ids.forEach(function(id){ deps(nodes[id]).forEach(function(d){ referencedIds[d] = true; }); });
+
 function buildElkGraph(seed){
   const children = ids.map(function(id){
     const n = nodes[id], s = boxSize(n), d = deps(n);
     const ports = [];
-    if(n.type !== 'OUTPUT'){
+    /* OUTPUT yang dipakai lagi sbg sumber (lihat referencedIds) tetap butuh
+       port keluaran, kalau tidak ELK menolak edge-nya */
+    if(n.type !== 'OUTPUT' || referencedIds[id]){
       ports.push({ id: id + '#o', width: 0, height: 0, x: s.w, y: s.h / 2, layoutOptions: { 'elk.port.side': 'EAST' } });
     }
     d.forEach(function(dep, i){
@@ -857,7 +959,7 @@ function buildElkGraph(seed){
     });
     const lo = { 'elk.portConstraints': 'FIXED_POS' };
     if(n.type === 'INPUT') lo['elk.layered.layering.layerConstraint'] = 'FIRST';
-    if(n.type === 'OUTPUT') lo['elk.layered.layering.layerConstraint'] = 'LAST';
+    if(n.type === 'OUTPUT' && !referencedIds[id]) lo['elk.layered.layering.layerConstraint'] = 'LAST';
     return { id: id, width: s.w, height: s.h, ports: ports, layoutOptions: lo };
   });
   const edges = [];
@@ -959,13 +1061,19 @@ function edgeX(filterFn, useRight, pick){
 }
 const isIn = function(id){ return nodes[id].type === 'INPUT'; };
 const isOut = function(id){ return nodes[id].type === 'OUTPUT'; };
-const isLogic = function(id){ return !isIn(id) && !isOut(id); };
+/* FEEDBACK digambar di tengah kanvas tapi bukan penanda batas zona yang
+   bermakna (dia tidak punya dependensi, jadi ELK bisa menaruhnya di kolom
+   paling kiri) -- dikecualikan supaya pita zona tidak jadi melar/terbalik. */
+const isLogic = function(id){ return !isIn(id) && !isOut(id) && nodes[id].type !== 'FEEDBACK'; };
 const inRight = edgeX(isIn, true, Math.max) || PAD;
 const outLeft = edgeX(isOut, false, Math.min) || canvasW - PAD;
 const logicLeft = edgeX(isLogic, false, Math.min);
 const logicRight = edgeX(isLogic, true, Math.max);
-const zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
-const zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+let zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
+let zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+/* jaga urutan pita tetap waras walau ada node yang posisinya tak terduga */
+zoneCauseX1 = Math.max(zoneCauseX1, inRight + 8);
+zoneEffectX0 = Math.max(zoneEffectX0, zoneCauseX1 + 8);
 
 /* ======================= render ======================= */
 const svg = document.getElementById('svg');
@@ -1049,6 +1157,7 @@ svg.appendChild(junctionLayer);
 svg.appendChild(nodeLayer);
 
 const nodeEls = {}; // id -> {g, rect, valText,...}
+const countdownEls = {}; // id TOF -> elemen teks hitung mundur
 const wireRecords = []; // { path, from } untuk pewarnaan live
 const wireByPair = {}; // "from→to" -> path, untuk highlight trace
 
@@ -1089,7 +1198,9 @@ function makeGateNode(id, n){
   const g = el('g', { class: 'tag', 'data-id': id });
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'node-rect' });
   g.appendChild(rect);
-  const label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  let label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  if(n.type === 'TOF') label = 'T_OFF_SP';
+  if(n.type === 'FEEDBACK') label = '↺ umpan balik';
   const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
   t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
   g.appendChild(t);
@@ -1107,6 +1218,11 @@ function makeGateNode(id, n){
     inSlots.forEach(function(depId, idx){
       const py = p.y + (idx + 1) / (inSlots.length + 1) * s.h;
       g.appendChild(el('line', { x1: p.x - 7, x2: p.x, y1: py, y2: py, class: 'pin-tick' }));
+      /* lingkaran inversi yang MELEKAT di pin input tertentu (AND/OR dgn
+         `invertInputs` -- lihat Koreksi #24), persis spt gambar vendor */
+      if(n.invertInputs && n.invertInputs[idx]){
+        g.appendChild(el('circle', { cx: p.x - 3.5, cy: py, r: 3.5, class: 'pin-invert-bubble' }));
+      }
     });
   }
   let stateRectRef = null;
@@ -1139,6 +1255,27 @@ function makeGateNode(id, n){
     g.insertBefore(stateRect, rect);
     rect.setAttribute('class', 'node-rect outline-only');
     stateRectRef = stateRect;
+  } else if(n.type === 'TOF'){
+    /* blok timer: tampilkan setpoint & sisa hitung mundur waktu nyata */
+    const sp = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 11, 'text-anchor': 'middle', class: 'pin-label' });
+    sp.textContent = 'TOF = ' + (n.setpointSec || 0) + ' SEC';
+    g.appendChild(sp);
+    const cd = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 5, 'text-anchor': 'middle', class: 'tof-countdown' });
+    cd.textContent = '';
+    g.appendChild(cd);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+    countdownEls[id] = cd;
+  } else if(n.type === 'FEEDBACK'){
+    const src = nodes[n.input];
+    const t2 = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 6, 'text-anchor': 'middle', class: 'pin-label' });
+    t2.textContent = (src && src.label ? src.label : n.input).slice(0, 26);
+    g.appendChild(t2);
+    const tt = el('title', {});
+    tt.textContent = 'Nilai ' + ((src && src.label) || n.input) + ' dari scan sebelumnya (umpan balik, seperti scan cycle PLC)';
+    g.appendChild(tt);
   } else if(n.type === 'VOTING'){
     const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
     kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
@@ -1162,7 +1299,9 @@ function makeTagNode(id, n){
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 12 });
   g.appendChild(rect);
   const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
-  name.textContent = n.label;
+  /* label tag bisa sangat panjang (mis. RST_105UC032_011_012_027_B_FEED) dan
+     dulu menabrak teks nilai TRUE/FALSE di kanan -- dipotong agar muat */
+  name.textContent = fitLabel(n.label, s.w - 20 - 40);
   g.appendChild(name);
   /* desc di-wrap jadi beberapa baris (lihat wrapDesc/boxSize) supaya
      rapi di dalam box, bukan satu baris panjang yang meluber. */
@@ -1333,8 +1472,28 @@ function simulate(){
     if(on) wireLayer.appendChild(rec.path);
   });
   junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
+  /* hitung mundur timer waktu nyata: tampilkan sisa detik & jadwalkan
+     simulasi ulang selama masih berjalan (lihat case "TOF" di engine) */
+  Object.keys(countdownEls).forEach(function(tid){
+    const left = sim.tofRemaining(tid, Date.now());
+    countdownEls[tid].textContent = left > 0 ? ('sisa ' + left.toFixed(1) + ' s') : '';
+  });
+  scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
+}
+
+/* Selama ada TOF yang sedang menghitung mundur, halaman menjalankan
+   simulate() berkala supaya angka & warna ikut berjalan tanpa interaksi.
+   Begitu semua timer berhenti, tick dimatikan lagi (tidak ada polling sia-sia). */
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null){
+    timerTick = setInterval(function(){ simulate(); }, 200);
+  } else if(!running && timerTick != null){
+    clearInterval(timerTick); timerTick = null;
+  }
 }
 
 /* ======================= trace / tracing manual ======================= */
@@ -1391,6 +1550,10 @@ document.getElementById('resetBtn').addEventListener('click', function(){
   simulate();
 });
 
+/* handle utk verifikasi otomatis (Playwright) & penelusuran manual di
+   console — semua render ada di dalam boot(), jadi tanpa ini tidak ada
+   cara memeriksa state simulasi dari luar */
+window.__sim = sim; window.__simulate = simulate;
 TagSync.onChange(simulate);
 simulate();
 }

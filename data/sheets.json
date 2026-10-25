@@ -43,9 +43,9 @@
       "slug": "sheet-005",
       "tag": "105-UC-032 / 011 / 012 / 027",
       "note": "",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-005.html",
+      "ceUrl": "sheets/sheet-005-ce.html"
     },
     {
       "sheet": 6,

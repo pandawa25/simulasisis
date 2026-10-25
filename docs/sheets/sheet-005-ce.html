@@ -1,0 +1,966 @@
+<meta charset="utf-8">
+<title>Cause & Effect 105-UC-032/011/012/027</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ===========================================================
+   Shared design tokens — Portal, Logic Detail, Cause & Effect
+   SUMBER TUNGGAL. Sebelumnya tiap template (portal/sheet/CE)
+   punya :root sendiri yg di-copy-paste terpisah -> gampang
+   melenceng diam-diam (contoh nyata: --accent-text yg sempat
+   cuma ditambah ke 2 dari 3 template, portal ketinggalan;
+   portal juga pakai nama var beda --done/--pending padahal
+   secara makna sama dgn --false/--true di 2 template lain).
+   Diinjeksikan oleh scripts/build.js lewat placeholder
+   <!--SHARED_TOKENS--> ke semua template -- edit warna cukup
+   SEKALI DI SINI, jangan edit :root di masing-masing template.
+   =========================================================== */
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --wire:#9aa5b4;
+
+  --accent:#b9770e;       /* dipakai utk border/background/stroke (tombol primary, fokus outline, dll) */
+  --accent-fg:#5c3a07;    /* teks DI ATAS background --accent (mis. tombol primary) */
+  --accent-text:#935a08;  /* teks aksen DI ATAS background terang (header grup, dsb) -- lebih gelap drpd --accent, supaya kontras >=4.5:1 (WCAG AA) thd bg terang */
+
+  /* status "sehat/normal/selesai" vs "trip/alarm/aktif" -- SATU
+     pasangan token dipakai konsisten di semua halaman (sebelumnya
+     portal py nama sendiri --done/--pending yg representasi warna
+     sama tapi vocab beda dari --false/--true di sheet/CE). */
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --neutral-fg:#8793a6;   /* status netral: "belum dikerjakan" (portal), bukan alarm/trip */
+  --neutral-bg:#eef1f5;
+
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --wire:#3c485f;
+    --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+    --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --wire:#3c485f;
+  --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+  --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--disp); margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:20; background:var(--panel); }
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1500px; margin:0 auto; padding-bottom:40px}
+
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:14px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.05rem; font-weight:650; letter-spacing:.01em}
+.topbar .sheetref{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
+
+/* Koreksi UI/UX (2026-10-25): sama persis dgn sheet.template.html --
+   lihat komentar di sana. Dipakai utk pemisah klaster subnav & segmented
+   tab Logic Detail <-> Cause & Effect. */
+.subnav-divider{width:1px; height:20px; background:var(--border); flex:0 0 auto}
+.view-tabs{
+  display:flex; align-items:center; gap:2px; background:var(--panel);
+  border:1px solid var(--border); border-radius:8px; padding:3px;
+}
+.view-tab{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; padding:6px 12px;
+  border-radius:6px; text-decoration:none; color:var(--fg-dim); white-space:nowrap;
+  cursor:default;
+}
+a.view-tab{cursor:pointer}
+.view-tab.active{background:var(--panel-2); color:var(--fg)}
+a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
+.view-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.layout{padding:20px 4px; display:grid; grid-template-columns:1fr 240px 1fr; gap:18px; align-items:start}
+@media (max-width:860px){ .layout{grid-template-columns:1fr} }
+
+.panel-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.panel-head{
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+  padding:10px 14px; font-weight:700; font-size:.82rem; letter-spacing:.04em; text-transform:uppercase;
+}
+.ce-table{width:100%; border-collapse:collapse}
+.ce-table thead th{
+  text-align:left; font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim);
+  padding:8px 10px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.ce-row{border-bottom:1px solid var(--border); cursor:default}
+.ce-row.clickable{cursor:pointer}
+.ce-row.clickable:hover{background:var(--panel-2)}
+.ce-row td{padding:8px 10px; vertical-align:middle}
+.ce-group-row td{
+  padding:8px 10px 4px; font-size:.68rem; font-weight:700; color:var(--accent-text);
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+}
+.stat-dot{width:16px; height:16px; border-radius:4px; display:inline-block; border:1px solid var(--border)}
+.stat-dot.off{background:var(--false-bg); border-color:var(--false)}
+.stat-dot.on{background:var(--true-bg); border-color:var(--true)}
+.svc{font-size:.8rem; line-height:1.35}
+.tagno{font-family:var(--mono); font-size:.74rem; color:var(--fg-dim); white-space:nowrap}
+.valword{font-family:var(--mono); font-size:.68rem; font-weight:700; white-space:nowrap}
+.valword.off{color:var(--false)}
+.valword.on{color:var(--true)}
+
+/* Koreksi UI/UX (2026-10-25): pembeda visual utk EFFECT yang "internal"
+   (dipakai sheet lain, BUKAN output fisik ke lapangan) -- sebelumnya
+   stylingnya identik dgn output lapangan sungguhan (mis. f105UY001),
+   jadi tidak kebeda saat scan cepat meski teks desc-nya sudah bilang
+   "bukan output lapangan". SENGAJA TIDAK mengubah warna
+   hijau/merah (--false/--true) sesuai permintaan -- pembeda dibuat lewat
+   border kiri putus-putus + badge ikon kecil saja. */
+.xlinks{display:flex; flex-wrap:wrap; gap:6px; margin-top:3px}
+.xlink{
+  font-size:.68rem; font-weight:650; text-decoration:none; color:var(--accent-text);
+  background:var(--panel-2); border:1px solid var(--border); border-radius:6px; padding:1px 6px;
+}
+.xlink:hover{border-color:var(--accent); color:var(--accent)}
+/* Shape blok logic di kolom tengah ikut konvensi warna halaman ini:
+   semua output TRUE = normal = hijau, ada yang FALSE = trip = merah. */
+.uc-box.st-normal{border-color:var(--false); background:var(--false-bg)}
+.uc-box.st-trip{border-color:var(--true); background:var(--true-bg)}
+.uc-state{
+  margin-top:8px; display:inline-block; font-family:var(--mono); font-size:.66rem; font-weight:700;
+  letter-spacing:.06em; padding:3px 10px; border-radius:20px; border:1px solid transparent;
+}
+.uc-box.st-normal .uc-state{background:var(--false); color:var(--panel)}
+.uc-box.st-trip .uc-state{background:var(--true); color:var(--panel)}
+.uc-substate{margin-top:5px; font-size:.68rem; color:var(--fg-dim)}
+.ce-row.internal{border-left:3px dashed var(--accent-text)}
+.ce-row.internal .svc{position:relative; padding-left:0}
+.internal-badge{
+  display:inline-flex; align-items:center; gap:3px; font-size:.64rem; font-weight:700;
+  color:var(--accent-text); background:var(--panel-2); border:1px solid var(--border);
+  border-radius:20px; padding:1px 7px; margin-left:6px; white-space:nowrap; vertical-align:middle;
+}
+
+.center-col{display:flex; flex-direction:column; gap:14px; position:sticky; top:84px}
+.uc-box{
+  background:var(--panel); border:2px solid var(--accent); border-radius:12px;
+  padding:16px; text-align:center;
+}
+.uc-box .ucid{font-family:var(--mono); font-size:.8rem; color:var(--accent-text); font-weight:700}
+.uc-box .uctitle{font-size:.92rem; font-weight:700; margin-top:4px}
+.arrow-row{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--fg-dim); font-size:1.1rem}
+.summary-mini{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:.78rem; line-height:1.55; color:var(--fg-dim)}
+.summary-mini p{margin:0 0 8px}
+.summary-mini p:last-child{margin-bottom:0}
+/* Koreksi UI/UX (2026-10-25): paragraf ke-2 dst disembunyikan default
+   supaya kolom EFFECT (yang paling sering dicek cepat) tidak terdorong
+   jauh ke bawah oleh dinding teks historis -- terutama fatal di mobile
+   dgn layout 1 kolom. Paragraf pertama (ringkasan inti) tetap selalu
+   terlihat. Lihat critique "Critical #1". */
+.summary-mini .summary-rest{display:none}
+.summary-mini.expanded .summary-rest{display:block}
+.summary-toggle{
+  background:none; border:none; padding:0; margin-top:6px;
+  font-family:var(--disp); font-size:.74rem; font-weight:700; color:var(--accent-text);
+  cursor:pointer; display:flex; align-items:center; gap:4px;
+}
+.summary-toggle:hover{text-decoration:underline}
+.summary-toggle .chev{display:inline-block; transition:transform .15s}
+.summary-mini.expanded .summary-toggle .chev{transform:rotate(90deg)}
+
+/* status strip MOS/Reset — ditaruh di bawah kolom CAUSE, bukan baris
+   biasa di tabel, sesuai permintaan: cukup status aktif/tidak saja */
+.status-strip{margin-top:12px; display:flex; flex-direction:column; gap:8px}
+.status-chip-card{
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+  padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:pointer;
+}
+.status-chip-card:hover{border-color:var(--accent)}
+.status-chip-card .label{flex:1; font-size:.76rem}
+.status-chip-card .label b{font-family:var(--mono); display:block; font-size:.72rem; color:var(--fg-dim); font-weight:600}
+.chip{font-family:var(--mono); font-size:.68rem; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap}
+.chip.off{background:var(--false-bg); color:var(--false)}
+.chip.on{background:var(--true-bg); color:var(--true)}
+.status-strip-title{font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim); margin:4px 0 2px}
+</style>
+
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Cause &amp; Effect — 105-UC-009</h1>
+      <div class="sheetref" id="sheetRef"></div>
+    </div>
+    <div class="legend">
+      <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> Normal
+      <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> Triggered / Trip
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+    <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
+  </div>
+
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <div class="view-tabs" role="tablist" aria-label="Tampilan sheet">
+      <a class="view-tab" id="detailLink" href="#" role="tab" aria-selected="false">Logic Detail</a>
+      <span class="view-tab active" role="tab" aria-selected="true" aria-current="page">Cause &amp; Effect</span>
+    </div>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Versi sederhana (Cause &amp; Effect) — klik baris CAUSE/MOS/Reset untuk uji skenario, atau buka versi logic detail untuk lihat jalur gate lengkap.</span>
+  </div>
+
+  <div class="layout">
+    <div class="panel-card">
+      <div class="panel-head">Cause</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="causeBody"></tbody>
+      </table>
+      <div class="status-strip" id="statusStrip" style="padding:0 14px 14px"></div>
+    </div>
+
+    <div class="center-col">
+      <div class="uc-box">
+        <div class="ucid" id="ucId"></div>
+        <div class="uctitle" id="ucTitle"></div>
+        <div class="uc-state" id="ucState">—</div>
+        <div class="uc-substate" id="ucSubState"></div>
+      </div>
+      <div class="arrow-row">CAUSE ▶ &nbsp;●&nbsp; ▶ EFFECT</div>
+      <div class="summary-mini" id="summaryMini"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">Effect</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="effectBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= sim-engine.js (inline) ======================= */
+/*
+  SIS Logic Sim Engine — generic, reusable untuk semua halaman (105-UC-009, dst).
+  Tidak ada dependency eksternal. Dipakai di browser maupun Node.
+
+  Netlist schema:
+  {
+    id, title, sheetRef,
+    nodes: {
+      "<nodeId>": {
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
+        label, desc, gateId,
+        // AND/OR/VOTING:
+        inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
+        k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
+                      // output ikut jatuh ke FALSE (lihat case "VOTING" di
+                      // step() — bukan threshold "k dari n TRUE")
+        // RS:
+        s: "<nodeId>", r: "<nodeId>"
+        // NOT/BUFFER/MOVE ("MOVE" dipakai saat gambar asli literal memberi
+        // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
+        // (passthrough nilai apa adanya), bedanya cuma label yang tampil
+        // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
+        input: "<nodeId>"
+        // OUTPUT:
+        source: "<nodeId>"
+      }
+    },
+    notes: [...]
+  }
+*/
+(function (global) {
+  function topoOrder(nodes) {
+    const deps = {};
+    for (const id in nodes) {
+      const n = nodes[id];
+      let refs = [];
+      switch (n.type) {
+        case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
+        case "RS": refs = [n.s, n.r]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
+        case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
+        case "INPUT": refs = []; break;
+      }
+      deps[id] = refs;
+    }
+    const visited = {}, temp = {}, order = [];
+    function visit(id) {
+      if (visited[id]) return;
+      if (temp[id]) throw new Error("Algebraic loop terdeteksi melibatkan node: " + id);
+      temp[id] = true;
+      (deps[id] || []).forEach(visit);
+      temp[id] = false;
+      visited[id] = true;
+      order.push(id);
+    }
+    Object.keys(nodes).forEach(visit);
+    return order;
+  }
+
+  function createSim(netlist) {
+    const nodes = netlist.nodes;
+    const order = topoOrder(nodes);
+    // state: nilai boolean saat ini per node, plus memory khusus utk RS
+    // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
+    for (const id in nodes) {
+      state.values[id] = false;
+      state.prevValues[id] = false;
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+    }
+
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
+      // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
+      const v = state.values;
+      const prev = state.prevValues;
+      for (const id of order) {
+        const n = nodes[id];
+        switch (n.type) {
+          case "INPUT":
+            v[id] = !!inputOverrides[id];
+            break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
+          case "AND":
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "OR":
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "NOT":
+            v[id] = !v[n.input];
+            break;
+          case "BUFFER": case "MOVE":
+            v[id] = v[n.input];
+            break;
+          case "VOTING": {
+            // Voting k-of-n bertipe "sehat jika kompak" (dikonfirmasi user,
+            // BUKAN "trip jika k dari n TRUE" seperti versi awal):
+            // input normal/sehat = TRUE; output jadi FALSE begitu jumlah
+            // input yang FALSE mencapai k (mis. 2oo9 -> output FALSE kalau
+            // >=2 dari 9 input FALSE). Jadi output = (jumlah FALSE < k).
+            const countFalse = n.inputs.reduce((acc, i) => acc + (v[i] ? 0 : 1), 0);
+            v[id] = countFalse < n.k;
+            break;
+          }
+          case "RS": {
+            // Bistable Reset Dominant, PERSIS formula resmi IEC 61131-3
+            // "RS.ST" (dikonfirmasi user lewat source function block asli):
+            //   Q1 := (Q1 OR S) AND NOT R1
+            // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
+            // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
+            // ini, lihat ARSITEKTUR.md Koreksi #9).
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
+            const r = v[n.r];
+            const qPrev = state.rsPrev[id];
+            const next = s && (qPrev || r);
+            v[id] = next;
+            state.rsPrev[id] = next;
+            break;
+          }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
+          case "OUTPUT":
+            v[id] = v[n.source];
+            break;
+          default:
+            throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
+        }
+      }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
+      return v;
+    }
+
+    function reset() {
+      for (const id in nodes) {
+        state.values[id] = false;
+        state.prevValues[id] = false;
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+      }
+    }
+
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
+  }
+
+  global.SimEngine = { createSim, topoOrder };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
+/* ======================= sinkronisasi status tag LINTAS SHEET =======================
+   Tag dengan label yang sama di beberapa sheet adalah satu tag fisik yang
+   sama (mis. tombol ESD f105HS007A dipakai di sheet 3 & sheet 6), jadi
+   statusnya harus sama di semua sheet: diubah di satu sheet = ikut berubah
+   di sheet lain. Disimpan di localStorage global (KEY di bawah, per label
+   tag -- BUKAN per sheet), dipakai halaman Logic Detail & Cause & Effect.
+   - INPUT: nilai dari store dipakai saat halaman dibuka; tiap kali
+     operator mengubah INPUT, nilainya ditulis ke store.
+   - OUTPUT: nilai hasil hitung ditulis ke store, supaya sheet lain yang
+     memakai tag itu sebagai INPUT (ditandai `linkedFrom` oleh build) ikut.
+   - Tab lain yang sedang terbuka menerima event 'storage' -> terapkan
+     nilai baru -> simulasi ulang. Penulisan hanya dilakukan kalau nilai
+     benar-benar berubah, jadi tidak ada loop antar tab.
+   Memori latch RS tetap per sheet (blok RS milik sheet masing-masing).
+   Disuntikkan ke kedua template oleh scripts/build.js (<!--TAGSYNC_JS-->). */
+var TagSync = (function(){
+  var KEY = 'sis-sim-tags';
+  var netlist = null, inputs = null, sheetId = '';
+  function readStore(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function writeStore(store){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+  }
+  function applyStore(store){
+    var changed = false;
+    Object.keys(netlist.nodes).forEach(function(id){
+      var n = netlist.nodes[id];
+      if(n.type !== 'INPUT' || !n.label) return;
+      var entry = store[n.label];
+      if(entry && typeof entry.v === 'boolean' && inputs[id] !== entry.v){
+        inputs[id] = entry.v;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+  return {
+    KEY: KEY,
+    /* panggil sekali setelah state per-sheet dimuat: nilai global menang */
+    init: function(nl, inputState){
+      netlist = nl; inputs = inputState; sheetId = nl.slug || nl.id || '';
+      applyStore(readStore());
+    },
+    /* panggil di akhir tiap simulate(values) */
+    publish: function(values){
+      if(!netlist) return;
+      var store = readStore(), dirty = false;
+      Object.keys(netlist.nodes).forEach(function(id){
+        var n = netlist.nodes[id];
+        if(!n.label) return;
+        var v;
+        if(n.type === 'INPUT') v = !!inputs[id];
+        else if(n.type === 'OUTPUT') v = !!values[id];
+        else return;
+        var cur = store[n.label];
+        if(!cur || cur.v !== v){
+          store[n.label] = { v: v, src: n.type === 'INPUT' ? 'input' : sheetId };
+          dirty = true;
+        }
+      });
+      if(dirty) writeStore(store);
+    },
+    /* cb dipanggil kalau tab lain mengubah tag yang dipakai sheet ini */
+    onChange: function(cb){
+      window.addEventListener('storage', function(e){
+        if(e.key !== KEY || !netlist) return;
+        if(applyStore(readStore())) cb();
+      });
+    }
+  };
+})();
+
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+/* ======================= hubungan antar sheet (effect <-> cause) =======================
+   Tag yang sama memayungi beberapa sheet (lihat _tagsync.js & data/tags.json).
+   Build (`scripts/build.js`, applyTagRegistry) menandai tiap node dengan:
+     - INPUT  .linkedFrom : sheet yang MENGHASILKAN tag ini (di sana dia effect)
+     - INPUT  .alsoIn     : sheet lain yang memakai tag ini sbg cause juga
+     - OUTPUT .linkedTo   : sheet yang MEMAKAI tag ini sbg cause/initiator
+   Modul ini mengubah penanda itu jadi daftar keterangan + link navigasi,
+   dipakai halaman Logic Detail (dirender sbg <a> di dalam SVG) maupun
+   Cause & Effect (dirender sbg <a> di sel tabel). `useCe` menentukan link
+   menuju versi Cause & Effect atau versi Logic Detail sheet tujuan —
+   supaya operator tetap berada di mode tampilan yang sama saat berpindah. */
+var CrossLink = (function(){
+  function resolve(slugs, idx, useCe){
+    return (slugs || []).map(function(s){
+      var m = idx && idx[s];
+      if(!m) return null;
+      return {
+        label: 'Sheet ' + String(m.no).padStart(3, '0'),
+        tag: m.tag,
+        href: useCe ? m.ceUrl : m.url
+      };
+    }).filter(Boolean);
+  }
+  return {
+    /* -> [{ kind, prefix, label, title, href }] (kosong kalau tag ini tidak
+       punya hubungan lintas sheet) */
+    linksFor: function(node, nav, useCe){
+      if(!node) return [];
+      var idx = nav && nav.sheetIndex;
+      var out = [];
+      resolve(node.linkedFrom, idx, useCe).forEach(function(x){
+        out.push({ kind: 'from', prefix: '← Sumber ', label: x.label, href: x.href,
+                   title: 'Nilai tag ini dihasilkan di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.linkedTo, idx, useCe).forEach(function(x){
+        out.push({ kind: 'to', prefix: '→ Menuju ', label: x.label, href: x.href,
+                   title: 'Tag ini jadi cause/initiator di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.alsoIn, idx, useCe).forEach(function(x){
+        out.push({ kind: 'also', prefix: '↔ Juga di ', label: x.label, href: x.href,
+                   title: 'Tag yang sama juga dipakai sbg cause di ' + x.label + ' (' + x.tag + ') — status keduanya selalu sama' });
+      });
+      return out;
+    }
+  };
+})();
+
+/* ======================= status normal/trip satu sheet =======================
+   Dipakai halaman portal (warna kartu tiap sheet) & halaman Cause & Effect
+   (warna shape blok logic di kolom tengah). Konvensi SAMA dgn kolom EFFECT
+   halaman CE (Koreksi #7): nilai TRUE = normal = hijau, FALSE = trip = merah,
+   seragam utk semua OUTPUT tanpa pengecualian per tipe node.
+   Satu sheet disebut NORMAL kalau SEMUA output-nya TRUE; kalau ada satu saja
+   yang FALSE -> TRIP (fail-safe: tampilkan kondisi terburuk). */
+var SheetStatus = (function(){
+  return {
+    /* values = hasil sim.step(); nodes = netlist.nodes */
+    of: function(nodes, values){
+      var total = 0, tripped = 0;
+      Object.keys(nodes).forEach(function(id){
+        if(nodes[id].type !== 'OUTPUT') return;
+        total++;
+        if(!values[id]) tripped++;
+      });
+      if(!total) return { state: 'none', total: 0, tripped: 0 };
+      return { state: tripped ? 'trip' : 'normal', total: total, tripped: tripped };
+    }
+  };
+})();
+
+/* ======================= netlist data (inline) ======================= */
+const NETLIST = {"id":"105-UC-032-011-012-027","title":"105-UC-032/011/012/027","sheetRef":"Sheet 5 of 34 — P02_UNIT_105 v1.175","causeGroups":["ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)","Level / MOS — Recycle Gas Comp K.O Drum 105-V-505","Shutdown & ESD Compressor 105-K-501","ESD Pushbutton — Fire/Leak 105-K-501","Posisi Valve — Open (start permissive)","Posisi Valve — Close (shutdown)","Umpan balik internal","Motor Trip 105-K-501M (blok 00008)","Reset (manual, per latch)"],"effectGroups":["Output Proses — Depressurization & Amine (UC-011/013)","Output Proses — Recycle Gas Compressor (UC-012)","Output Proses — Recycle Gas (UC-027)","Motor Trip 105-K-501M (blok 00008)","Internal HMI (monitor saja)","Effect — dipakai sheet lain (bukan output lapangan)"],"nodes":{"in_f105HS006A":{"type":"INPUT","label":"f105HS006A","group":"ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)","desc":"12052 — Esd Button In Case Of Hds Section Depressurization (AUX)","tagNo":"12052","alsoIn":["sheet-006"]},"in_f105HS006B":{"type":"INPUT","label":"f105HS006B","group":"ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)","desc":"12053 — Esd Button In Case Of Hds Section Depressurization (Local)","tagNo":"12053","alsoIn":["sheet-006"]},"in_f105HS011UCR":{"type":"INPUT","label":"f105HS011UCR","desc":"12253 — Reset 105-UY-015/018 (105-UC-011/013)","isReset":true,"group":"Reset (manual, per latch)"},"in_m105LSHH030":{"type":"INPUT","label":"m105LSHH030","group":"Level / MOS — Recycle Gas Comp K.O Drum 105-V-505","desc":"12380 — Recycle Gas Comp K.O Drum 105-V-505 HH Alm","tagNo":"12380","alsoIn":["sheet-006"]},"in_f105HS030LM":{"type":"INPUT","label":"f105HS030LM","group":"Level / MOS — Recycle Gas Comp K.O Drum 105-V-505","desc":"12105 — MOS 105-LSHH/LSLL-030","isMOS":true,"tagNo":"12105","alsoIn":["sheet-006"]},"in_f105XS012":{"type":"INPUT","label":"f105XS012","group":"Shutdown & ESD Compressor 105-K-501","desc":"12001 — 105-XS-012 Compressor Shutdown","tagNo":"12001","alsoIn":["sheet-006"]},"in_f105HS010A":{"type":"INPUT","label":"f105HS010A","group":"Shutdown & ESD Compressor 105-K-501","desc":"12248 — ESD Button To Stop Recycle Gas Compressor 105-K-501 (AUX)","tagNo":"12248","alsoIn":["sheet-006"]},"in_f105HS010B":{"type":"INPUT","label":"f105HS010B","group":"Shutdown & ESD Compressor 105-K-501","desc":"12250 — Push Button To Stop Recycle Gas Compressor 105-K-501 (Local)","tagNo":"12250","alsoIn":["sheet-006"]},"in_f105HS019AE":{"type":"INPUT","label":"f105HS019AE","group":"ESD Pushbutton — Fire/Leak 105-K-501","desc":"12086 — ESD Button In Case Fire Or Any Leak At 105-K-501 (DCS)","tagNo":"12086","alsoIn":["sheet-006"]},"in_f105HS019B":{"type":"INPUT","label":"f105HS019B","group":"ESD Pushbutton — Fire/Leak 105-K-501","desc":"12087 — Push Button In Case Fire Or Any Leak At 105-K-501 (Local)","tagNo":"12087","alsoIn":["sheet-006"]},"in_f105ZSO021":{"type":"INPUT","label":"f105ZSO021","desc":"12203 — Open Signal Of 105-UV-021 To Compressor Start Permissive","group":"Posisi Valve — Open (start permissive)"},"in_f105ZSO022":{"type":"INPUT","label":"f105ZSO022","desc":"12765 — Open Signal Of 105-UV-022 To Compressor Start Permissive","group":"Posisi Valve — Open (start permissive)"},"in_f105ZSC021":{"type":"INPUT","label":"f105ZSC021","desc":"12766 — Close Signal Of 105-UV-021 To Compressor Shutdown","group":"Posisi Valve — Close (shutdown)"},"in_f105ZSC022":{"type":"INPUT","label":"f105ZSC022","desc":"12764 — Close Signal Of 105-UV-022 To Compressor Shutdown","group":"Posisi Valve — Close (shutdown)"},"in_f105HS012UCR":{"type":"INPUT","label":"f105HS012UCR","group":"Reset (manual, per latch)","desc":"12074 — Reset 105-UY-019/045, FY-029, HS-010AE (105-UC-012)","isReset":true,"tagNo":"12074","alsoIn":["sheet-006"]},"in_f105HS027UCR":{"type":"INPUT","label":"f105HS027UCR","desc":"12256 — Reset 105-UY-021/022 (105-UC-027)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105XS616":{"type":"INPUT","label":"f105XS616","desc":"12593 — Input for 105-XA-616","group":"Motor Trip 105-K-501M (blok 00008)"},"and_001":{"type":"AND","gateId":"001","inputs":["in_f105HS006A","in_f105HS006B"]},"rs_002":{"type":"RS","gateId":"002","label":"RS #002","s":"and_001","r":"in_f105HS011UCR"},"not_003":{"type":"NOT","gateId":"003","input":"in_m105LSHH030"},"or_006":{"type":"OR","gateId":"006","inputs":["in_m105LSHH030","in_f105HS030LM"]},"and_007":{"type":"AND","gateId":"007","inputs":["in_f105HS010A","in_f105HS010B"]},"not_015":{"type":"NOT","gateId":"015","input":"and_007"},"and_008":{"type":"AND","gateId":"008","inputs":["in_f105HS019AE","in_f105HS019B"]},"and_010":{"type":"AND","gateId":"010","inputs":["in_f105ZSO021","in_f105ZSO022"]},"and_009":{"type":"AND","gateId":"009","inputs":["rs_002","or_006","in_f105XS012","and_007","and_008"]},"and_004":{"type":"AND","gateId":"004","inputs":["in_f105ZSC022","in_f105ZSC021"],"invertInputs":[true,true]},"fb_bfeed":{"type":"FEEDBACK","input":"out_RST_B_FEED"},"and_005":{"type":"AND","gateId":"005","inputs":["in_f105ZSC021","in_f105ZSC022","in_f105HS012UCR","fb_bfeed"],"invertInputs":[true,true,false,true]},"or_011":{"type":"OR","gateId":"011","inputs":["and_009","and_010"],"invertInputs":[true,true]},"rs_012":{"type":"RS","gateId":"012","label":"RS #012","s":"or_011","r":"and_005"},"mv_013":{"type":"MOVE","gateId":"013","input":"out_RST_B_FEED"},"not_014":{"type":"NOT","gateId":"014","input":"mv_013"},"tof_016":{"type":"TOF","gateId":"016","input":"and_010","setpointSec":30},"rs_017":{"type":"RS","gateId":"017","label":"RS #017","s":"tof_016","r":"in_f105HS027UCR"},"mv_b001":{"type":"MOVE","gateId":"001","input":"in_f105XS616"},"not_b002":{"type":"NOT","gateId":"002","input":"mv_b001"},"out_f105UY015A":{"type":"OUTPUT","label":"f105UY015A","desc":"12229 — HDS Depressurization To Flare","source":"rs_002","group":"Output Proses — Depressurization & Amine (UC-011/013)"},"out_f105UY015B":{"type":"OUTPUT","label":"f105UY015B","desc":"12230 — HDS Depressurization To Flare","source":"rs_002","group":"Output Proses — Depressurization & Amine (UC-011/013)"},"out_f105UY018":{"type":"OUTPUT","label":"f105UY018","desc":"12233 — Lean Amine Supply To 105-C-502","source":"rs_002","group":"Output Proses — Depressurization & Amine (UC-011/013)"},"out_f105LAHH030":{"type":"OUTPUT","label":"f105LAHH030","desc":"12883 — Level in Alm Splitter Bottom LL Alm — hasil NOT dari m105LSHH030, dipakai di sheet lain","source":"not_003","group":"Effect — dipakai sheet lain (bukan output lapangan)","internalOnly":true},"out_f105HA010":{"type":"OUTPUT","label":"f105HA010","desc":"12276 — Level in Alm Splitter Bottom LL Alm — hasil NOT dari AND#007, dipakai di sheet lain","source":"not_015","group":"Effect — dipakai sheet lain (bukan output lapangan)","internalOnly":true},"out_AND_1_HMI":{"type":"OUTPUT","label":"AND_1_105UC032_011_012_027","desc":"12849 — Internal HMI (status AND#009)","source":"and_009","group":"Internal HMI (monitor saja)"},"out_f105UY019_P":{"type":"OUTPUT","label":"f105UY019_P","desc":"12286 — Permisive from 105-ZSO-021 & 105-ZSO-022","source":"and_004","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_RST_B_FEED":{"type":"OUTPUT","label":"RST_105UC032_011_012_027_B_FEED","desc":"Sinyal internal — Q1 RS#012, dipakai ulang sebagai input MOVE#013 dan (lewat umpan balik) AND#005","source":"rs_012","group":"Internal HMI (monitor saja)","internalOnly":true},"out_RS_1_HMI":{"type":"OUTPUT","label":"RS_1_105UC032_011_012_027","desc":"12277 — Internal HMI (status latch RS#012)","source":"rs_012","group":"Internal HMI (monitor saja)"},"out_f105HS010AE":{"type":"OUTPUT","label":"f105HS010AE","desc":"12249 — Motor Stop 105-K-501 (DCS)","source":"mv_013","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_f105UY019":{"type":"OUTPUT","label":"f105UY019","desc":"12234 — H2 Make-Up To HDS System","source":"mv_013","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_f105FY029":{"type":"OUTPUT","label":"f105FY029","desc":"12069 — HDS Reaction Section Purge Gas","source":"mv_013","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_f105XA010":{"type":"OUTPUT","label":"f105XA010","desc":"12767 — 105-XS-010 Recycle Gas Compressor 105-K-501 Shutdown","source":"mv_013","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_f105UY045":{"type":"OUTPUT","label":"f105UY045","desc":"12164 — Back Up Seal Gas To DGS 105-K-501","source":"not_014","group":"Output Proses — Recycle Gas Compressor (UC-012)"},"out_TOF_1_HMI":{"type":"OUTPUT","label":"TOF_1_105UC032_011_012_027","desc":"12518 — Internal HMI (keluaran timer TOF#016)","source":"tof_016","group":"Internal HMI (monitor saja)"},"out_f105UY021":{"type":"OUTPUT","label":"f105UY021","desc":"12236 — Recycle Gas To 105-K-501","source":"rs_017","group":"Output Proses — Recycle Gas (UC-027)"},"out_f105UY022":{"type":"OUTPUT","label":"f105UY022","desc":"12237 — Recycle Gas Outlet 105-K-501","source":"rs_017","group":"Output Proses — Recycle Gas (UC-027)"},"out_f105XA616":{"type":"OUTPUT","label":"f105XA616","desc":"12177 — 105-K-501M-L-Motor Trip (4POLE)","source":"mv_b001","group":"Motor Trip 105-K-501M (blok 00008)"},"out_f105XA616_DCS":{"type":"OUTPUT","label":"f105XA616_DCS","desc":"13355 — 105-K-501M-L-Motor Trip (4POLE) — hasil NOT","source":"not_b002","group":"Motor Trip 105-K-501M (blok 00008)"}},"summary":["Ini sheet paling kompleks sejauh ini: tiga latch RS, satu timer off-delay 30 detik, gerbang dengan pin yang dibalik, dan satu jalur umpan balik. Isinya empat urusan yang berbagi satu halaman: UC-032, UC-011/013, UC-012, dan UC-027.","Jalur pertama (blok 00007 bagian atas, UC-011/013): dua tombol ESD depressurization HDS (f105HS006A AUX dan f105HS006B Local) masuk AND#001 lalu latch RS#002, direset f105HS011UCR. Begitu latch trip, tiga valve mati: f105UY015A dan f105UY015B (depressurization ke flare) serta f105UY018 (lean amine ke 105-C-502).","Jalur kedua (UC-012) adalah yang paling panjang. AND#009 menggabungkan lima hal sekaligus: Q1 latch RS#002, keluaran OR#006 (alarm level tinggi-tinggi K.O drum m105LSHH030 ATAU MOS f105HS030LM), f105XS012 (compressor shutdown), AND#007 (dua tombol stop kompresor), dan AND#008 (dua tombol ESD kebakaran 105-K-501). Hasilnya dikirim ke HMI dan masuk OR#011. OR#011 menerima dua masukan yang keduanya DIBALIK dulu: keluaran AND#009 dan keluaran AND#010 (posisi kedua valve open). OR#011 lalu masuk pin kondisi latch RS#012, sementara pin reset-nya dari AND#005.","AND#005 sendiri punya empat masukan dengan pola campur: f105ZSC021 dan f105ZSC022 (sinyal close valve) masing-masing dibalik, f105HS012UCR (tombol reset) dipakai apa adanya, dan sinyal umpan balik RST_..._B_FEED dibalik. Umpan balik ini adalah keluaran latch RS#012 itu sendiri yang dipakai lagi sebagai masukan — di PLC asli ini sah karena memakai nilai dari scan sebelumnya, dan simulator meniru persis perilaku itu.","Keluaran RS#012 dipakai ulang lewat MOVE#013 untuk mematikan lima hal sekaligus: motor stop f105HS010AE, H2 make-up f105UY019, purge gas f105FY029, shutdown f105XA010, dan lewat NOT#014 ke back-up seal gas f105UY045 (yang polaritasnya terbalik). Terpisah dari itu, AND#004 memakai kedua sinyal close valve yang dibalik untuk menghasilkan f105UY019_P (permissive dari 105-ZSO-021 dan 105-ZSO-022).","Jalur ketiga (UC-027) memakai timer. Keluaran AND#010 (kedua valve open) masuk blok T_OFF_SP#016 dengan setelan 30 detik. Sifat off-delay: selama sinyalnya hidup keluaran timer ikut hidup, dan begitu sinyalnya mati keluaran timer MASIH bertahan 30 detik dulu baru jatuh. Keluaran timer jadi pin kondisi latch RS#017 (reset f105HS027UCR), yang mengatur f105UY021 dan f105UY022 (recycle gas ke dan dari 105-K-501). Jadi kalau posisi valve hilang sesaat, kompresor tidak langsung trip — ada jeda setengah menit. Di simulator jeda ini berjalan dengan waktu sungguhan dan sisa detiknya ditampilkan di blok timer.","Blok 00008 terpisah sendiri dan sederhana: f105XS616 lewat MOVE#001 jadi f105XA616 (motor trip 105-K-501M), dan lewat NOT#002 jadi f105XA616_DCS yang polaritasnya kebalikan.","Catatan simulator: semua tag mulai dari FALSE sehingga semua output tampil trip saat pertama dibuka. Untuk menghidupkan jalur UC-027, set f105ZSO021 dan f105ZSO022 ke TRUE lalu tekan reset f105HS027UCR."],"notes":["Sumber: gambar vendor sheet 5 of 34 '105-UC-032/011/012/027' (P02_UNIT_105 v1.175) — satu tampilan penuh plus empat zoom, di-trace 2026-10-25. Nomor '00007'/'00008' adalah nomor blok rangkaian, bukan nomor halaman. Penomoran gate berulang per blok: blok 00007 memakai 001-017, blok 00008 memakai 001-002 lagi (node-nya dibedakan prefiks mv_b001/not_b002).","BARU di sheet ini — lingkaran inversi MELEKAT di pin input gerbang AND/OR (bukan di pin R1 block RS). Dibaca lewat zoom 7-9x: AND#004 kedua pinnya berlingkaran; AND#005 pin 1, 2, 4 berlingkaran sedangkan pin 3 (f105HS012UCR) polos; OR#011 kedua pinnya berlingkaran. AND#009 dan gerbang lain pinnya polos. Dimodelkan lewat field baru `invertInputs` (array sejajar `inputs`), BUKAN node NOT perantara — konsisten dengan cara bulatan di pin R1 RS ditangani (ARSITEKTUR.md Koreksi #10).","BUKTI SILANG dari nilai live di gambar (bukan penalaran): f105ZSC021 dan f105ZSC022 keduanya FALSE, tetapi keluaran AND#004 yaitu f105UY019_P tampil TRUE/merah. Itu hanya mungkin kalau kedua pin benar-benar dibalik (NOT FALSE AND NOT FALSE = TRUE). Dengan logika yang sama OR#011 tampil merah/TRUE karena AND#009 dan AND#010 dua-duanya FALSE. Jadi lingkaran di pin gerbang ini inversi sungguhan, berbeda dari lingkaran pin R1 RS yang sudah terserap (Koreksi #12).","BARU di sheet ini — umpan balik: tag RST_105UC032_011_012_027_B_FEED adalah keluaran Q1 RS#012, tetapi juga digambar sebagai sumber yang masuk ke pin 4 AND#005, sementara AND#005 adalah pin reset RS#012 itu sendiri. Ini loop sungguhan di gambar. Di PLC asli sah karena AND#005 membaca nilai scan sebelumnya. Dimodelkan lewat tipe node baru `FEEDBACK` (tanpa dependensi, membaca snapshot scan sebelumnya) supaya urutan topological tetap bisa dihitung dan perilakunya sama dengan scan cycle PLC.","BARU di sheet ini — blok timer T_OFF_SP#016 (off-delay). Setelan 30 detik dibaca dari tag iTOF_105UC032_011_012_027_1 (40305 — SETPOINT 30 SECOND) dan keluaran setpoint-nya dikirim ke TOF_105UC032_011_012_027_1_OUT (31055). Kedua tag itu NUMERIK, bukan boolean, jadi tidak dimodelkan sebagai node di netlist boolean ini — nilainya disimpan sebagai field `setpointSec: 30` pada node timer. Atas pilihan user, timer berjalan dengan WAKTU NYATA 30 detik dan sisa hitungannya tampil di blok.","Pin RS ketiga latch dicek lewat zoom: RS#002 pin S dari f105HS011UCR, pin R1 dari AND#001. RS#012 pin S dari AND#005, pin R1 dari OR#011 — jadi di latch ini pin S BUKAN tag reset langsung melainkan gerbang yang memuat tag reset f105HS012UCR di dalamnya. RS#017 pin S dari f105HS027UCR, pin R1 dari keluaran timer. Pemetaan netlist tetap mengikuti aturan struktural yang sama (Koreksi #12/#14): field 'r' = apa pun yang masuk pin S, field 's' = apa pun yang masuk pin R1, dipakai apa adanya tanpa inversi tambahan.","Label header ketiga block RS terpotong di gambar (hanya terbaca '05UC032_011_012_'), kemungkinan besar '105UC032_011_012_027' sama seperti nama tag keluarannya. Karena tidak terbaca utuh, label di simulator dipakai 'RS #002/#012/#017' saja — jangan diisi tebakan nama lengkap tanpa gambar yang lebih jelas.","f105LAHH030 dan f105HA010 keduanya EFFECT (penerima), bukan cause: masing-masing menerima keluaran NOT#003 dan NOT#015, dan nilainya di gambar TRUE sementara sumbernya FALSE — bukti silang yang sama seperti f105LALL009 di sheet 4.","Tag lintas sheet (Koreksi #22): 10 INPUT di sheet ini juga dipakai di sheet 6 (f105HS006A/B, m105LSHH030, f105HS030LM, f105XS012, f105HS010A/B, f105HS019AE/B, f105HS012UCR) — deskripsi & flag diambil dari data/tags.json. Deskripsi vendor dari sheet 5 jauh lebih lengkap dari catatan ringkas di sheet 6, jadi registry diperbarui dan sheet 6 ikut memakainya.","Polaritas tombol ESD/stop (f105HS006A/B, f105HS010A/B, f105HS019AE/B): dimodelkan NC (sirkit sehat = TRUE) mengikuti sheet 2/3/4/6 — belum ada konfirmasi eksplisit user per tag ini."],"slug":"sheet-005"};
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":4,"tag":"105-UC-007","url":"sheet-004-ce.html"},"next":{"sheet":6,"tag":"105-UC-009","url":"sheet-006-ce.html"},"detailUrl":"sheet-005.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-sim-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-sim-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= data prep ======================= */
+const nodes = NETLIST.nodes;
+const ids = Object.keys(nodes);
+const INPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'INPUT'; });
+const OUTPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+
+/* CAUSE utama = INPUT biasa (bukan Reset, bukan MOS — keduanya cukup
+   ditampilkan statusnya saja di strip bawah, sesuai permintaan: "untuk
+   logic MOS, Reset tuliskan statusnya dibawah saja, sedang di MOS/Reset
+   atau tidak" */
+const CAUSE_MAIN_IDS = INPUT_IDS.filter(function(id){ return !nodes[id].isReset && !nodes[id].isMOS; });
+const RESET_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isReset; });
+const MOS_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isMOS; });
+
+function groupSort(idList, groupOrder){
+  const rank = {};
+  (groupOrder || []).forEach(function(g, i){ rank[g] = i; });
+  return idList.slice().sort(function(a, b){
+    const ga = nodes[a].group, gb = nodes[b].group;
+    const ra = ga in rank ? rank[ga] : 999, rb = gb in rank ? rank[gb] : 999;
+    if(ra !== rb) return ra - rb;
+    return idList.indexOf(a) - idList.indexOf(b);
+  });
+}
+const causeSorted = groupSort(CAUSE_MAIN_IDS, NETLIST.causeGroups);
+const effectSorted = groupSort(OUTPUT_IDS, NETLIST.effectGroups);
+
+/* ======================= sim instance ======================= */
+const sim = SimEngine.createSim(NETLIST);
+const inputState = {};
+INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+
+/* ======================= sinkronisasi state dgn halaman Logic Detail =======================
+   Lihat komentar yang sama di sheet.template.html — halaman ini & versi
+   Logic Detail sheet yang sama berbagi netlist (NETLIST.id sama), jadi
+   state disinkronkan lewat localStorage (key dari NETLIST.id) supaya
+   toggle CAUSE/MOS/Reset di satu halaman kebawa kalau pindah ke halaman
+   satunya, termasuk memory internal RS latch (rsPrev) supaya
+   status trip/reset-nya ikut kebawa, bukan cuma posisi tombol. */
+const SYNC_KEY = 'sis-sim-state-' + (NETLIST.id || NETLIST.title || 'sheet');
+function loadSyncedState(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved.inputState){
+      Object.keys(saved.inputState).forEach(function(id){
+        if(id in inputState) inputState[id] = !!saved.inputState[id];
+      });
+    }
+    if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
+    /* 'rPrev' tidak ada lagi di engine sejak Koreksi #9 (RS bukan
+       edge-triggered lagi) -- baris pemulihannya sengaja dihapus. */
+  }catch(e){}
+}
+function saveSyncedState(){
+  try{
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev }));
+  }catch(e){}
+}
+loadSyncedState();
+/* status tag yang sama di sheet lain menang atas state per-sheet (lihat _tagsync.js) */
+TagSync.init(NETLIST, inputState);
+
+/* ======================= render: CAUSE table (per grup) ======================= */
+const causeBody = document.getElementById('causeBody');
+const rowEls = {}; // id -> { dot, val }
+let lastGroup = null;
+/* keterangan + link navigasi ke sheet lain utk tag yang effect/cause-nya
+   nyambung antar sheet (lihat _crosslink.js). Link dibuat <a> sungguhan,
+   dan klik-nya TIDAK ikut men-toggle baris (stopPropagation). */
+function crossLinkHtml(n){
+  const links = CrossLink.linksFor(n, NAV, true);
+  if(!links.length) return '';
+  return '<div class="xlinks">' + links.map(function(lk){
+    return '<a class="xlink xlink-' + lk.kind + '" href="' + lk.href + '" title="' +
+           String(lk.title).replace(/"/g, '&quot;') + '">' + lk.prefix + lk.label + '</a>';
+  }).join('') + '</div>';
+}
+function wireCrossLinks(tr){
+  Array.prototype.forEach.call(tr.querySelectorAll('a.xlink'), function(a){
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  });
+}
+
+causeSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    causeBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row clickable';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + crossLinkHtml(n) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  tr.addEventListener('click', function(){
+    inputState[id] = !inputState[id];
+    simulate();
+  });
+  wireCrossLinks(tr);
+  causeBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: EFFECT table (per grup) ======================= */
+const effectBody = document.getElementById('effectBody');
+lastGroup = null;
+effectSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    effectBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row' + (n.internalOnly ? ' internal' : '');
+  const badge = n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + badge + crossLinkHtml(n) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  wireCrossLinks(tr);
+  effectBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: status strip (MOS / Reset) ======================= */
+const statusStrip = document.getElementById('statusStrip');
+function buildStatusGroup(title, idList){
+  if(!idList.length) return;
+  const h = document.createElement('div');
+  h.className = 'status-strip-title';
+  h.textContent = title;
+  statusStrip.appendChild(h);
+  idList.forEach(function(id){
+    const n = nodes[id];
+    const card = document.createElement('div');
+    card.className = 'status-chip-card';
+    card.innerHTML =
+      '<span class="label">' + (n.desc || n.label) + '<b>' + n.label + '</b></span>' +
+      '<span class="chip off" id="chip_' + id + '">TIDAK AKTIF</span>';
+    card.addEventListener('click', function(){
+      inputState[id] = !inputState[id];
+      simulate();
+    });
+    statusStrip.appendChild(card);
+    rowEls[id] = { chip: card.querySelector('.chip') };
+  });
+}
+buildStatusGroup('Status MOS', MOS_IDS);
+buildStatusGroup('Status Reset', RESET_IDS);
+
+/* ======================= header / center / nav ======================= */
+document.getElementById('pageTitle').textContent = 'Cause & Effect — ' + (NETLIST.title || NETLIST.id);
+document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
+document.getElementById('ucId').textContent = NETLIST.id || '';
+document.getElementById('ucTitle').textContent = NETLIST.title || '';
+
+const summaryMini = document.getElementById('summaryMini');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  /* Koreksi UI/UX (2026-10-25, Critical #1): paragraf pertama = ringkasan
+     inti, selalu tampil. Paragraf ke-2 dst (riwayat koreksi teknis,
+     biasanya panjang) disembunyikan di balik toggle "Baca detail teknis"
+     -- sebelumnya semua paragraf tampil sekaligus & mendorong tabel
+     EFFECT jauh ke bawah (parah terutama di layout 1-kolom/mobile). */
+  const firstP = document.createElement('p');
+  firstP.textContent = summaryParas[0];
+  summaryMini.appendChild(firstP);
+  if(summaryParas.length > 1){
+    const rest = document.createElement('div');
+    rest.className = 'summary-rest';
+    summaryParas.slice(1).forEach(function(para){
+      const p = document.createElement('p');
+      p.textContent = para;
+      rest.appendChild(p);
+    });
+    summaryMini.appendChild(rest);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'summary-toggle';
+    toggle.innerHTML = '<span class="chev">&#9656;</span><span class="label">Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)</span>';
+    toggle.addEventListener('click', function(){
+      const expanded = summaryMini.classList.toggle('expanded');
+      toggle.querySelector('.label').textContent = expanded
+        ? 'Sembunyikan detail teknis'
+        : 'Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)';
+    });
+    summaryMini.appendChild(toggle);
+  }
+} else {
+  summaryMini.style.display = 'none';
+}
+
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+document.getElementById('detailLink').href = (NAV && NAV.detailUrl) || '#';
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
+
+/* ======================= konvensi warna Cause & Effect =======================
+   PENTING: beda dengan halaman Logic Detail (yang warnanya ngikut nilai
+   mentah sinyal: TRUE=merah, FALSE=hijau, dipakai utk nelusurin jalur
+   wire apa adanya), halaman Cause & Effect ini warnanya SELALU
+   KEBALIKAN dari itu, berlaku SERAGAM ke semua indikator di halaman ini
+   (CAUSE, EFFECT, status MOS, status Reset) — TANPA pengecualian per
+   tipe node: TRUE = hijau (normal), FALSE = merah (trip/aktif).
+   Koreksi (2026-10-24, #7): versi sebelumnya keliru menambahkan
+   pengecualian per-tipe (OUTPUT pakai TRUE=hijau, tapi INPUT malah
+   dibalik jadi FALSE=hijau) — akibatnya baris CAUSE/MOS/Reset berakhir
+   dgn warna PERSIS SAMA dgn halaman Logic Detail (TRUE tetap tampil
+   merah di kedua halaman), bukan kebalikannya seperti diminta user.
+   Flag `healthyWhenTrue` SUDAH TIDAK DIPAKAI LAGI di sini — dengan
+   aturan seragam TRUE=hijau, flag itu jadi tidak relevan utk pewarnaan
+   CE (nilainya sendiri yg sudah di-NOT di level netlist, bukan
+   tampilannya, yang perlu diperhatikan). */
+function isNormal(id, val){
+  return val;
+}
+
+/* ======================= simulate + repaint ======================= */
+function simulate(){
+  const v = sim.step(inputState);
+  ids.forEach(function(id){
+    const re = rowEls[id];
+    if(!re) return;
+    const normal = isNormal(id, !!v[id]);
+    if(re.dot){ re.dot.classList.toggle('on', !normal); re.dot.classList.toggle('off', normal); }
+    if(re.chip){
+      const active = !!v[id];
+      re.chip.textContent = active ? 'AKTIF' : 'TIDAK AKTIF';
+      re.chip.className = 'chip ' + (active ? 'off' : 'on');
+    }
+  });
+  /* shape blok logic (kolom tengah) ikut status keseluruhan sheet ini */
+  const st = SheetStatus.of(nodes, v);
+  const ucBox = document.querySelector('.uc-box');
+  ucBox.classList.toggle('st-normal', st.state === 'normal');
+  ucBox.classList.toggle('st-trip', st.state === 'trip');
+  document.getElementById('ucState').textContent = st.state === 'normal' ? 'NORMAL' : 'TRIP';
+  document.getElementById('ucSubState').textContent = st.state === 'normal'
+    ? 'Semua ' + st.total + ' output energized'
+    : st.tripped + ' dari ' + st.total + ' output trip';
+  /* timer waktu nyata: halaman CE ikut men-tick supaya status EFFECT &
+     shape blok logic berubah sendiri saat hitungan TOF habis */
+  scheduleTimerTick();
+  saveSyncedState();
+  TagSync.publish(v);
+}
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null) timerTick = setInterval(function(){ simulate(); }, 250);
+  else if(!running && timerTick != null){ clearInterval(timerTick); timerTick = null; }
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+  sim.reset();
+  simulate();
+});
+
+TagSync.onChange(simulate);
+simulate();
+</script>

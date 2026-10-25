@@ -298,10 +298,15 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
         k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
                       // output ikut jatuh ke FALSE (lihat case "VOTING" di
                       // step() — bukan threshold "k dari n TRUE")
@@ -311,6 +316,11 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
         // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
         // (passthrough nilai apa adanya), bedanya cuma label yang tampil
         // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -328,8 +338,12 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
         case "INPUT": refs = []; break;
       }
       deps[id] = refs;
@@ -353,26 +367,57 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
     // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
-    const state = { values: {}, rsPrev: {} };
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
     for (const id in nodes) {
       state.values[id] = false;
+      state.prevValues[id] = false;
       if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
     }
 
-    function step(inputOverrides) {
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
       // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
       const v = state.values;
+      const prev = state.prevValues;
       for (const id of order) {
         const n = nodes[id];
         switch (n.type) {
           case "INPUT":
             v[id] = !!inputOverrides[id];
             break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
           case "AND":
-            v[id] = n.inputs.every((i) => v[i]);
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "OR":
-            v[id] = n.inputs.some((i) => v[i]);
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "NOT":
             v[id] = !v[n.input];
@@ -418,6 +463,30 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
             state.rsPrev[id] = next;
             break;
           }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
           case "OUTPUT":
             v[id] = v[n.source];
             break;
@@ -425,17 +494,22 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
             throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
         }
       }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
       return v;
     }
 
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
+        state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
   }
 
   global.SimEngine = { createSim, topoOrder };
@@ -589,7 +663,7 @@ var SheetStatus = (function(){
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = {"id":"105-UC-005-025","title":"105-UC-005/025","sheetRef":"Sheet 3 of 34 — P02_UNIT_105 v1.175","causeGroups":["ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","Reset (manual, per latch)"],"effectGroups":["Output Proses UC-005 (ke lapangan)","Output Proses UC-025 (ke lapangan)","Internal HMI (monitor saja)"],"nodes":{"in_f105HS007A":{"type":"INPUT","label":"f105HS007A","group":"ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","desc":"12055 — ESD Button In Case Of SHU Reactor (AUX)","tagNo":"12055","alsoIn":["sheet-004","sheet-006"]},"in_f105HS007B":{"type":"INPUT","label":"f105HS007B","group":"ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","desc":"12056 — ESD Button In Case Of SHU Reactor (Local)","tagNo":"12056","alsoIn":["sheet-004","sheet-006"]},"in_f105HS002AE":{"type":"INPUT","label":"f105HS002AE","group":"ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","desc":"12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)","tagNo":"12036","alsoIn":["sheet-004","sheet-006"]},"in_f105HS002B":{"type":"INPUT","label":"f105HS002B","group":"ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","desc":"12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)","tagNo":"12037","alsoIn":["sheet-004","sheet-006"]},"in_f105HS005UCR":{"type":"INPUT","label":"f105HS005UCR","group":"Reset (manual, per latch)","desc":"12051 — Reset 105-UY-007/008/023 (105-UC-005)","isReset":true,"tagNo":"12051","alsoIn":["sheet-004","sheet-006"]},"in_f105HS025UCR":{"type":"INPUT","label":"f105HS025UCR","group":"Reset (manual, per latch)","desc":"12098 — Reset 105-UY-010 (105-UC-025)","isReset":true,"tagNo":"12098","alsoIn":["sheet-004","sheet-006"]},"and_001a":{"type":"AND","gateId":"001","inputs":["in_f105HS007A","in_f105HS007B"]},"rs_002a":{"type":"RS","gateId":"002","label":"ST_105HS005UC","s":"and_001a","r":"in_f105HS005UCR"},"and_001b":{"type":"AND","gateId":"001","inputs":["in_f105HS002AE","in_f105HS002B"]},"rs_002b":{"type":"RS","gateId":"002","label":"ST_105HS025UC","s":"and_001b","r":"in_f105HS025UCR"},"out_f105UY007A":{"type":"OUTPUT","label":"f105UY007A","desc":"12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY007B":{"type":"OUTPUT","label":"f105UY007B","desc":"12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY008A":{"type":"OUTPUT","label":"f105UY008A","desc":"12221 — Splitter Overhead Depressurization Valve","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY008B":{"type":"OUTPUT","label":"f105UY008B","desc":"12222 — Splitter Overhead Depressurization Valve","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105PY023A":{"type":"OUTPUT","label":"f105PY023A","desc":"12209 — 105-V-502 Purge Gas Outlet","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105PY023B":{"type":"OUTPUT","label":"f105PY023B","desc":"12210 — 105-V-502 H2 Make Up","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_RS_1_105UC005_025":{"type":"OUTPUT","label":"RS_1_105UC005_025","desc":"12847 — Internal HMI (status latch ST_105HS005UC)","source":"rs_002a","group":"Internal HMI (monitor saja)"},"out_f105UY010":{"type":"OUTPUT","label":"f105UY010","desc":"12224 — Splitter Bottom Outlet Valve","source":"rs_002b","group":"Output Proses UC-025 (ke lapangan)"},"out_f105UY010_IL":{"type":"OUTPUT","label":"f105UY010_IL","desc":"12787 — 105-UY-010 Interlock Signal","source":"rs_002b","group":"Internal HMI (monitor saja)"},"out_RS_2_105UC005_025":{"type":"OUTPUT","label":"RS_2_105UC005_025","desc":"12848 — Internal HMI (status latch ST_105HS025UC)","source":"rs_002b","group":"Internal HMI (monitor saja)"}},"summary":["Halaman ini berisi 2 jalur trip ESD yang berdiri sendiri-sendiri (blok 00004 dan 00005). Polanya sama persis: dua tombol ESD (lokal + DCS/AUX) masuk ke satu gerbang AND, lalu ke latch RS, lalu output latch dibagikan ke beberapa valve sekaligus.","Jalur UC-005 (latch ST_105HS005UC): tombol ESD SHU Reactor f105HS007A (AUX) dan f105HS007B (Local). Begitu latch trip, 6 valve ikut mati bersamaan: depressurization valve bypass 105-TV-006A/105-PV-016 ke splitter (f105UY007A/B), splitter overhead depressurization valve (f105UY008A/B), purge gas outlet 105-V-502 (f105PY023A) dan H2 make-up 105-V-502 (f105PY023B). Status latch juga dikirim ke HMI (RS_1_105UC005_025). Reset: f105HS005UCR.","Jalur UC-025 (latch ST_105HS025UC): tombol ESD kebakaran/kebocoran 105-C-501, f105HS002AE (DCS) dan f105HS002B (Local). Begitu trip, f105UY010 (splitter bottom outlet valve) mati, sinyal interlock f105UY010_IL dan status HMI RS_2_105UC005_025 ikut. Reset: f105HS025UCR.","Cara bacanya sama dengan jalur ESD di sheet 2: kedua tombol diperlakukan sebagai sinyal 'sirkit sehat = TRUE'. Gerbang AND baru TRUE kalau KEDUA sirkit tombol sehat. Begitu SALAH SATU tombol ditekan (atau kabelnya putus), AND jatuh FALSE dan latch langsung trip — tidak perlu dua tombol ditekan bersamaan. Setelah trip, output tetap mati walau tombol sudah dilepas, sampai operator menekan reset SAAT kedua sirkit sudah sehat lagi. Kalau reset ditekan sementara salah satu tombol masih aktif, reset tidak berpengaruh.","Catatan simulator: semua tag mulai dari FALSE, jadi saat halaman pertama dibuka semua output tampil trip. Untuk menyalakan jalur: set kedua tombol ESD jalur itu ke TRUE (sehat), lalu klik reset-nya."],"notes":["Sumber: gambar vendor sheet 3 of 34 '105-UC-005/025' (P02_UNIT_105 v1.175), di-trace 2026-10-25 lewat crop & zoom per area (gerbang, pin RS, tag input, tag output). Nomor '00004'/'00005' adalah nomor blok rangkaian di dalam dokumen, bukan nomor halaman.","ID gate dibaca dari kotak kecil di pojok bawah tiap box: di KEDUA blok, AND = 001 dan RS = 002 (penomoran per blok, makanya ID node dibedakan suffix a/b: and_001a/rs_002a utk blok 00004, and_001b/rs_002b utk blok 00005).","Pin RS (dicek crop zoom 3x di kedua blok): output AND masuk ke pin R1 (ada lingkaran inversi), tag reset naik vertikal masuk ke pin S. Garis output AND memotong garis vertikal reset TANPA titik sambung (persilangan, bukan junction). Pemetaan netlist mengikuti konvensi proyek saat ini (ARSITEKTUR.md Koreksi #12/#14, sama dgn rs_002b sheet 2 dan rsA_006/rsB_008 sheet 6): field 's' = gerbang AND apa adanya (tanpa sInvert), field 'r' = tag reset mentah.","Polaritas tombol ESD: dimodelkan sama seperti tombol ESD sheet 2 (NC, sirkit sehat = TRUE, dikonfirmasi user utk f105HS001AE/B di Koreksi #11). Utk f105HS007A/B dan f105HS002AE/B sendiri belum ada konfirmasi eksplisit NC/NO per tag — tombol yang sama juga dipakai di sheet 6 (g005_AND/g007_AND) dengan model yang sama.","Output tiap latch: fan-out langsung dari Q1 (satu garis vertikal dengan cabang ke tiap tag), tidak ada gerbang tambahan di antara Q1 dan tag output. Teks lengkap deskripsi f105UY007A/B dibaca dari gambar pertama (gambar kedua terpotong): 'Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter'."],"slug":"sheet-003"};
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002-ce.html"},"next":{"sheet":4,"tag":"105-UC-007","url":"sheet-004-ce.html"},"detailUrl":"sheet-003.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002-ce.html"},"next":{"sheet":4,"tag":"105-UC-007","url":"sheet-004-ce.html"},"detailUrl":"sheet-003.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -868,8 +942,17 @@ function simulate(){
   document.getElementById('ucSubState').textContent = st.state === 'normal'
     ? 'Semua ' + st.total + ' output energized'
     : st.tripped + ' dari ' + st.total + ' output trip';
+  /* timer waktu nyata: halaman CE ikut men-tick supaya status EFFECT &
+     shape blok logic berubah sendiri saat hitungan TOF habis */
+  scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
+}
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null) timerTick = setInterval(function(){ simulate(); }, 250);
+  else if(!running && timerTick != null){ clearInterval(timerTick); timerTick = null; }
 }
 
 document.getElementById('resetBtn').addEventListener('click', function(){

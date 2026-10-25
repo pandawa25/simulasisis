@@ -43,25 +43,21 @@
     "in_f105HS006A": {
       "type": "INPUT",
       "label": "f105HS006A",
-      "desc": "ESD Button",
       "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)"
     },
     "in_f105HS006B": {
       "type": "INPUT",
       "label": "f105HS006B",
-      "desc": "ESD Button",
       "group": "ESD Pushbutton — Grup C1 (→ AND014 → RST_C)"
     },
     "in_f105HS019AE": {
       "type": "INPUT",
       "label": "f105HS019AE",
-      "desc": "ESD",
       "group": "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)"
     },
     "in_f105HS019B": {
       "type": "INPUT",
       "label": "f105HS019B",
-      "desc": "Push",
       "group": "ESD Pushbutton — Grup C2 (→ AND014 → RST_C)"
     },
     "in_m105LSHH019": {
@@ -90,14 +86,11 @@
     "in_m105LSHH030": {
       "type": "INPUT",
       "label": "m105LSHH030",
-      "desc": "Recycle",
       "group": "Recycle / MOS"
     },
     "in_f105HS030LM": {
       "type": "INPUT",
       "label": "f105HS030LM",
-      "desc": "MOS",
-      "isMOS": true,
       "group": "Recycle / MOS"
     },
     "in_m105FSLL030": {
@@ -116,13 +109,11 @@
     "in_f105HS010A": {
       "type": "INPUT",
       "label": "f105HS010A",
-      "desc": "ESD",
       "group": "Push (langsung ke AND014)"
     },
     "in_f105HS010B": {
       "type": "INPUT",
       "label": "f105HS010B",
-      "desc": "Push",
       "group": "Push (langsung ke AND014)"
     },
     "in_f105ZSO010": {
@@ -133,7 +124,6 @@
     "in_f105XS012": {
       "type": "INPUT",
       "label": "f105XS012",
-      "desc": "-",
       "group": "Lainnya"
     },
     "in_f105HS005UCR": {
@@ -161,8 +151,6 @@
     "in_f105HS012UCR": {
       "type": "INPUT",
       "label": "f105HS012UCR",
-      "desc": "Reset RST_C",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_m105TSHH072": {

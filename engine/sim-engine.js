@@ -7,10 +7,15 @@
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
         k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
                       // output ikut jatuh ke FALSE (lihat case "VOTING" di
                       // step() — bukan threshold "k dari n TRUE")
@@ -20,6 +25,11 @@
         // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
         // (passthrough nilai apa adanya), bedanya cuma label yang tampil
         // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -37,8 +47,12 @@
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
         case "INPUT": refs = []; break;
       }
       deps[id] = refs;
@@ -62,26 +76,57 @@
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
     // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
-    const state = { values: {}, rsPrev: {} };
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
     for (const id in nodes) {
       state.values[id] = false;
+      state.prevValues[id] = false;
       if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
     }
 
-    function step(inputOverrides) {
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
       // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
       const v = state.values;
+      const prev = state.prevValues;
       for (const id of order) {
         const n = nodes[id];
         switch (n.type) {
           case "INPUT":
             v[id] = !!inputOverrides[id];
             break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
           case "AND":
-            v[id] = n.inputs.every((i) => v[i]);
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "OR":
-            v[id] = n.inputs.some((i) => v[i]);
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "NOT":
             v[id] = !v[n.input];
@@ -127,6 +172,30 @@
             state.rsPrev[id] = next;
             break;
           }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
           case "OUTPUT":
             v[id] = v[n.source];
             break;
@@ -134,17 +203,22 @@
             throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
         }
       }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
       return v;
     }
 
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
+        state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
   }
 
   global.SimEngine = { createSim, topoOrder };

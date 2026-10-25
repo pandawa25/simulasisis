@@ -237,6 +237,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .xlink-text{font-size:7.5px; font-weight:650; fill:var(--accent-text); text-decoration:underline}
 .xlink{cursor:pointer}
 .xlink:hover .xlink-text{fill:var(--accent)}
+.tof-countdown{font-size:7.5px; font-weight:700; fill:var(--accent-text); font-family:var(--mono)}
 .junction{fill:var(--false); opacity:.8}
 .junction.on{fill:var(--true); opacity:1}
 .junction.dimmed{opacity:.32; filter:blur(1.8px)}
@@ -384,10 +385,15 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     id, title, sheetRef,
     nodes: {
       "<nodeId>": {
-        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING" | "OUTPUT",
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
         k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
                       // output ikut jatuh ke FALSE (lihat case "VOTING" di
                       // step() — bukan threshold "k dari n TRUE")
@@ -397,6 +403,11 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
         // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
         // (passthrough nilai apa adanya), bedanya cuma label yang tampil
         // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
         input: "<nodeId>"
         // OUTPUT:
         source: "<nodeId>"
@@ -414,8 +425,12 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
       switch (n.type) {
         case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
         case "INPUT": refs = []; break;
       }
       deps[id] = refs;
@@ -439,26 +454,57 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     const order = topoOrder(nodes);
     // state: nilai boolean saat ini per node, plus memory khusus utk RS
     // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
-    const state = { values: {}, rsPrev: {} };
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
     for (const id in nodes) {
       state.values[id] = false;
+      state.prevValues[id] = false;
       if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
     }
 
-    function step(inputOverrides) {
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
       // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
       const v = state.values;
+      const prev = state.prevValues;
       for (const id of order) {
         const n = nodes[id];
         switch (n.type) {
           case "INPUT":
             v[id] = !!inputOverrides[id];
             break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
           case "AND":
-            v[id] = n.inputs.every((i) => v[i]);
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "OR":
-            v[id] = n.inputs.some((i) => v[i]);
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
             break;
           case "NOT":
             v[id] = !v[n.input];
@@ -504,6 +550,30 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             state.rsPrev[id] = next;
             break;
           }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
           case "OUTPUT":
             v[id] = v[n.source];
             break;
@@ -511,17 +581,22 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
             throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
         }
       }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
       return v;
     }
 
     function reset() {
       for (const id in nodes) {
         state.values[id] = false;
+        state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
   }
 
   global.SimEngine = { createSim, topoOrder };
@@ -675,7 +750,7 @@ var SheetStatus = (function(){
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = {"id":"105-UC-005-025","title":"105-UC-005/025","sheetRef":"Sheet 3 of 34 — P02_UNIT_105 v1.175","causeGroups":["ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","Reset (manual, per latch)"],"effectGroups":["Output Proses UC-005 (ke lapangan)","Output Proses UC-025 (ke lapangan)","Internal HMI (monitor saja)"],"nodes":{"in_f105HS007A":{"type":"INPUT","label":"f105HS007A","group":"ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","desc":"12055 — ESD Button In Case Of SHU Reactor (AUX)","tagNo":"12055","alsoIn":["sheet-004","sheet-006"]},"in_f105HS007B":{"type":"INPUT","label":"f105HS007B","group":"ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)","desc":"12056 — ESD Button In Case Of SHU Reactor (Local)","tagNo":"12056","alsoIn":["sheet-004","sheet-006"]},"in_f105HS002AE":{"type":"INPUT","label":"f105HS002AE","group":"ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","desc":"12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)","tagNo":"12036","alsoIn":["sheet-004","sheet-006"]},"in_f105HS002B":{"type":"INPUT","label":"f105HS002B","group":"ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)","desc":"12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)","tagNo":"12037","alsoIn":["sheet-004","sheet-006"]},"in_f105HS005UCR":{"type":"INPUT","label":"f105HS005UCR","group":"Reset (manual, per latch)","desc":"12051 — Reset 105-UY-007/008/023 (105-UC-005)","isReset":true,"tagNo":"12051","alsoIn":["sheet-004","sheet-006"]},"in_f105HS025UCR":{"type":"INPUT","label":"f105HS025UCR","group":"Reset (manual, per latch)","desc":"12098 — Reset 105-UY-010 (105-UC-025)","isReset":true,"tagNo":"12098","alsoIn":["sheet-004","sheet-006"]},"and_001a":{"type":"AND","gateId":"001","inputs":["in_f105HS007A","in_f105HS007B"]},"rs_002a":{"type":"RS","gateId":"002","label":"ST_105HS005UC","s":"and_001a","r":"in_f105HS005UCR"},"and_001b":{"type":"AND","gateId":"001","inputs":["in_f105HS002AE","in_f105HS002B"]},"rs_002b":{"type":"RS","gateId":"002","label":"ST_105HS025UC","s":"and_001b","r":"in_f105HS025UCR"},"out_f105UY007A":{"type":"OUTPUT","label":"f105UY007A","desc":"12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY007B":{"type":"OUTPUT","label":"f105UY007B","desc":"12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY008A":{"type":"OUTPUT","label":"f105UY008A","desc":"12221 — Splitter Overhead Depressurization Valve","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105UY008B":{"type":"OUTPUT","label":"f105UY008B","desc":"12222 — Splitter Overhead Depressurization Valve","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105PY023A":{"type":"OUTPUT","label":"f105PY023A","desc":"12209 — 105-V-502 Purge Gas Outlet","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_f105PY023B":{"type":"OUTPUT","label":"f105PY023B","desc":"12210 — 105-V-502 H2 Make Up","source":"rs_002a","group":"Output Proses UC-005 (ke lapangan)"},"out_RS_1_105UC005_025":{"type":"OUTPUT","label":"RS_1_105UC005_025","desc":"12847 — Internal HMI (status latch ST_105HS005UC)","source":"rs_002a","group":"Internal HMI (monitor saja)"},"out_f105UY010":{"type":"OUTPUT","label":"f105UY010","desc":"12224 — Splitter Bottom Outlet Valve","source":"rs_002b","group":"Output Proses UC-025 (ke lapangan)"},"out_f105UY010_IL":{"type":"OUTPUT","label":"f105UY010_IL","desc":"12787 — 105-UY-010 Interlock Signal","source":"rs_002b","group":"Internal HMI (monitor saja)"},"out_RS_2_105UC005_025":{"type":"OUTPUT","label":"RS_2_105UC005_025","desc":"12848 — Internal HMI (status latch ST_105HS025UC)","source":"rs_002b","group":"Internal HMI (monitor saja)"}},"summary":["Halaman ini berisi 2 jalur trip ESD yang berdiri sendiri-sendiri (blok 00004 dan 00005). Polanya sama persis: dua tombol ESD (lokal + DCS/AUX) masuk ke satu gerbang AND, lalu ke latch RS, lalu output latch dibagikan ke beberapa valve sekaligus.","Jalur UC-005 (latch ST_105HS005UC): tombol ESD SHU Reactor f105HS007A (AUX) dan f105HS007B (Local). Begitu latch trip, 6 valve ikut mati bersamaan: depressurization valve bypass 105-TV-006A/105-PV-016 ke splitter (f105UY007A/B), splitter overhead depressurization valve (f105UY008A/B), purge gas outlet 105-V-502 (f105PY023A) dan H2 make-up 105-V-502 (f105PY023B). Status latch juga dikirim ke HMI (RS_1_105UC005_025). Reset: f105HS005UCR.","Jalur UC-025 (latch ST_105HS025UC): tombol ESD kebakaran/kebocoran 105-C-501, f105HS002AE (DCS) dan f105HS002B (Local). Begitu trip, f105UY010 (splitter bottom outlet valve) mati, sinyal interlock f105UY010_IL dan status HMI RS_2_105UC005_025 ikut. Reset: f105HS025UCR.","Cara bacanya sama dengan jalur ESD di sheet 2: kedua tombol diperlakukan sebagai sinyal 'sirkit sehat = TRUE'. Gerbang AND baru TRUE kalau KEDUA sirkit tombol sehat. Begitu SALAH SATU tombol ditekan (atau kabelnya putus), AND jatuh FALSE dan latch langsung trip — tidak perlu dua tombol ditekan bersamaan. Setelah trip, output tetap mati walau tombol sudah dilepas, sampai operator menekan reset SAAT kedua sirkit sudah sehat lagi. Kalau reset ditekan sementara salah satu tombol masih aktif, reset tidak berpengaruh.","Catatan simulator: semua tag mulai dari FALSE, jadi saat halaman pertama dibuka semua output tampil trip. Untuk menyalakan jalur: set kedua tombol ESD jalur itu ke TRUE (sehat), lalu klik reset-nya."],"notes":["Sumber: gambar vendor sheet 3 of 34 '105-UC-005/025' (P02_UNIT_105 v1.175), di-trace 2026-10-25 lewat crop & zoom per area (gerbang, pin RS, tag input, tag output). Nomor '00004'/'00005' adalah nomor blok rangkaian di dalam dokumen, bukan nomor halaman.","ID gate dibaca dari kotak kecil di pojok bawah tiap box: di KEDUA blok, AND = 001 dan RS = 002 (penomoran per blok, makanya ID node dibedakan suffix a/b: and_001a/rs_002a utk blok 00004, and_001b/rs_002b utk blok 00005).","Pin RS (dicek crop zoom 3x di kedua blok): output AND masuk ke pin R1 (ada lingkaran inversi), tag reset naik vertikal masuk ke pin S. Garis output AND memotong garis vertikal reset TANPA titik sambung (persilangan, bukan junction). Pemetaan netlist mengikuti konvensi proyek saat ini (ARSITEKTUR.md Koreksi #12/#14, sama dgn rs_002b sheet 2 dan rsA_006/rsB_008 sheet 6): field 's' = gerbang AND apa adanya (tanpa sInvert), field 'r' = tag reset mentah.","Polaritas tombol ESD: dimodelkan sama seperti tombol ESD sheet 2 (NC, sirkit sehat = TRUE, dikonfirmasi user utk f105HS001AE/B di Koreksi #11). Utk f105HS007A/B dan f105HS002AE/B sendiri belum ada konfirmasi eksplisit NC/NO per tag — tombol yang sama juga dipakai di sheet 6 (g005_AND/g007_AND) dengan model yang sama.","Output tiap latch: fan-out langsung dari Q1 (satu garis vertikal dengan cabang ke tiap tag), tidak ada gerbang tambahan di antara Q1 dan tag output. Teks lengkap deskripsi f105UY007A/B dibaca dari gambar pertama (gambar kedua terpotong): 'Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter'."],"slug":"sheet-003"};
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html"},"next":{"sheet":4,"tag":"105-UC-007","url":"sheet-004.html"},"ceUrl":"sheet-003-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html"},"next":{"sheet":4,"tag":"105-UC-007","url":"sheet-004.html"},"ceUrl":"sheet-003-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -700,7 +775,10 @@ function deps(n){
   switch(n.type){
     case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
     case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
-    case 'NOT': case 'BUFFER': case 'MOVE': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': return [n.input];
+    /* FEEDBACK membaca nilai scan SEBELUMNYA, jadi tanpa dependensi -- itulah
+       yang memutus loop umpan-balik supaya layout & engine tetap acyclic */
+    case 'FEEDBACK': return [];
     case 'OUTPUT': return [n.source];
     default: return [];
   }
@@ -745,6 +823,17 @@ function wrapDesc(text, maxWidth, maxLines){
   return lines;
 }
 
+/* potong label supaya tidak menabrak teks nilai di sisi kanan box */
+const _labelCtx = document.createElement('canvas').getContext('2d');
+_labelCtx.font = "600 9px ui-monospace, SFMono-Regular, Menlo, monospace";
+function fitLabel(text, maxWidth){
+  const t = String(text || '');
+  if(_labelCtx.measureText(t).width <= maxWidth) return t;
+  let cut = t;
+  while(cut.length > 2 && _labelCtx.measureText(cut + '…').width > maxWidth) cut = cut.slice(0, -1);
+  return cut + '…';
+}
+
 /* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
    input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
    di sisi kiri box (lihat portY di blok layout) dan tidak numpuk di satu
@@ -763,6 +852,8 @@ function boxSize(n){
     return { w: w, h: h, descLines: lines, links: links };
   }
   if(n.type === 'RS') return { w: 120, h: 48 };
+  if(n.type === 'TOF') return { w: 132, h: 56 };
+  if(n.type === 'FEEDBACK') return { w: 132, h: 34 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
@@ -845,11 +936,22 @@ const ZONE_HEAD_H = 46, PAD = 28;
 function portY(n, s, i, count){
   return count > 1 ? (i + 1) / (count + 1) * s.h : s.h / 2;
 }
+/* OUTPUT biasanya dikunci ke kolom terakhir (zona EFFECT). Tapi ada tag
+   yang selain jadi effect juga DIPAKAI LAGI sebagai sumber oleh node lain
+   (mis. RST_..._B_FEED di sheet 5 yang masuk MOVE#013) -- tag begitu tidak
+   boleh dikunci di kolom terakhir, karena pemakainya harus berada SESUDAH
+   dia. Tanpa pengecualian ini ELK tidak bisa menyelesaikan layout sama
+   sekali (Koreksi #24). */
+const referencedIds = {};
+ids.forEach(function(id){ deps(nodes[id]).forEach(function(d){ referencedIds[d] = true; }); });
+
 function buildElkGraph(seed){
   const children = ids.map(function(id){
     const n = nodes[id], s = boxSize(n), d = deps(n);
     const ports = [];
-    if(n.type !== 'OUTPUT'){
+    /* OUTPUT yang dipakai lagi sbg sumber (lihat referencedIds) tetap butuh
+       port keluaran, kalau tidak ELK menolak edge-nya */
+    if(n.type !== 'OUTPUT' || referencedIds[id]){
       ports.push({ id: id + '#o', width: 0, height: 0, x: s.w, y: s.h / 2, layoutOptions: { 'elk.port.side': 'EAST' } });
     }
     d.forEach(function(dep, i){
@@ -857,7 +959,7 @@ function buildElkGraph(seed){
     });
     const lo = { 'elk.portConstraints': 'FIXED_POS' };
     if(n.type === 'INPUT') lo['elk.layered.layering.layerConstraint'] = 'FIRST';
-    if(n.type === 'OUTPUT') lo['elk.layered.layering.layerConstraint'] = 'LAST';
+    if(n.type === 'OUTPUT' && !referencedIds[id]) lo['elk.layered.layering.layerConstraint'] = 'LAST';
     return { id: id, width: s.w, height: s.h, ports: ports, layoutOptions: lo };
   });
   const edges = [];
@@ -959,13 +1061,19 @@ function edgeX(filterFn, useRight, pick){
 }
 const isIn = function(id){ return nodes[id].type === 'INPUT'; };
 const isOut = function(id){ return nodes[id].type === 'OUTPUT'; };
-const isLogic = function(id){ return !isIn(id) && !isOut(id); };
+/* FEEDBACK digambar di tengah kanvas tapi bukan penanda batas zona yang
+   bermakna (dia tidak punya dependensi, jadi ELK bisa menaruhnya di kolom
+   paling kiri) -- dikecualikan supaya pita zona tidak jadi melar/terbalik. */
+const isLogic = function(id){ return !isIn(id) && !isOut(id) && nodes[id].type !== 'FEEDBACK'; };
 const inRight = edgeX(isIn, true, Math.max) || PAD;
 const outLeft = edgeX(isOut, false, Math.min) || canvasW - PAD;
 const logicLeft = edgeX(isLogic, false, Math.min);
 const logicRight = edgeX(isLogic, true, Math.max);
-const zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
-const zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+let zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
+let zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+/* jaga urutan pita tetap waras walau ada node yang posisinya tak terduga */
+zoneCauseX1 = Math.max(zoneCauseX1, inRight + 8);
+zoneEffectX0 = Math.max(zoneEffectX0, zoneCauseX1 + 8);
 
 /* ======================= render ======================= */
 const svg = document.getElementById('svg');
@@ -1049,6 +1157,7 @@ svg.appendChild(junctionLayer);
 svg.appendChild(nodeLayer);
 
 const nodeEls = {}; // id -> {g, rect, valText,...}
+const countdownEls = {}; // id TOF -> elemen teks hitung mundur
 const wireRecords = []; // { path, from } untuk pewarnaan live
 const wireByPair = {}; // "from→to" -> path, untuk highlight trace
 
@@ -1089,7 +1198,9 @@ function makeGateNode(id, n){
   const g = el('g', { class: 'tag', 'data-id': id });
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'node-rect' });
   g.appendChild(rect);
-  const label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  let label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  if(n.type === 'TOF') label = 'T_OFF_SP';
+  if(n.type === 'FEEDBACK') label = '↺ umpan balik';
   const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
   t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
   g.appendChild(t);
@@ -1107,6 +1218,11 @@ function makeGateNode(id, n){
     inSlots.forEach(function(depId, idx){
       const py = p.y + (idx + 1) / (inSlots.length + 1) * s.h;
       g.appendChild(el('line', { x1: p.x - 7, x2: p.x, y1: py, y2: py, class: 'pin-tick' }));
+      /* lingkaran inversi yang MELEKAT di pin input tertentu (AND/OR dgn
+         `invertInputs` -- lihat Koreksi #24), persis spt gambar vendor */
+      if(n.invertInputs && n.invertInputs[idx]){
+        g.appendChild(el('circle', { cx: p.x - 3.5, cy: py, r: 3.5, class: 'pin-invert-bubble' }));
+      }
     });
   }
   let stateRectRef = null;
@@ -1139,6 +1255,27 @@ function makeGateNode(id, n){
     g.insertBefore(stateRect, rect);
     rect.setAttribute('class', 'node-rect outline-only');
     stateRectRef = stateRect;
+  } else if(n.type === 'TOF'){
+    /* blok timer: tampilkan setpoint & sisa hitung mundur waktu nyata */
+    const sp = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 11, 'text-anchor': 'middle', class: 'pin-label' });
+    sp.textContent = 'TOF = ' + (n.setpointSec || 0) + ' SEC';
+    g.appendChild(sp);
+    const cd = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 5, 'text-anchor': 'middle', class: 'tof-countdown' });
+    cd.textContent = '';
+    g.appendChild(cd);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+    countdownEls[id] = cd;
+  } else if(n.type === 'FEEDBACK'){
+    const src = nodes[n.input];
+    const t2 = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 6, 'text-anchor': 'middle', class: 'pin-label' });
+    t2.textContent = (src && src.label ? src.label : n.input).slice(0, 26);
+    g.appendChild(t2);
+    const tt = el('title', {});
+    tt.textContent = 'Nilai ' + ((src && src.label) || n.input) + ' dari scan sebelumnya (umpan balik, seperti scan cycle PLC)';
+    g.appendChild(tt);
   } else if(n.type === 'VOTING'){
     const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
     kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
@@ -1162,7 +1299,9 @@ function makeTagNode(id, n){
   const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 12 });
   g.appendChild(rect);
   const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
-  name.textContent = n.label;
+  /* label tag bisa sangat panjang (mis. RST_105UC032_011_012_027_B_FEED) dan
+     dulu menabrak teks nilai TRUE/FALSE di kanan -- dipotong agar muat */
+  name.textContent = fitLabel(n.label, s.w - 20 - 40);
   g.appendChild(name);
   /* desc di-wrap jadi beberapa baris (lihat wrapDesc/boxSize) supaya
      rapi di dalam box, bukan satu baris panjang yang meluber. */
@@ -1333,8 +1472,28 @@ function simulate(){
     if(on) wireLayer.appendChild(rec.path);
   });
   junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
+  /* hitung mundur timer waktu nyata: tampilkan sisa detik & jadwalkan
+     simulasi ulang selama masih berjalan (lihat case "TOF" di engine) */
+  Object.keys(countdownEls).forEach(function(tid){
+    const left = sim.tofRemaining(tid, Date.now());
+    countdownEls[tid].textContent = left > 0 ? ('sisa ' + left.toFixed(1) + ' s') : '';
+  });
+  scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
+}
+
+/* Selama ada TOF yang sedang menghitung mundur, halaman menjalankan
+   simulate() berkala supaya angka & warna ikut berjalan tanpa interaksi.
+   Begitu semua timer berhenti, tick dimatikan lagi (tidak ada polling sia-sia). */
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null){
+    timerTick = setInterval(function(){ simulate(); }, 200);
+  } else if(!running && timerTick != null){
+    clearInterval(timerTick); timerTick = null;
+  }
 }
 
 /* ======================= trace / tracing manual ======================= */
@@ -1391,6 +1550,10 @@ document.getElementById('resetBtn').addEventListener('click', function(){
   simulate();
 });
 
+/* handle utk verifikasi otomatis (Playwright) & penelusuran manual di
+   console — semua render ada di dalam boot(), jadi tanpa ini tidak ada
+   cara memeriksa state simulasi dari luar */
+window.__sim = sim; window.__simulate = simulate;
 TagSync.onChange(simulate);
 simulate();
 }

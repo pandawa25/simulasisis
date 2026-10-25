@@ -511,8 +511,17 @@ function simulate(){
   document.getElementById('ucSubState').textContent = st.state === 'normal'
     ? 'Semua ' + st.total + ' output energized'
     : st.tripped + ' dari ' + st.total + ' output trip';
+  /* timer waktu nyata: halaman CE ikut men-tick supaya status EFFECT &
+     shape blok logic berubah sendiri saat hitungan TOF habis */
+  scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
+}
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null) timerTick = setInterval(function(){ simulate(); }, 250);
+  else if(!running && timerTick != null){ clearInterval(timerTick); timerTick = null; }
 }
 
 document.getElementById('resetBtn').addEventListener('click', function(){
