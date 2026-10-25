@@ -646,7 +646,39 @@ function groupSort(colIds, groupOrder){
 byLayer[0] = groupSort(byLayer[0] || [], NETLIST.causeGroups);
 byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups);
 
-/* ======================= minim-silangan (barycenter sweep) =======================
+/* ======================= posisi baris eksplisit per-node (opsional) =======================
+   Heuristik otomatis (barycenter+transpose di bawah) ternyata masih jauh
+   dari gambar vendor utk sheet padat (sheet-006): tag seperti reset
+   dikelompokkan tematik jadi satu blok jauh dari RS block yang
+   dipakainya, bikin kabel "turun jauh" sebelum belok lagi -- sementara
+   di gambar sumber tiap tag digambar PERSIS di baris yang sama/dekat
+   dgn block yang memakainya. Field `row` (angka, opsional) di tiap node
+   netlist membiarkan urutan baris disalin LANGSUNG dari posisi vertikal
+   di gambar vendor (dibaca manual per node saat tracing) -- jauh lebih
+   presisi dari heuristik apa pun. Kalau field ini diisi utk MAYORITAS
+   (>=50%) node di satu sheet, urutan baris tiap kolom (termasuk CAUSE &
+   EFFECT) dipaksa ikut angka itu & algoritma barycenter/transpose di
+   bawah DILEWATI utk sheet itu (lihat useExplicitRows). Sheet yang belum
+   di-grid-kan manual (field `row` kosong/sebagian kecil saja, mis.
+   sheet-002) tetap jalan normal lewat fallback otomatis di bawah. */
+const explicitRowIds = ids.filter(function(id){ return typeof nodes[id].row === 'number'; });
+const useExplicitRows = explicitRowIds.length >= ids.length * 0.5;
+if(useExplicitRows){
+  for(let l = 0; l <= maxLayer; l++){
+    const col = byLayer[l];
+    if(!col || !col.length) continue;
+    const origIdx = {};
+    col.forEach(function(id, i){ origIdx[id] = i; });
+    byLayer[l] = col.slice().sort(function(a, b){
+      const ra = typeof nodes[a].row === 'number' ? nodes[a].row : Infinity;
+      const rb = typeof nodes[b].row === 'number' ? nodes[b].row : Infinity;
+      if(ra !== rb) return ra - rb;
+      return origIdx[a] - origIdx[b];
+    });
+  }
+}
+
+/* ======================= minim-silangan (barycenter sweep, fallback) =======================
    Sebelumnya urutan BARIS dalam satu kolom LOGIC cuma ikut urutan definisi
    node di netlist JSON -- tidak ada hubungannya dgn posisi node yang
    dihubungkannya, jadi banyak kabel jalan diagonal/menyilang tanpa perlu
@@ -664,7 +696,7 @@ byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups)
    konvergen ke urutan yang silangannya jauh lebih sedikit -- tujuannya
    sama persis dgn kerapian gambar vendor, tapi otomatis (tidak perlu
    data posisi manual per node) & langsung berlaku ke SEMUA sheet. */
-(function minimizeCrossings(){
+function minimizeCrossings(){
   if(maxLogicLayer < 1) return; // tidak ada kolom LOGIC utk diproses
   const successors = {};
   ids.forEach(function(id){ successors[id] = []; });
@@ -755,7 +787,8 @@ byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups)
       }
     }
   }
-})();
+}
+if(!useExplicitRows) minimizeCrossings();
 
 /* --- wrapping deskripsi tag (INPUT/OUTPUT) ---
    Sebelumnya desc dirender sebagai satu baris <text> tanpa wrap, jadi
@@ -823,7 +856,13 @@ for(let l = 0; l <= maxLayer; l++){
   let y = PAD + ZONE_HEAD_H;
   let lastGroup = null;
   col.forEach(function(id, i){
-    const grp = nodes[id].group || null;
+    /* Mode `useExplicitRows`: urutan baris ikut posisi gambar vendor
+       (lintas-grup tematik), jadi header grup besar TIDAK dirender di
+       sini -- kalau tetap dipaksa, grup yang sama bisa terpecah jadi
+       banyak header kecil berselang-seling (sudah terbukti bikin tinggi
+       kolom antar-kolom tidak sinkron & malah menambah silangan).
+       Konteks grup tetap ada lewat teks `desc` masing-masing tag. */
+    const grp = (!useExplicitRows && nodes[id].group) || null;
     if(grp !== null && grp !== lastGroup){
       if(lastGroup !== null) y += GROUP_GAP;
       groupHeaders.push({ x: PAD + l * COL_W, y: y, text: grp });
