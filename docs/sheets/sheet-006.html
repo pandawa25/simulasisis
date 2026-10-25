@@ -1026,12 +1026,16 @@ Object.keys(byFromCol).forEach(function(col){
    keluar horizontal → belok vertikal pada "lane" dekat node asal →
    masuk horizontal. Belokan yang terkumpul dekat asal membuat sisa
    jalur jadi garis horizontal lurus yang gampang diikuti mata —
-   jauh lebih mudah ditelusuri manual dibanding kurva lengkung. */
-function drawWire(fromId, toId){
+   jauh lebih mudah ditelusuri manual dibanding kurva lengkung.
+   Fungsi ini HANYA menghasilkan titik-titik polyline (bukan string 'd'
+   langsung) -- string 'd' final dibangun belakangan oleh buildPathD()
+   setelah semua kabel diketahui, supaya persilangan antar-kabel yang
+   TIDAK terhubung bisa dideteksi & digambar sbg busur "lompat" (lihat
+   blok di bawah), bukan numpuk lurus begitu saja. */
+function wirePoints(fromId, toId){
   const a = centerOf(fromId, 'out');
   const b = centerOf(toId, 'in', fromId);
   const skipY = skipLaneForEdge[fromId + '→' + toId];
-  let d;
   if(skipY != null){
     /* jalur-bawah: turun tepat di sebelah node asal, mendatar sendiri
        di bawah semua box pada ketinggian unik (skipY), baru naik ke
@@ -1039,21 +1043,99 @@ function drawWire(fromId, toId){
        baris pin kolom manapun yang dilewati di tengah. */
     const x1 = a.x + 10;
     const x2 = b.x - 10;
-    d = 'M ' + a.x + ' ' + a.y + ' H ' + x1 + ' V ' + skipY + ' H ' + x2 + ' V ' + b.y + ' H ' + b.x;
-  } else {
-    const lane = laneForEdge[fromId + '→' + toId];
-    const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
-    d = 'M ' + a.x + ' ' + a.y + ' H ' + midx + ' V ' + b.y + ' H ' + b.x;
+    return [ { x: a.x, y: a.y }, { x: x1, y: a.y }, { x: x1, y: skipY }, { x: x2, y: skipY }, { x: x2, y: b.y }, { x: b.x, y: b.y } ];
   }
-  const path = el('path', { d: d, class: 'wire', 'data-from': fromId, 'data-to': toId });
-  wireRecords.push({ path: path, from: fromId });
-  wireByPair[fromId + '→' + toId] = path;
-  return path;
+  const lane = laneForEdge[fromId + '→' + toId];
+  const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
+  return [ { x: a.x, y: a.y }, { x: midx, y: a.y }, { x: midx, y: b.y }, { x: b.x, y: b.y } ];
+}
+
+const wireGeoms = edgeList.map(function(e){
+  return { from: e.from, to: e.to, points: wirePoints(e.from, e.to) };
+});
+
+/* Koreksi (2026-10-25): dua kabel yang TIDAK terhubung tapi rutenya
+   kebetulan saling menyilang di kanvas sebelumnya digambar sbg garis
+   lurus numpuk — scr visual ambigu, bisa disalahbaca sbg sambungan
+   sungguhan (pernah jadi laporan bug "wire salah sambung" padahal
+   cuma persilangan visual, lihat ARSITEKTUR.md kasus skip-edge).
+   Fix: deteksi tiap persilangan antar-kabel BEDA (bukan milik kabel
+   yang sama) di mana segmen HORIZONTAL satu kabel memotong segmen
+   VERTICAL kabel lain di titik INTERIOR (bukan di ujung segmen —
+   ujung segmen = pin/sambungan sungguhan, bukan persilangan), lalu
+   gambar segmen horizontal itu dengan busur kecil "lompat" (SVG arc)
+   di titik silangnya — konvensi standar diagram skematik, sambungan
+   sungguhan SELALU persis di pin/ujung box, bukan di tengah garis. */
+const HOP_R = 4.2;
+const EPS = 3;
+function segsOf(points){
+  const segs = [];
+  for(let i = 0; i < points.length - 1; i++){
+    const p1 = points[i], p2 = points[i + 1];
+    if(Math.abs(p1.y - p2.y) < 0.01){
+      segs.push({ i: i, orient: 'H', y: p1.y, x1: Math.min(p1.x, p2.x), x2: Math.max(p1.x, p2.x) });
+    } else {
+      segs.push({ i: i, orient: 'V', x: p1.x, y1: Math.min(p1.y, p2.y), y2: Math.max(p1.y, p2.y) });
+    }
+  }
+  return segs;
+}
+const wireSegs = wireGeoms.map(function(g){ return segsOf(g.points); });
+const hopsBySegment = {}; // "wireIdx:segIdx" -> [x di mana harus lompat, ...]
+wireSegs.forEach(function(segsA, wa){
+  segsA.forEach(function(segA){
+    if(segA.orient !== 'H') return;
+    wireSegs.forEach(function(segsB, wb){
+      if(wb === wa) return;
+      segsB.forEach(function(segB){
+        if(segB.orient !== 'V') return;
+        if(segB.x > segA.x1 + EPS && segB.x < segA.x2 - EPS &&
+           segA.y > segB.y1 + EPS && segA.y < segB.y2 - EPS){
+          const key = wa + ':' + segA.i;
+          (hopsBySegment[key] = hopsBySegment[key] || []).push(segB.x);
+        }
+      });
+    });
+  });
+});
+
+/* Bangun string 'd' final per kabel: segmen biasa tetap H/V lurus;
+   segmen horizontal yang punya titik silang disisipi busur kecil
+   (selalu melengkung ke ATAS/y lebih kecil, konsisten arah manapun
+   kabelnya berjalan — sweep-flag dibalik sesuai arah supaya lengkung
+   fisiknya selalu sama, bukan kadang ke atas kadang ke bawah). */
+function buildPathD(points, wireIdx){
+  let d = 'M ' + points[0].x + ' ' + points[0].y;
+  for(let i = 0; i < points.length - 1; i++){
+    const p1 = points[i], p2 = points[i + 1];
+    const horiz = Math.abs(p1.y - p2.y) < 0.01;
+    const hops = horiz ? hopsBySegment[wireIdx + ':' + i] : null;
+    if(hops && hops.length){
+      const dir = p2.x >= p1.x ? 1 : -1;
+      const sorted = hops.slice().sort(function(x1, x2){ return dir * (x1 - x2); });
+      const sweep = dir > 0 ? 0 : 1;
+      sorted.forEach(function(hx){
+        const beforeX = hx - dir * HOP_R;
+        const afterX = hx + dir * HOP_R;
+        d += ' L ' + beforeX + ' ' + p1.y + ' A ' + HOP_R + ' ' + HOP_R + ' 0 0 ' + sweep + ' ' + afterX + ' ' + p1.y;
+      });
+      d += ' L ' + p2.x + ' ' + p2.y;
+    } else if(horiz){
+      d += ' H ' + p2.x;
+    } else {
+      d += ' V ' + p2.y;
+    }
+  }
+  return d;
 }
 
 /* draw wires (edge = dep -> node) */
-edgeList.forEach(function(e){
-  wireLayer.appendChild(drawWire(e.from, e.to));
+wireGeoms.forEach(function(g, idx){
+  const d = buildPathD(g.points, idx);
+  const path = el('path', { d: d, class: 'wire', 'data-from': g.from, 'data-to': g.to });
+  wireRecords.push({ path: path, from: g.from });
+  wireByPair[g.from + '→' + g.to] = path;
+  wireLayer.appendChild(path);
 });
 
 function makeGateNode(id, n){
