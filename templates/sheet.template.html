@@ -167,13 +167,24 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
 .pin-tick{stroke:var(--wire); stroke-width:1.4}
 .pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
-.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55}
+.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s, filter .15s}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
 .wire.highlight{stroke:var(--accent); stroke-width:3; opacity:1; stroke-dasharray:none}
 .trace-ring{fill:none; stroke:var(--accent); stroke-width:2.5; opacity:0; pointer-events:none}
 .trace-ring.show{opacity:1}
-.tag{cursor:default}
+.tag{cursor:default; transition:opacity .15s, filter .15s}
 .tag.input{cursor:pointer}
+/* Koreksi UI/UX (2026-10-25): mode jejak/trace -- sebelumnya node & kabel
+   di luar jalur yang di-trace tetap tampil normal (cuma yang kena jejak
+   yang ditandai ring/highlight), jadi jalur & urutannya kurang menonjol
+   di tengah kanvas yang ramai. Sekarang elemen DI LUAR jalur yang dipilih
+   di-blur + diredupkan (bukan dihilangkan -- teks/info tetap bisa dibaca
+   kalau diperhatikan, cuma kurang fokus), sedangkan node/kabel yang
+   termasuk jalur (dan node yang sedang diklik) tetap tajam & full-opacity
+   supaya urutan jalurnya gampang diikuti mata. Toggle lewat class
+   `.dimmed` yang ditambah/dilepas di traceUpstream()/clearTrace(). */
+.tag.dimmed, .wire.dimmed{opacity:.22; filter:blur(1.6px)}
+.tag.trace-focus rect{stroke-width:2.4}
 .tag rect{stroke-width:1.2}
 .tag.off rect{fill:var(--false-bg); stroke:var(--false)}
 .tag.on rect{fill:var(--true-bg); stroke:var(--true)}
@@ -740,7 +751,7 @@ function makeGateNode(id, n){
   g.appendChild(ring);
   g.addEventListener('click', function(){ traceUpstream(id); });
   nodeLayer.appendChild(g);
-  nodeEls[id] = { stateRect: stateRectRef, ring: ring };
+  nodeEls[id] = { g: g, stateRect: stateRectRef, ring: ring };
 }
 
 function makeTagNode(id, n){
@@ -913,8 +924,9 @@ function clearTrace(){
   tracedNode = null;
   Object.keys(nodeEls).forEach(function(id){
     if(nodeEls[id].ring) nodeEls[id].ring.classList.remove('show');
+    if(nodeEls[id].g) nodeEls[id].g.classList.remove('dimmed', 'trace-focus');
   });
-  wireRecords.forEach(function(rec){ rec.path.classList.remove('highlight'); });
+  wireRecords.forEach(function(rec){ rec.path.classList.remove('highlight', 'dimmed'); });
 }
 function traceUpstream(id){
   if(tracedNode === id){ clearTrace(); return; } // klik node yang sama = lepas jejak
@@ -933,6 +945,22 @@ function traceUpstream(id){
       queue.push(d);
     });
   }
+  /* Koreksi UI/UX (2026-10-25): blur + redupkan semua node & kabel yang
+     TIDAK termasuk jalur (visited) -- lihat komentar CSS `.dimmed` di
+     atas. Node yang di-klik sendiri dapat `.trace-focus` (outline lebih
+     tebal) supaya titik awal jejak juga jelas, bukan cuma node hulu. */
+  Object.keys(nodeEls).forEach(function(nid){
+    if(!nodeEls[nid].g) return;
+    if(visited[nid]){
+      nodeEls[nid].g.classList.remove('dimmed');
+      if(nid === id) nodeEls[nid].g.classList.add('trace-focus');
+    } else {
+      nodeEls[nid].g.classList.add('dimmed');
+    }
+  });
+  wireRecords.forEach(function(rec){
+    if(!rec.path.classList.contains('highlight')) rec.path.classList.add('dimmed');
+  });
 }
 document.getElementById('clearTraceBtn').addEventListener('click', clearTrace);
 
