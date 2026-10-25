@@ -246,6 +246,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
     <div class="spacer"></div>
     <button class="btn" id="themeBtn" type="button">Tema</button>
     <button class="btn" id="clearTraceBtn" type="button">Bersihkan Jejak</button>
+    <button class="btn" id="skipTimerBtn" type="button" style="display:none" title="Alat uji: anggap semua timer off-delay yang sedang menghitung sudah habis">⏩ Lewati timer</button>
     <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
   </div>
 
@@ -342,9 +343,15 @@ const NAV = <!--NAV_JSON-->;
 /* ======================= layout ======================= */
 function deps(n){
   switch(n.type){
-    case 'AND': case 'OR': case 'VOTING': return n.inputs || [];
+    case 'AND': case 'OR': case 'NUMBITS': return n.inputs || [];
+    /* VOTING_2OO3: urutan pin gambar = IN1, FLT1, IN2, FLT2, IN3, FLT3 */
+    case 'VOTING': {
+      const f = n.fltInputs || [], r = [];
+      (n.inputs || []).forEach(function(x, i){ r.push(x); if(f[i]) r.push(f[i]); });
+      return r;
+    }
     case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
-    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': return [n.input];
+    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': case 'GT': case 'R_TRIG': return [n.input];
     /* FEEDBACK membaca nilai scan SEBELUMNYA, jadi tanpa dependensi -- itulah
        yang memutus loop umpan-balik supaya layout & engine tetap acyclic */
     case 'FEEDBACK': return [];
@@ -423,7 +430,10 @@ function boxSize(n){
   if(n.type === 'RS') return { w: 120, h: 48 };
   if(n.type === 'TOF') return { w: 132, h: 56 };
   if(n.type === 'FEEDBACK') return { w: 132, h: 34 };
-  if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
+  if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 32 + deps(n).length * 13) };
+  if(n.type === 'NUMBITS') return { w: 92, h: Math.max(56, 20 + (n.inputs ? n.inputs.length : 2) * 13) };
+  if(n.type === 'GT') return { w: 78, h: 56 };
+  if(n.type === 'R_TRIG') return { w: 116, h: 60 };
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
 }
@@ -727,6 +737,7 @@ svg.appendChild(nodeLayer);
 
 const nodeEls = {}; // id -> {g, rect, valText,...}
 const countdownEls = {}; // id TOF -> elemen teks hitung mundur
+const countEls = {};     // id NUMBITS -> elemen teks jumlah TRUE
 const wireRecords = []; // { path, from } untuk pewarnaan live
 const wireByPair = {}; // "from→to" -> path, untuk highlight trace
 
@@ -770,6 +781,7 @@ function makeGateNode(id, n){
   let label = n.type === 'RS' ? (n.label || 'RS') : n.type;
   if(n.type === 'TOF') label = 'T_OFF_SP';
   if(n.type === 'FEEDBACK') label = '↺ umpan balik';
+  if(n.type === 'VOTING') label = n.label || 'VOTING';
   const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
   t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
   g.appendChild(t);
@@ -845,10 +857,36 @@ function makeGateNode(id, n){
     const tt = el('title', {});
     tt.textContent = 'Nilai ' + ((src && src.label) || n.input) + ' dari scan sebelumnya (umpan balik, seperti scan cycle PLC)';
     g.appendChild(tt);
+  } else if(n.type === 'NUMBITS'){
+    const cnt = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    cnt.textContent = 'Σ TRUE = 0';
+    g.appendChild(cnt);
+    countEls[id] = cnt;
+  } else if(n.type === 'GT'){
+    const c = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    c.textContent = 'IN1 > ' + n.constant;
+    g.appendChild(c);
+  } else if(n.type === 'R_TRIG'){
+    const c = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    c.textContent = 'tepi naik · pulsa ' + ((n.pulseMs || 1000) / 1000) + ' s';
+    g.appendChild(c);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
   } else if(n.type === 'VOTING'){
-    const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + 12, 'text-anchor': 'middle', class: 'pin-label' });
     kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
     g.appendChild(kLabel);
+    /* nama pin sesuai gambar vendor: IN1, FLT1, IN2, ... */
+    deps(n).forEach(function(depId, idx){
+      const isFlt = (n.fltInputs || []).indexOf(depId) >= 0;
+      const num = isFlt ? (n.fltInputs.indexOf(depId) + 1) : (n.inputs.indexOf(depId) + 1);
+      const py = p.y + (idx + 1) / (deps(n).length + 1) * s.h;
+      const pl = el('text', { x: p.x + 4, y: py + 3, class: 'pin-label' });
+      pl.textContent = (isFlt ? 'FLT' : 'IN') + num;
+      g.appendChild(pl);
+    });
     const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
     g.insertBefore(stateRect, rect);
     rect.setAttribute('class', 'node-rect outline-only');
@@ -1045,8 +1083,11 @@ function simulate(){
      simulasi ulang selama masih berjalan (lihat case "TOF" di engine) */
   Object.keys(countdownEls).forEach(function(tid){
     const left = sim.tofRemaining(tid, Date.now());
-    countdownEls[tid].textContent = left > 0 ? ('sisa ' + left.toFixed(1) + ' s') : '';
+    countdownEls[tid].textContent = left > 0
+      ? ('sisa ' + (left >= 120 ? Math.floor(left / 60) + ' mnt ' + Math.floor(left % 60) + ' s' : left.toFixed(1) + ' s'))
+      : '';
   });
+  Object.keys(countEls).forEach(function(cid){ countEls[cid].textContent = 'Σ TRUE = ' + v[cid]; });
   scheduleTimerTick();
   saveSyncedState();
   TagSync.publish(v);
@@ -1112,6 +1153,14 @@ function traceUpstream(id){
   junctionRecords.forEach(function(rec){ if(!visited[rec.from]) rec.el.classList.add('dimmed'); });
 }
 document.getElementById('clearTraceBtn').addEventListener('click', clearTrace);
+/* tombol alat uji: hanya muncul kalau sheet punya timer TOF >= 60 detik */
+(function(){
+  const longTimer = ids.some(function(i){ return nodes[i].type === 'TOF' && (nodes[i].setpointSec || 0) >= 60; });
+  const b = document.getElementById('skipTimerBtn');
+  if(!longTimer) return;
+  b.style.display = '';
+  b.addEventListener('click', function(){ sim.skipTimers(Date.now()); simulate(); });
+})();
 
 document.getElementById('resetBtn').addEventListener('click', function(){
   ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false; });

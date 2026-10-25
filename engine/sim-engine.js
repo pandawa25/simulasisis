@@ -8,7 +8,7 @@
     nodes: {
       "<nodeId>": {
         type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
-              | "TOF" | "FEEDBACK" | "OUTPUT",
+              | "TOF" | "FEEDBACK" | "NUMBITS" | "GT" | "R_TRIG" | "OUTPUT",
         label, desc, gateId,
         // AND/OR/VOTING:
         inputs: ["<nodeId>", ...],
@@ -45,9 +45,13 @@
       const n = nodes[id];
       let refs = [];
       switch (n.type) {
-        case "AND": case "OR": case "VOTING": refs = n.inputs || []; break;
+        case "AND": case "OR": refs = n.inputs || []; break;
+        case "NUMBITS": refs = n.inputs || []; break;
+        /* VOTING: pin FLT hanya penanda tampilan (Koreksi #25), tapi tetap
+           dihitung sbg dependensi supaya urutan evaluasi konsisten */
+        case "VOTING": refs = (n.inputs || []).concat(n.fltInputs || []); break;
         case "RS": refs = [n.s, n.r]; break;
-        case "NOT": case "BUFFER": case "MOVE": case "TOF": refs = [n.input]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": case "GT": case "R_TRIG": refs = [n.input]; break;
         case "OUTPUT": refs = [n.source]; break;
         /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
            SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
@@ -79,7 +83,7 @@
     /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
        input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
        node FEEDBACK. */
-    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {} };
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {}, rtPrev: {}, rtUntil: {}, rtSeen: {} };
     for (const id in nodes) {
       state.values[id] = false;
       state.prevValues[id] = false;
@@ -89,6 +93,7 @@
          seolah menahan sejak halaman dibuka padahal inputnya belum pernah
          TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
       if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+      if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
     }
 
     /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
@@ -103,7 +108,17 @@
       return left > 0 ? left : 0;
     }
     function anyTimerRunning(now) {
-      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, now == null ? Date.now() : now) > 0; });
+      const t = now == null ? Date.now() : now;
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, t) > 0; }) ||
+             Object.keys(state.rtUntil).some(function (id) { return state.rtUntil[id] > t; });
+    }
+    /* Percepat timer (alat uji): semua TOF yang sedang menghitung dianggap
+       sudah habis. Dipakai tombol "Lewati timer" utk setelan panjang (30 mnt). */
+    function skipTimers(now) {
+      const t = now == null ? Date.now() : now;
+      Object.keys(state.tofSince).forEach(function (id) {
+        if (state.tofSince[id] != null) state.tofSince[id] = t - ((nodes[id].setpointSec || 0) * 1000) - 1;
+      });
     }
 
     function step(inputOverrides, nowMs) {
@@ -134,6 +149,26 @@
           case "BUFFER": case "MOVE":
             v[id] = v[n.input];
             break;
+          case "NUMBITS":
+            /* NUMBITS: jumlah input yang TRUE (nilai numerik, truthy kalau >0) */
+            v[id] = n.inputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+            break;
+          case "GT":
+            /* GT: IN1 > IN2, IN2 = konstanta yang digambar di pin bawah */
+            v[id] = (Number(v[n.input]) || 0) > (n.constant || 0);
+            break;
+          case "R_TRIG": {
+            /* Deteksi tepi naik. IEC: Q TRUE hanya satu scan. Atas pilihan user
+               (Koreksi #25) pulsa ditahan `pulseMs` (default 1000 ms) waktu
+               nyata supaya terlihat. Scan pertama hanya merekam nilai awal
+               (tidak ada pulsa palsu saat halaman dibuka dgn CLK sudah TRUE). */
+            const clk = !!v[n.input];
+            if (!state.rtSeen[id]) { state.rtSeen[id] = true; }
+            else if (clk && !state.rtPrev[id]) { state.rtUntil[id] = now + (n.pulseMs || 1000); }
+            state.rtPrev[id] = clk;
+            v[id] = now < state.rtUntil[id];
+            break;
+          }
           case "VOTING": {
             // Voting k-of-n bertipe "sehat jika kompak" (dikonfirmasi user,
             // BUKAN "trip jika k dari n TRUE" seperti versi awal):
@@ -215,10 +250,11 @@
         state.prevValues[id] = false;
         if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
         if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+        if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
       }
     }
 
-    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning };
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning, skipTimers };
   }
 
   global.SimEngine = { createSim, topoOrder };
