@@ -80,14 +80,11 @@
     "in_m105LSLL009": {
       "type": "INPUT",
       "label": "m105LSLL009",
-      "desc": "Level in",
       "group": "Level / MOS"
     },
     "in_f105HS009M": {
       "type": "INPUT",
       "label": "f105HS009M",
-      "desc": "MOS",
-      "isMOS": true,
       "group": "Level / MOS"
     },
     "in_m105LSHH030": {
@@ -131,7 +128,6 @@
     "in_f105ZSO010": {
       "type": "INPUT",
       "label": "f105ZSO010",
-      "desc": "Open",
       "group": "Valve Position"
     },
     "in_f105XS012": {
@@ -160,8 +156,6 @@
     "in_f105HS007UCR": {
       "type": "INPUT",
       "label": "f105HS007UCR",
-      "desc": "Reset RST_D",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105HS012UCR": {

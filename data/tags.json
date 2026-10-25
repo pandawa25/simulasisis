@@ -7,11 +7,49 @@
     "Status (nilai TRUE/FALSE) tag dengan label yang sama ikut tersinkron antar sheet saat runtime (templates/_tagsync.js)."
   ],
   "tags": {
-    "f105HS007A":   { "tagNo": "12055", "desc": "ESD Button In Case Of SHU Reactor (AUX)" },
-    "f105HS007B":   { "tagNo": "12056", "desc": "ESD Button In Case Of SHU Reactor (Local)" },
-    "f105HS002AE":  { "tagNo": "12036", "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)" },
-    "f105HS002B":   { "tagNo": "12037", "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)" },
-    "f105HS005UCR": { "tagNo": "12051", "desc": "Reset 105-UY-007/008/023 (105-UC-005)", "isReset": true },
-    "f105HS025UCR": { "tagNo": "12098", "desc": "Reset 105-UY-010 (105-UC-025)", "isReset": true }
+    "f105HS007A": {
+      "tagNo": "12055",
+      "desc": "ESD Button In Case Of SHU Reactor (AUX)"
+    },
+    "f105HS007B": {
+      "tagNo": "12056",
+      "desc": "ESD Button In Case Of SHU Reactor (Local)"
+    },
+    "f105HS002AE": {
+      "tagNo": "12036",
+      "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)"
+    },
+    "f105HS002B": {
+      "tagNo": "12037",
+      "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)"
+    },
+    "f105HS005UCR": {
+      "tagNo": "12051",
+      "desc": "Reset 105-UY-007/008/023 (105-UC-005)",
+      "isReset": true
+    },
+    "f105HS025UCR": {
+      "tagNo": "12098",
+      "desc": "Reset 105-UY-010 (105-UC-025)",
+      "isReset": true
+    },
+    "f105HS007UCR": {
+      "tagNo": "12059",
+      "desc": "Reset 105-HS-504AE/BE (105-UC-007)",
+      "isReset": true
+    },
+    "m105LSLL009": {
+      "tagNo": "12400",
+      "desc": "Level in Alm Splitter Bottom LL Alm"
+    },
+    "f105HS009M": {
+      "tagNo": "12065",
+      "desc": "MOS 105-LSLL-009",
+      "isMOS": true
+    },
+    "f105ZSO010": {
+      "tagNo": "12201",
+      "desc": "Open Signal to Pump Run Permissive"
+    }
   }
 }

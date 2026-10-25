@@ -1,0 +1,69 @@
+{
+  "id": "105-UC-007",
+  "title": "105-UC-007",
+  "sheetRef": "Sheet 4 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Level / MOS — Splitter Bottom LL (blok 00006, → OR002)",
+    "ESD Pushbutton — SHU Reactor (→ RST_A)",
+    "ESD Pushbutton — Fire/Leak 105-C-501 (→ RST_B)",
+    "Posisi Valve (permissive akhir)",
+    "Reset (manual, per latch)"
+  ],
+  "effectGroups": [
+    "Output Proses (ke lapangan)",
+    "Internal HMI (monitor saja)",
+    "Effect — dipakai sheet lain (bukan output lapangan)"
+  ],
+  "nodes": {
+    "in_m105LSLL009": { "type": "INPUT", "label": "m105LSLL009", "group": "Level / MOS — Splitter Bottom LL (blok 00006, → OR002)" },
+    "in_f105HS009M":  { "type": "INPUT", "label": "f105HS009M",  "group": "Level / MOS — Splitter Bottom LL (blok 00006, → OR002)" },
+
+    "in_f105HS005UCR": { "type": "INPUT", "label": "f105HS005UCR", "group": "Reset (manual, per latch)" },
+    "in_f105HS007A":   { "type": "INPUT", "label": "f105HS007A",   "group": "ESD Pushbutton — SHU Reactor (→ RST_A)" },
+    "in_f105HS007B":   { "type": "INPUT", "label": "f105HS007B",   "group": "ESD Pushbutton — SHU Reactor (→ RST_A)" },
+
+    "in_f105HS025UCR": { "type": "INPUT", "label": "f105HS025UCR", "group": "Reset (manual, per latch)" },
+    "in_f105HS002AE":  { "type": "INPUT", "label": "f105HS002AE",  "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ RST_B)" },
+    "in_f105HS002B":   { "type": "INPUT", "label": "f105HS002B",   "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ RST_B)" },
+
+    "in_f105HS007UCR": { "type": "INPUT", "label": "f105HS007UCR", "group": "Reset (manual, per latch)" },
+    "in_f105ZSO010":   { "type": "INPUT", "label": "f105ZSO010",   "group": "Posisi Valve (permissive akhir)" },
+
+    "not_001": { "type": "NOT", "gateId": "001", "input": "in_m105LSLL009" },
+    "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["in_m105LSLL009", "in_f105HS009M"] },
+
+    "and_003": { "type": "AND", "gateId": "003", "inputs": ["in_f105HS007A", "in_f105HS007B"] },
+    "rs_004":  { "type": "RS",  "gateId": "004", "label": "RST_105UC007_A", "s": "and_003", "r": "in_f105HS005UCR" },
+
+    "and_005": { "type": "AND", "gateId": "005", "inputs": ["in_f105HS002AE", "in_f105HS002B"] },
+    "rs_006":  { "type": "RS",  "gateId": "006", "label": "RST_105UC007_B", "s": "and_005", "r": "in_f105HS025UCR" },
+
+    "and_007": { "type": "AND", "gateId": "007", "inputs": ["or_002", "rs_004", "rs_006"] },
+    "rs_008":  { "type": "RS",  "gateId": "008", "label": "RST_105UC007_C", "s": "and_007", "r": "in_f105HS007UCR" },
+
+    "and_009": { "type": "AND", "gateId": "009", "inputs": ["rs_008", "in_f105ZSO010"] },
+
+    "out_f105LALL009":    { "type": "OUTPUT", "label": "f105LALL009",    "desc": "12274 — Level in Alm Splitter Bottom LL Alm — hasil NOT dari m105LSLL009, dipakai sebagai input di sheet lain", "source": "not_001", "group": "Effect — dipakai sheet lain (bukan output lapangan)", "internalOnly": true },
+    "out_RS_1_105UC007":  { "type": "OUTPUT", "label": "RS_1_105UC007",  "desc": "12275 — Internal HMI (status latch RST_105UC007_C)", "source": "rs_008", "group": "Internal HMI (monitor saja)" },
+    "out_f105HS504AE":    { "type": "OUTPUT", "label": "f105HS504AE",    "desc": "12128 — Splitter Heater Pumps 105-P-504A", "source": "and_009", "group": "Output Proses (ke lapangan)" },
+    "out_f105HS504BE":    { "type": "OUTPUT", "label": "f105HS504BE",    "desc": "12129 — Splitter Heater Pumps 105-P-504B", "source": "and_009", "group": "Output Proses (ke lapangan)" }
+  },
+  "summary": [
+    "Halaman ini mengatur izin jalan pompa Splitter Heater 105-P-504A/B (f105HS504AE & f105HS504BE). Berbeda dari sheet 2 dan 3 yang jalurnya pendek, di sini ada latch bertingkat: dua latch ESD di hulu, hasilnya digabung, masuk latch ketiga, lalu baru ke pompa.",
+    "Tingkat pertama ada dua latch yang berdiri sendiri. RST_105UC007_A dipicu tombol ESD SHU Reactor (f105HS007A AUX & f105HS007B Local) lewat AND#003, direset f105HS005UCR. RST_105UC007_B dipicu tombol ESD kebakaran/kebocoran 105-C-501 (f105HS002AE DCS & f105HS002B Local) lewat AND#005, direset f105HS025UCR. Keempat tombol dan kedua tombol reset ini tag yang sama persis dengan yang dipakai di sheet 3 dan sheet 6, jadi statusnya ikut berubah bersama.",
+    "Tingkat kedua: AND#007 menggabungkan tiga hal — keluaran OR#002 (alarm level rendah-rendah m105LSLL009 ATAU MOS f105HS009M), Q1 latch A, dan Q1 latch B. Hasilnya masuk latch RST_105UC007_C yang direset f105HS007UCR. Status latch ini dikirim ke HMI (RS_1_105UC007).",
+    "Tingkat ketiga: AND#009 menggabungkan Q1 latch C dengan f105ZSO010 (sinyal posisi valve terbuka, permissive pompa). Keluarannya langsung menyalakan kedua pompa. Jadi pompa hanya boleh jalan kalau latch C sudah hidup DAN posisi valve sudah benar — begitu salah satunya hilang, kedua pompa mati bersamaan.",
+    "Ada satu cabang terpisah yang tidak nyambung ke jalur pompa: m105LSLL009 juga masuk NOT#001 dan hasilnya ditulis ke tag f105LALL009. Tag ini tidak dipakai lagi di halaman ini — dia dipakai sebagai input di sheet lain, polanya sama seperti f105LAHH003 di sheet 2.",
+    "Catatan simulator: semua tag mulai dari FALSE, jadi saat pertama dibuka semua output tampil trip. Untuk menyalakan pompa: set kedua tombol ESD tiap grup ke sehat, reset latch A dan B, pastikan OR#002 aktif, reset latch C, lalu set f105ZSO010."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 4 of 34 '105-UC-007' (P02_UNIT_105 v1.175), di-trace 2026-10-25 lewat crop & zoom per area. Nomor '00006' adalah nomor blok rangkaian, bukan nomor halaman.",
+    "Gate ID dibaca langsung dari kotak kecil di tiap box: NOT#001, OR#002, AND#003, RS#004 (RST_105UC007_A), AND#005, RS#006 (RST_105UC007_B), AND#007, RS#008 (RST_105UC007_C), AND#009. Di sheet ini penomoran berurut dalam satu blok (beda dgn sheet 3 yg ID-nya berulang per blok).",
+    "Pin RS ketiga latch (dicek crop zoom 3-4x): keluaran gerbang kondisi masuk pin R1 (ada lingkaran inversi), tag reset masuk pin S. Pemetaan netlist mengikuti konvensi proyek (ARSITEKTUR.md Koreksi #12/#14): field 's' = gerbang kondisi apa adanya tanpa inversi, field 'r' = tag reset mentah.",
+    "AND#007 (3 input, urutan pin dari atas: OR#002, Q1 RST_A, Q1 RST_B) ditelusuri lewat crop lebar: garis OR#002 berjalan horizontal di atas lalu turun vertikal tepat sebelum AND#007. Tidak ada lingkaran inversi di pin manapun pada AND#007 — sama seperti temuan AND#009/AND#018 sheet 6 (Koreksi #14), jadi dipakai apa adanya tanpa NOT per-term.",
+    "KONSEKUENSI FUNGSIONAL yang perlu dikonfirmasi user: karena or_002 ikut jadi syarat AND#007, latch RST_105UC007_C hanya bisa direset SAAT alarm level m105LSLL009 aktif ATAU MOS f105HS009M dinyalakan. Ini mengikuti gambar apa adanya dan konsisten dengan bukti screenshot vendor di Koreksi #12 (reset berhasil justru saat R1 mentah TRUE), bukan hasil penalaran — tapi secara operasional patut dicek ke dokumen/DCS.",
+    "f105LALL009 adalah EFFECT (penerima), bukan cause: wire masuk dari keluaran NOT#001, dan di gambar nilainya TRUE sementara m105LSLL009 FALSE — bukti silang langsung bahwa dia hasil NOT, bukan input independen. Pola identik dgn f105LAHH003 di sheet 2 (Koreksi #13).",
+    "Tag lintas sheet (Koreksi #22): 10 dari 10 INPUT di sheet ini juga dipakai di sheet 3 dan/atau sheet 6, jadi deskripsi & flag-nya diambil dari data/tags.json, bukan ditulis di netlist ini. Deskripsi vendor dari sheet 4 lebih lengkap dari yang tercatat sebelumnya di sheet 6 (mis. 'Level in' -> '12400 — Level in Alm Splitter Bottom LL Alm'), jadi registry diperbarui dan sheet 6 ikut memakai versi lengkap itu.",
+    "Polaritas tombol ESD f105HS007A/B & f105HS002AE/B: dimodelkan NC (sirkit sehat = TRUE) mengikuti sheet 2/3/6 — belum ada konfirmasi eksplisit user per tag ini."
+  ]
+}
