@@ -33,6 +33,7 @@ const ENGINE_PATH = path.join(ROOT, 'engine', 'sim-engine.js');
 const SHEET_TPL_PATH = path.join(ROOT, 'templates', 'sheet.template.html');
 const CE_TPL_PATH = path.join(ROOT, 'templates', 'causeeffect.template.html');
 const PORTAL_TPL_PATH = path.join(ROOT, 'templates', 'portal.template.html');
+const TOKENS_CSS_PATH = path.join(ROOT, 'templates', '_tokens.css');
 const SHEETS_JSON_PATH = path.join(ROOT, 'data', 'sheets.json');
 const NETLIST_DIR = path.join(ROOT, 'data', 'netlists');
 const OUT_DIR = path.join(ROOT, 'docs');
@@ -46,9 +47,10 @@ function writeFile(p, content) {
 
 function main() {
   const engineJs = read(ENGINE_PATH);
-  const sheetTpl = read(SHEET_TPL_PATH);
-  const ceTpl = read(CE_TPL_PATH);
-  const portalTpl = read(PORTAL_TPL_PATH);
+  const tokensCss = read(TOKENS_CSS_PATH);
+  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
+  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
+  const portalTpl = read(PORTAL_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
   // pass 1: tentukan sheet mana yang punya netlist (sudah "done") —

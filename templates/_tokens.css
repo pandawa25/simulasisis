@@ -1,0 +1,64 @@
+/* ===========================================================
+   Shared design tokens — Portal, Logic Detail, Cause & Effect
+   SUMBER TUNGGAL. Sebelumnya tiap template (portal/sheet/CE)
+   punya :root sendiri yg di-copy-paste terpisah -> gampang
+   melenceng diam-diam (contoh nyata: --accent-text yg sempat
+   cuma ditambah ke 2 dari 3 template, portal ketinggalan;
+   portal juga pakai nama var beda --done/--pending padahal
+   secara makna sama dgn --false/--true di 2 template lain).
+   Diinjeksikan oleh scripts/build.js lewat placeholder
+   <!--SHARED_TOKENS--> ke semua template -- edit warna cukup
+   SEKALI DI SINI, jangan edit :root di masing-masing template.
+   =========================================================== */
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --wire:#9aa5b4;
+
+  --accent:#b9770e;       /* dipakai utk border/background/stroke (tombol primary, fokus outline, dll) */
+  --accent-fg:#5c3a07;    /* teks DI ATAS background --accent (mis. tombol primary) */
+  --accent-text:#935a08;  /* teks aksen DI ATAS background terang (header grup, dsb) -- lebih gelap drpd --accent, supaya kontras >=4.5:1 (WCAG AA) thd bg terang */
+
+  /* status "sehat/normal/selesai" vs "trip/alarm/aktif" -- SATU
+     pasangan token dipakai konsisten di semua halaman (sebelumnya
+     portal py nama sendiri --done/--pending yg representasi warna
+     sama tapi vocab beda dari --false/--true di sheet/CE). */
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --neutral-fg:#8793a6;   /* status netral: "belum dikerjakan" (portal), bukan alarm/trip */
+  --neutral-bg:#eef1f5;
+
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --wire:#3c485f;
+    --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+    --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --wire:#3c485f;
+  --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+  --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+  color-scheme: dark;
+}

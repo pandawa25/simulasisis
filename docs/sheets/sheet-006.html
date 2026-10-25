@@ -9,6 +9,18 @@
    own horizontal-scroll viewport · right rail = latch & output
    readouts + collapsible netlist / assumption notes.
    =========================================================== */
+/* ===========================================================
+   Shared design tokens — Portal, Logic Detail, Cause & Effect
+   SUMBER TUNGGAL. Sebelumnya tiap template (portal/sheet/CE)
+   punya :root sendiri yg di-copy-paste terpisah -> gampang
+   melenceng diam-diam (contoh nyata: --accent-text yg sempat
+   cuma ditambah ke 2 dari 3 template, portal ketinggalan;
+   portal juga pakai nama var beda --done/--pending padahal
+   secara makna sama dgn --false/--true di 2 template lain).
+   Diinjeksikan oleh scripts/build.js lewat placeholder
+   <!--SHARED_TOKENS--> ke semua template -- edit warna cukup
+   SEKALI DI SINI, jangan edit :root di masing-masing template.
+   =========================================================== */
 :root{
   --bg:#eef1f5;
   --panel:#ffffff;
@@ -17,67 +29,51 @@
   --fg-dim:#5b6676;
   --border:#d7dde6;
   --wire:#9aa5b4;
-  --accent:#b9770e;
-  --accent-fg:#5c3a07;
-  /* Koreksi UI/UX (2026-10-25): token teks khusus -- var(--accent) asli
-     cuma ~1.95:1 thd background zona (CAUSE/LOGIC/EFFECT), gagal WCAG AA
-     4.5:1 utk teks label grup. --accent sendiri tetap dipakai apa adanya
-     utk border/stroke/tombol (tidak diubah, supaya styling tombol tidak
-     ikut berubah). */
-  --accent-text:#935a08;
-  --zone-cause:#eaf1fb;
-  --zone-logic:#f3f1ea;
-  --zone-effect:#eef7ee;
+
+  --accent:#b9770e;       /* dipakai utk border/background/stroke (tombol primary, fokus outline, dll) */
+  --accent-fg:#5c3a07;    /* teks DI ATAS background --accent (mis. tombol primary) */
+  --accent-text:#935a08;  /* teks aksen DI ATAS background terang (header grup, dsb) -- lebih gelap drpd --accent, supaya kontras >=4.5:1 (WCAG AA) thd bg terang */
+
+  /* status "sehat/normal/selesai" vs "trip/alarm/aktif" -- SATU
+     pasangan token dipakai konsisten di semua halaman (sebelumnya
+     portal py nama sendiri --done/--pending yg representasi warna
+     sama tapi vocab beda dari --false/--true di sheet/CE). */
   --false:#1f8a4c;
   --false-bg:#e4f6ec;
   --true:#c23b2e;
   --true-bg:#fbe6e3;
+  --neutral-fg:#8793a6;   /* status netral: "belum dikerjakan" (portal), bukan alarm/trip */
+  --neutral-bg:#eef1f5;
+
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
   --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0b0f16;
-    --panel:#121826;
-    --panel-2:#171f2e;
-    --fg:#e7ecf3;
-    --fg-dim:#8793a6;
-    --border:#263046;
-    --wire:#3c485f;
-    --accent:#e3a13a;
-    --accent-fg:#1c1406;
-    --accent-text:#e3a13a;
-    --zone-cause:#131c2c;
-    --zone-logic:#1a1710;
-    --zone-effect:#101d14;
-    --false:#36c17a;
-    --false-bg:#0f2a1b;
-    --true:#f16a5a;
-    --true-bg:#351512;
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --wire:#3c485f;
+    --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+    --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0b0f16;
-  --panel:#121826;
-  --panel-2:#171f2e;
-  --fg:#e7ecf3;
-  --fg-dim:#8793a6;
-  --border:#263046;
-  --wire:#3c485f;
-  --accent:#e3a13a;
-  --accent-fg:#1c1406;
-  --accent-text:#e3a13a;
-  --zone-cause:#131c2c;
-  --zone-logic:#1a1710;
-  --zone-effect:#101d14;
-  --false:#36c17a;
-  --false-bg:#0f2a1b;
-  --true:#f16a5a;
-  --true-bg:#351512;
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --wire:#3c485f;
+  --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+  --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
   color-scheme: dark;
 }
+
 *{box-sizing:border-box}
 body{
   background:var(--bg);
@@ -124,6 +120,29 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}
 }
 .subnav .spacer{flex:1}
 .subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
+
+/* Koreksi UI/UX (2026-10-25): pemisah visual antar-klaster tombol subnav
+   (portal-link / view-switch / pager) supaya hierarki navigasi lebih
+   jelas dibanding deretan tombol rata semua tanpa pengelompokan. */
+.subnav-divider{width:1px; height:20px; background:var(--border); flex:0 0 auto}
+
+/* "tab" switch Logic Detail <-> Cause & Effect -- sebelumnya cuma 1 link
+   bertuliskan "Lihat versi sederhana ->" yg terasa seperti aksi sekali-
+   klik, bukan penanda ada 2 tampilan utk sheet yg sama. Segmented
+   control ini menunjukkan ADA 2 opsi & yang mana sedang aktif. */
+.view-tabs{
+  display:flex; align-items:center; gap:2px; background:var(--panel);
+  border:1px solid var(--border); border-radius:8px; padding:3px;
+}
+.view-tab{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; padding:6px 12px;
+  border-radius:6px; text-decoration:none; color:var(--fg-dim); white-space:nowrap;
+  cursor:default;
+}
+a.view-tab{cursor:pointer}
+.view-tab.active{background:var(--panel-2); color:var(--fg)}
+a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
+.view-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 
 /* layout */
 .layout{padding:16px 4px}
@@ -252,9 +271,14 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 
   <div class="subnav">
     <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
-    <a class="btn" id="ceLink" href="#">Lihat versi sederhana (Cause &amp; Effect) →</a>
-    <a class="btn" id="prevLink" href="#" style="display:none">← Sheet sebelumnya</a>
-    <a class="btn" id="nextLink" href="#" style="display:none">Sheet berikutnya →</a>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <div class="view-tabs" role="tablist" aria-label="Tampilan sheet">
+      <span class="view-tab active" role="tab" aria-selected="true" aria-current="page">Logic Detail</span>
+      <a class="view-tab" id="ceLink" href="#" role="tab" aria-selected="false">Cause &amp; Effect</a>
+    </div>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Berikutnya →</a>
     <div class="spacer"></div>
     <span class="navhint">Simulator ini bagian dari 34 sheet logic diagram — klik "Semua Sheet" untuk balik ke daftar lengkap.</span>
   </div>
