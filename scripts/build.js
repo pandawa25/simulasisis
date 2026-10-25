@@ -95,7 +95,7 @@ function main() {
     };
 
     let html = sheetTpl;
-    html = html.replace('<!--TITLE_BLOCK-->', '<title>Simulator ' + (netlist.title || netlist.id || entry.slug) + '</title>');
+    html = html.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Simulator ' + (netlist.title || netlist.id || entry.slug) + '</title>');
     html = html.replace('<!--TITLE_TAG-->', '');
     html = html.replace('<!--ENGINE_JS-->', engineJs);
     html = html.replace('<!--NETLIST_JSON-->', netlistJson);
@@ -103,7 +103,7 @@ function main() {
     writeFile(path.join(OUT_SHEETS_DIR, entry.slug + '.html'), html);
 
     let ceHtml = ceTpl;
-    ceHtml = ceHtml.replace('<!--TITLE_BLOCK-->', '<title>Cause & Effect ' + (netlist.title || netlist.id || entry.slug) + '</title>');
+    ceHtml = ceHtml.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Cause & Effect ' + (netlist.title || netlist.id || entry.slug) + '</title>');
     ceHtml = ceHtml.replace('<!--TITLE_TAG-->', '');
     ceHtml = ceHtml.replace('<!--ENGINE_JS-->', engineJs);
     ceHtml = ceHtml.replace('<!--NETLIST_JSON-->', netlistJson);
@@ -119,10 +119,17 @@ function main() {
 
   // portal
   let portalHtml = portalTpl;
-  portalHtml = portalHtml.replace('<!--TITLE_BLOCK-->', '<title>Portal Simulator SIS — 105-UC (34 Sheet)</title>');
+  portalHtml = portalHtml.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Portal Simulator SIS — 105-UC (34 Sheet)</title>');
   portalHtml = portalHtml.replace('<!--TITLE_TAG-->', '');
   portalHtml = portalHtml.replace('<!--SHEETS_JSON-->', JSON.stringify(sheetsData, null, 2));
   writeFile(path.join(OUT_DIR, 'index.html'), portalHtml);
+
+  // library layout ELK (vendored, tanpa npm install) -> docs/vendor/, dipakai
+  // halaman Logic Detail lewat <script src="../vendor/elk.bundled.js">
+  const VENDOR_DIR = path.join(ROOT, 'vendor');
+  ['elk.bundled.js', 'ELK-LICENSE.md'].forEach(function (f) {
+    writeFile(path.join(OUT_DIR, 'vendor', f), read(path.join(VENDOR_DIR, f)));
+  });
 
   // .nojekyll supaya GitHub Pages tidak memproses folder docs/ lewat Jekyll
   writeFile(path.join(OUT_DIR, '.nojekyll'), '');

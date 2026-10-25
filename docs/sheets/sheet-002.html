@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Simulator 105-UC-001/002/024</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -233,6 +234,9 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
 .wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
+.junction{fill:var(--false); opacity:.8}
+.junction.on{fill:var(--true); opacity:1}
+.junction.dimmed{opacity:.32; filter:blur(1.8px)}
 /* Koreksi (2026-10-25): .wire.highlight SEBELUMNYA override `stroke` jadi
    var(--accent) (oranye) -- ini DIAM-DIAM mengubah warna live TRUE/FALSE
    (merah/hijau) jadi oranye begitu kabel itu masuk jalur jejak, melanggar
@@ -365,6 +369,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
   </div>
 </div>
 
+<script src="../vendor/elk.bundled.js"></script>
 <script>
 /* ======================= sim-engine.js (inline) ======================= */
 /*
@@ -608,187 +613,6 @@ function deps(n){
 }
 const nodes = NETLIST.nodes;
 const ids = Object.keys(nodes);
-const layerMemo = {};
-function layerOf(id){
-  if(layerMemo[id] !== undefined) return layerMemo[id];
-  const d = deps(nodes[id]);
-  const l = d.length === 0 ? 0 : 1 + Math.max.apply(null, d.map(layerOf));
-  layerMemo[id] = l;
-  return l;
-}
-/* Zona: semua OUTPUT (effect/tag akhir) dipaksa ke satu kolom paling kanan,
-   terlepas dari layer topological aslinya — supaya "effect" selalu
-   terkumpul jelas di kanan, bukan tersebar sesuai kedalaman gate. */
-const byLayerRaw = {};
-ids.forEach(function(id){
-  if(nodes[id].type === 'OUTPUT') return;
-  const l = layerOf(id);
-  (byLayerRaw[l] = byLayerRaw[l] || []).push(id);
-});
-const maxLogicLayer = Math.max.apply(null, Object.keys(byLayerRaw).map(Number));
-const EFFECT_COL = maxLogicLayer + 1;
-const byLayer = Object.assign({}, byLayerRaw);
-byLayer[EFFECT_COL] = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
-const maxLayer = EFFECT_COL;
-
-/* urutkan kolom CAUSE (layer 0) & EFFECT (kolom terakhir) berdasarkan
-   causeGroups / effectGroups dari netlist, supaya tag sejenis mengumpul */
-function groupSort(colIds, groupOrder){
-  const rank = {};
-  (groupOrder || []).forEach(function(g, i){ rank[g] = i; });
-  return colIds.slice().sort(function(a, b){
-    const ga = nodes[a].group, gb = nodes[b].group;
-    const ra = ga in rank ? rank[ga] : 999, rb = gb in rank ? rank[gb] : 999;
-    if(ra !== rb) return ra - rb;
-    return colIds.indexOf(a) - colIds.indexOf(b);
-  });
-}
-byLayer[0] = groupSort(byLayer[0] || [], NETLIST.causeGroups);
-byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups);
-
-/* ======================= posisi baris eksplisit per-node (opsional) =======================
-   Heuristik otomatis (barycenter+transpose di bawah) ternyata masih jauh
-   dari gambar vendor utk sheet padat (sheet-006): tag seperti reset
-   dikelompokkan tematik jadi satu blok jauh dari RS block yang
-   dipakainya, bikin kabel "turun jauh" sebelum belok lagi -- sementara
-   di gambar sumber tiap tag digambar PERSIS di baris yang sama/dekat
-   dgn block yang memakainya. Field `row` (angka, opsional) di tiap node
-   netlist membiarkan urutan baris disalin LANGSUNG dari posisi vertikal
-   di gambar vendor (dibaca manual per node saat tracing) -- jauh lebih
-   presisi dari heuristik apa pun. Kalau field ini diisi utk MAYORITAS
-   (>=50%) node di satu sheet, urutan baris tiap kolom (termasuk CAUSE &
-   EFFECT) dipaksa ikut angka itu & algoritma barycenter/transpose di
-   bawah DILEWATI utk sheet itu (lihat useExplicitRows). Sheet yang belum
-   di-grid-kan manual (field `row` kosong/sebagian kecil saja, mis.
-   sheet-002) tetap jalan normal lewat fallback otomatis di bawah. */
-const explicitRowIds = ids.filter(function(id){ return typeof nodes[id].row === 'number'; });
-const useExplicitRows = explicitRowIds.length >= ids.length * 0.5;
-if(useExplicitRows){
-  for(let l = 0; l <= maxLayer; l++){
-    const col = byLayer[l];
-    if(!col || !col.length) continue;
-    const origIdx = {};
-    col.forEach(function(id, i){ origIdx[id] = i; });
-    byLayer[l] = col.slice().sort(function(a, b){
-      const ra = typeof nodes[a].row === 'number' ? nodes[a].row : Infinity;
-      const rb = typeof nodes[b].row === 'number' ? nodes[b].row : Infinity;
-      if(ra !== rb) return ra - rb;
-      return origIdx[a] - origIdx[b];
-    });
-  }
-}
-
-/* ======================= minim-silangan (barycenter sweep, fallback) =======================
-   Sebelumnya urutan BARIS dalam satu kolom LOGIC cuma ikut urutan definisi
-   node di netlist JSON -- tidak ada hubungannya dgn posisi node yang
-   dihubungkannya, jadi banyak kabel jalan diagonal/menyilang tanpa perlu
-   (ketahuan dari laporan user: gambar vendor jauh lebih rapi krn
-   posisi tiap blok memang disusun manual oleh drafter supaya kabel lurus).
-   Kolom (byLayer index, dari layerOf()) TETAP dipakai apa adanya -- itu
-   sudah merepresentasikan urutan alur sinyal kiri->kanan yang sama dgn
-   gambar sumber. Yang diperbaiki di sini HANYA urutan vertikal dalam
-   kolom LOGIC (bukan kolom CAUSE/EFFECT -- itu sengaja tetap ikut
-   causeGroups/effectGroups di atas), pakai algoritma barycenter standar
-   utk diagram berlapis (Sugiyama-style layered graph drawing): posisi
-   tiap node digeser mendekati rata-rata posisi node yang terhubung di
-   kolom tetangga, lewat beberapa sweep bolak-balik (maju pakai
-   predecessor/dependensi, mundur pakai successor/pemakai) sampai
-   konvergen ke urutan yang silangannya jauh lebih sedikit -- tujuannya
-   sama persis dgn kerapian gambar vendor, tapi otomatis (tidak perlu
-   data posisi manual per node) & langsung berlaku ke SEMUA sheet. */
-function minimizeCrossings(){
-  if(maxLogicLayer < 1) return; // tidak ada kolom LOGIC utk diproses
-  const successors = {};
-  ids.forEach(function(id){ successors[id] = []; });
-  ids.forEach(function(id){
-    deps(nodes[id]).forEach(function(d){
-      if(successors[d]) successors[d].push(id);
-    });
-  });
-  const rowIndex = {};
-  function reindexAll(){
-    for(let l = 0; l <= maxLayer; l++){
-      (byLayer[l] || []).forEach(function(id, i){ rowIndex[id] = i; });
-    }
-  }
-  reindexAll();
-  function barycenterOf(id, neighborIds){
-    const vals = [];
-    neighborIds.forEach(function(nb){ if(rowIndex[nb] !== undefined) vals.push(rowIndex[nb]); });
-    if(!vals.length) return rowIndex[id]; // tanpa tetangga ber-posisi, biarkan tetap (stabil)
-    return vals.reduce(function(a, b){ return a + b; }, 0) / vals.length;
-  }
-  const ITER = 8;
-  for(let iter = 0; iter < ITER; iter++){
-    const forward = iter % 2 === 0;
-    const colsOrder = [];
-    for(let l = 1; l <= maxLogicLayer; l++) colsOrder.push(l);
-    if(!forward) colsOrder.reverse();
-    colsOrder.forEach(function(l){
-      const col = byLayer[l];
-      if(!col || col.length < 2) return;
-      const scored = col.map(function(id, i){
-        const neighbors = forward ? deps(nodes[id]) : successors[id];
-        return { id: id, b: barycenterOf(id, neighbors), orig: i };
-      });
-      scored.sort(function(a, b){
-        if(a.b !== b.b) return a.b - b.b;
-        return a.orig - b.orig; // tie-break stabil, hindari osilasi antar-iterasi
-      });
-      byLayer[l] = scored.map(function(s){ return s.id; });
-      reindexAll();
-    });
-  }
-
-  /* --- transpose: bersih-bersih sisa silangan lokal setelah barycenter ---
-     Barycenter cuma heuristik (bukan jaminan minimum) & gampang macet di
-     local optimum. "Transpose" (teknik standar di algoritma layout
-     berlapis ala Graphviz/dot) menyisir tiap pasangan node BERSEBELAHAN
-     dalam satu kolom, hitung jumlah silangan nyata yang disumbang kedua
-     node itu ke SEMUA tetangganya (predecessor + successor gabungan) utk
-     urutan sekarang vs urutan ditukar, lalu tukar kalau itu mengurangi
-     total silangan. Diulang sampai tidak ada lagi pertukaran yang
-     menguntungkan (atau batas iterasi tercapai) -- jauh lebih efektif
-     membersihkan silangan "nyata" dibanding cuma barycenter karena
-     memaksimalkan metrik yang relevan langsung (jumlah silangan), bukan
-     proxy posisi rata-rata. */
-  function neighborsOf(id){ return deps(nodes[id]).concat(successors[id]); }
-  function crossingsForOrder(aId, bId, aNeighbors, bNeighbors){
-    // a sebelum b: silangan muncul tiap pasang (na di a, nb di b) dgn rowIndex[na] > rowIndex[nb]
-    let c = 0;
-    aNeighbors.forEach(function(na){
-      const ia = rowIndex[na];
-      if(ia === undefined) return;
-      bNeighbors.forEach(function(nb){
-        const ib = rowIndex[nb];
-        if(ib === undefined) return;
-        if(ia > ib) c++;
-      });
-    });
-    return c;
-  }
-  let changed = true, guard = 0;
-  while(changed && guard < 12){
-    changed = false;
-    guard++;
-    for(let l = 1; l <= maxLogicLayer; l++){
-      const col = byLayer[l];
-      if(!col || col.length < 2) continue;
-      for(let i = 0; i < col.length - 1; i++){
-        const a = col[i], b = col[i + 1];
-        const an = neighborsOf(a), bn = neighborsOf(b);
-        const costAB = crossingsForOrder(a, b, an, bn);
-        const costBA = crossingsForOrder(b, a, bn, an);
-        if(costBA < costAB){
-          col[i] = b; col[i + 1] = a;
-          reindexAll();
-          changed = true;
-        }
-      }
-    }
-  }
-}
-if(!useExplicitRows) minimizeCrossings();
 
 /* --- wrapping deskripsi tag (INPUT/OUTPUT) ---
    Sebelumnya desc dirender sebagai satu baris <text> tanpa wrap, jadi
@@ -829,7 +653,7 @@ function wrapDesc(text, maxWidth, maxLines){
 
 /* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
    input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
-   di sisi kiri box (lihat centerOf di bawah) dan tidak numpuk di satu
+   di sisi kiri box (lihat portY di blok layout) dan tidak numpuk di satu
    titik tengah box saat gate punya banyak input (mis. VOT 9 input,
    AND014 5 input) — itu sumber utama kabel "bertumpuk" di zona LOGIC.
    Untuk INPUT/OUTPUT, tinggi juga menyesuaikan jumlah baris deskripsi
@@ -846,63 +670,6 @@ function boxSize(n){
   if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
   return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
 }
-
-/* COL_W dinaikkan dari 248 -> 420: sheet padat (mis. sheet-006) punya
-   SATU kolom sumber dgn sampai 26 kabel berbagi "lane" (lihat
-   laneForEdge di bawah) -- dgn COL_W lama, 26 lane itu cuma dapat ruang
-   total ~82px (~3px per lane), jadi kelihatan berdempetan/numpuk
-   (dilaporkan user). COL_W lebih lebar + LANE_MARGIN lebih besar
-   memberi tiap lane jarak yg jelas terlihat mata (~9-10px), berlaku ke
-   SEMUA sheet lewat template bersama (bukan per-sheet). */
-const COL_W = 420, ROW_H = 54, GROUP_GAP = 22, PAD = 28, ZONE_HEAD_H = 46;
-const pos = {};
-const groupHeaders = []; // { x, y, text } untuk label kelompok di kolom CAUSE/EFFECT
-let maxColHeight = 0;
-for(let l = 0; l <= maxLayer; l++){
-  const col = byLayer[l] || [];
-  let y = PAD + ZONE_HEAD_H;
-  let lastGroup = null;
-  col.forEach(function(id, i){
-    /* Mode `useExplicitRows`: urutan baris ikut posisi gambar vendor
-       (lintas-grup tematik), jadi header grup besar TIDAK dirender di
-       sini -- kalau tetap dipaksa, grup yang sama bisa terpecah jadi
-       banyak header kecil berselang-seling (sudah terbukti bikin tinggi
-       kolom antar-kolom tidak sinkron & malah menambah silangan).
-       Konteks grup tetap ada lewat teks `desc` masing-masing tag. */
-    const grp = (!useExplicitRows && nodes[id].group) || null;
-    if(grp !== null && grp !== lastGroup){
-      if(lastGroup !== null) y += GROUP_GAP;
-      groupHeaders.push({ x: PAD + l * COL_W, y: y, text: grp });
-      y += 16;
-      lastGroup = grp;
-    }
-    pos[id] = { x: PAD + l * COL_W, y: y, layer: l, idx: i };
-    // baris berikutnya turun sesuai tinggi box SEBENARNYA (bukan ROW_H
-    // tetap) supaya gate tinggi (banyak pin) tidak tumpang tindih baris
-    // di bawahnya
-    y += Math.max(ROW_H, boxSize(nodes[id]).h + 18);
-  });
-  if(y > maxColHeight) maxColHeight = y;
-}
-/* deteksi dini "kabel lompat kolom" (mis. NOT di kolom LOGIC yang
-   outputnya langsung dipakai sbg EFFECT, melompati kolom RS LATCH di
-   antaranya) — kabel begini HARUS dirutekan lewat jalur bawah terpisah
-   (lihat SKIP_BOTTOM_Y di bawah), karena kalau tetap pakai lane biasa
-   (belok di gap sempit tepat setelah node asal) garis horizontalnya
-   numpuk persis di baris pin box kolom yang dilewati — kelihatan
-   seperti nyambung ke pin itu padahal tidak (ketemu di Koreksi #13). */
-let skipEdgeCount = 0;
-ids.forEach(function(id){
-  deps(nodes[id]).forEach(function(d){
-    if(pos[d] && (pos[id].layer - pos[d].layer) > 1) skipEdgeCount++;
-  });
-});
-const canvasW = PAD * 2 + (maxLayer + 1) * COL_W + 140;
-let canvasH = maxColHeight + PAD + (skipEdgeCount > 0 ? 16 + skipEdgeCount * 16 : 0);
-
-/* batas-batas zona (x) untuk pita latar belakang CAUSE / LOGIC / EFFECT */
-const zoneCauseX1 = PAD + COL_W - 14;
-const zoneEffectX0 = PAD + EFFECT_COL * COL_W - 14;
 
 /* ======================= sim instance ======================= */
 const sim = SimEngine.createSim(NETLIST);
@@ -942,6 +709,161 @@ function saveSyncedState(){
   }catch(e){}
 }
 loadSyncedState();
+
+/* ======================= boot (async: tunggu layout ELK) =======================
+   Semua render di bawah butuh posisi hasil ELK (asinkron), jadi dibungkus
+   satu fungsi async. Indentasi isi sengaja tidak digeser supaya diff &
+   riwayat komentar lama tetap mudah dibaca. */
+async function boot(){
+
+/* ======================= layout otomatis (ELK layered) =======================
+   Koreksi (2026-10-25, #20) -- MENGGANTIKAN seluruh mekanisme layout lama
+   (kolom tetap per layerOf + barycenter/transpose + field `row` eksplisit
+   + lane/skip-lane buatan sendiri + busur "hop" di titik silang).
+   Atas permintaan user: (1) busur/lengkung di persilangan TIDAK dipakai
+   lagi (jelek di logic kompleks), (2) penataan otomatis & terbaik
+   (simpel, minim silangan), (3) SELALU ada gap antar kabel, (4) blok
+   logic boleh di posisi mana saja (tidak harus grid rapi) asal minim
+   silangan & ber-gap.
+   Sekarang dipakai ELK (Eclipse Layout Kernel, algoritma "layered" --
+   implementasi Sugiyama yg matang: crossing minimization layer-sweep +
+   greedy switch, node placement Brandes-Köpf, routing orthogonal dgn
+   jarak antar-kabel dijamin lewat elk.spacing.edgeEdge /
+   edgeEdgeBetweenLayers / edgeNode). Pin input tiap blok dikunci di
+   posisi persis tanda pin (FIXED_POS) supaya urutan pin tetap sama dgn
+   gambar sumber. INPUT dipaksa ke layer pertama (kolom CAUSE), OUTPUT ke
+   layer terakhir (kolom EFFECT); blok di antaranya bebas.
+   Beberapa seed dicoba & dipilih yg silangannya paling sedikit (lalu
+   belokan paling sedikit). Kabel yang BERCABANG (satu sinyal ke banyak
+   tujuan) sengaja berbagi segmen & diberi titik sambung (junction dot)
+   -- itulah satu-satunya tempat dua garis boleh berimpit; garis beda
+   sinyal tidak pernah berimpit/menempel. ELK dimuat dari
+   ../vendor/elk.bundled.js (disalin build.js dari vendor/). */
+const EDGE_GAP = 12;          // jarak minimum antar kabel beda sinyal (px)
+const LAYOUT_SEEDS = [1, 2, 3, 4, 5];
+const ZONE_HEAD_H = 46, PAD = 28;
+
+function portY(n, s, i, count){
+  return count > 1 ? (i + 1) / (count + 1) * s.h : s.h / 2;
+}
+function buildElkGraph(seed){
+  const children = ids.map(function(id){
+    const n = nodes[id], s = boxSize(n), d = deps(n);
+    const ports = [];
+    if(n.type !== 'OUTPUT'){
+      ports.push({ id: id + '#o', width: 0, height: 0, x: s.w, y: s.h / 2, layoutOptions: { 'elk.port.side': 'EAST' } });
+    }
+    d.forEach(function(dep, i){
+      ports.push({ id: id + '#i' + i, width: 0, height: 0, x: 0, y: portY(n, s, i, d.length), layoutOptions: { 'elk.port.side': 'WEST' } });
+    });
+    const lo = { 'elk.portConstraints': 'FIXED_POS' };
+    if(n.type === 'INPUT') lo['elk.layered.layering.layerConstraint'] = 'FIRST';
+    if(n.type === 'OUTPUT') lo['elk.layered.layering.layerConstraint'] = 'LAST';
+    return { id: id, width: s.w, height: s.h, ports: ports, layoutOptions: lo };
+  });
+  const edges = [];
+  ids.forEach(function(id){
+    deps(nodes[id]).forEach(function(dep, i){
+      if(!nodes[dep]) return;
+      edges.push({ id: dep + '→' + id + '#' + i, sources: [dep + '#o'], targets: [id + '#i' + i] });
+    });
+  });
+  return {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'RIGHT',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.separateConnectedComponents': 'false',
+      'elk.spacing.edgeEdge': String(EDGE_GAP),
+      'elk.layered.spacing.edgeEdgeBetweenLayers': String(EDGE_GAP),
+      'elk.spacing.edgeNode': '16',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '16',
+      'elk.spacing.nodeNode': '22',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '48',
+      'elk.layered.thoroughness': '40',
+      'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'elk.padding': '[top=' + (PAD + ZONE_HEAD_H) + ',left=' + PAD + ',bottom=' + PAD + ',right=' + PAD + ']',
+      'elk.randomSeed': String(seed)
+    },
+    children: children,
+    edges: edges
+  };
+}
+function edgeNet(e){ return e.sources[0].replace(/#o$/, ''); }
+function edgeSegments(e){
+  const out = [];
+  (e.sections || []).forEach(function(sec){
+    const pts = [sec.startPoint].concat(sec.bendPoints || [], [sec.endPoint]);
+    for(let i = 0; i < pts.length - 1; i++) out.push({ a: pts[i], b: pts[i + 1] });
+  });
+  return out;
+}
+/* kualitas layout: jumlah silangan antar kabel BEDA sinyal + jumlah belokan */
+function layoutQuality(res){
+  const H = [], V = [];
+  let bends = 0;
+  res.edges.forEach(function(e){
+    const net = edgeNet(e);
+    (e.sections || []).forEach(function(sec){ bends += (sec.bendPoints || []).length; });
+    edgeSegments(e).forEach(function(sg){
+      if(Math.abs(sg.a.y - sg.b.y) < 0.01) H.push({ net: net, y: sg.a.y, x1: Math.min(sg.a.x, sg.b.x), x2: Math.max(sg.a.x, sg.b.x) });
+      else V.push({ net: net, x: sg.a.x, y1: Math.min(sg.a.y, sg.b.y), y2: Math.max(sg.a.y, sg.b.y) });
+    });
+  });
+  const seen = {};
+  let cross = 0;
+  H.forEach(function(h){
+    V.forEach(function(v){
+      if(v.net === h.net) return;
+      if(v.x > h.x1 + 0.5 && v.x < h.x2 - 0.5 && h.y > v.y1 + 0.5 && h.y < v.y2 - 0.5){
+        const k = Math.round(v.x) + ',' + Math.round(h.y) + ',' + h.net + ',' + v.net;
+        if(!seen[k]){ seen[k] = 1; cross++; }
+      }
+    });
+  });
+  return { cross: cross, bends: bends };
+}
+async function computeLayout(){
+  const elk = new ELK();
+  let best = null;
+  for(let i = 0; i < LAYOUT_SEEDS.length; i++){
+    const res = await elk.layout(buildElkGraph(LAYOUT_SEEDS[i]));
+    const q = layoutQuality(res);
+    if(!best || q.cross < best.q.cross || (q.cross === best.q.cross && q.bends < best.q.bends)) best = { res: res, q: q };
+    if(best.q.cross === 0) break;
+  }
+  window.__layoutQuality = best.q; // utk verifikasi otomatis (Playwright)
+  return best.res;
+}
+
+const layoutMsg = document.createElement('p');
+layoutMsg.textContent = 'Menyusun layout diagram…';
+layoutMsg.style.cssText = 'padding:16px;margin:0;color:var(--fg-dim);font-size:13px';
+document.getElementById('canvasWrap').prepend(layoutMsg);
+const LAYOUT = await computeLayout();
+layoutMsg.remove();
+const pos = {};
+LAYOUT.children.forEach(function(c){ pos[c.id] = { x: c.x, y: c.y }; });
+const canvasW = Math.ceil(LAYOUT.width);
+const canvasH = Math.ceil(LAYOUT.height);
+
+/* batas-batas zona (x) untuk pita latar CAUSE / LOGIC / EFFECT: di tengah
+   celah antara blok paling kanan zona kiri & blok paling kiri zona kanan */
+function edgeX(filterFn, useRight, pick){
+  const xs = ids.filter(filterFn).map(function(id){ return useRight ? pos[id].x + boxSize(nodes[id]).w : pos[id].x; });
+  return xs.length ? pick.apply(null, xs) : null;
+}
+const isIn = function(id){ return nodes[id].type === 'INPUT'; };
+const isOut = function(id){ return nodes[id].type === 'OUTPUT'; };
+const isLogic = function(id){ return !isIn(id) && !isOut(id); };
+const inRight = edgeX(isIn, true, Math.max) || PAD;
+const outLeft = edgeX(isOut, false, Math.min) || canvasW - PAD;
+const logicLeft = edgeX(isLogic, false, Math.min);
+const logicRight = edgeX(isLogic, true, Math.max);
+const zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
+const zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
 
 /* ======================= render ======================= */
 const svg = document.getElementById('svg');
@@ -1002,245 +924,62 @@ function el(tag, attrs){
 const zoneLayer = el('g', {});
 svg.appendChild(zoneLayer);
 
-function zoneBand(x0, x1, fillVar, title){
+function zoneBand(x0, x1, fillVar, title, shortTitle){
   zoneLayer.appendChild(el('rect', { x: x0, y: 0, width: Math.max(0, x1 - x0), height: canvasH, fill: fillVar }));
   const t = el('text', { x: x0 + 10, y: 22, class: 'zone-title' });
   t.textContent = title;
   zoneLayer.appendChild(t);
+  /* lebar zona sekarang mengikuti hasil layout (bisa sempit di sheet
+     kecil) -- kalau judul panjang tidak muat, pakai versi pendek */
+  if(shortTitle && t.getComputedTextLength() > (x1 - x0) - 16) t.textContent = shortTitle;
 }
 zoneBand(0, zoneCauseX1, 'var(--zone-cause)', 'CAUSE / INITIATOR');
-zoneBand(zoneCauseX1, zoneEffectX0, 'var(--zone-logic)', 'LOGIC & PERMISSIVE  (RS Latch · AND/OR · Voting)');
+zoneBand(zoneCauseX1, zoneEffectX0, 'var(--zone-logic)', 'LOGIC & PERMISSIVE  (RS Latch · AND/OR · Voting)', 'LOGIC & PERMISSIVE');
 zoneBand(zoneEffectX0, canvasW, 'var(--zone-effect)', 'EFFECT / OUTPUT');
 zoneLayer.appendChild(el('line', { x1: zoneCauseX1, x2: zoneCauseX1, y1: 0, y2: canvasH, class: 'zone-divider' }));
 zoneLayer.appendChild(el('line', { x1: zoneEffectX0, x2: zoneEffectX0, y1: 0, y2: canvasH, class: 'zone-divider' }));
 
-/* label kelompok (mis. "ESD Pushbutton - Grup A") di kolom CAUSE/EFFECT */
-const groupLayer = el('g', {});
-svg.appendChild(groupLayer);
-groupHeaders.forEach(function(gh){
-  const t = el('text', { x: gh.x, y: gh.y, class: 'group-title' });
-  t.textContent = gh.text;
-  groupLayer.appendChild(t);
-});
-
 const wireLayer = el('g', {});
 const nodeLayer = el('g', {});
+const junctionLayer = el('g', {});
 svg.appendChild(wireLayer);
+svg.appendChild(junctionLayer);
 svg.appendChild(nodeLayer);
 
 const nodeEls = {}; // id -> {g, rect, valText,...}
 const wireRecords = []; // { path, from } untuk pewarnaan live
 const wireByPair = {}; // "from→to" -> path, untuk highlight trace
 
-/* Titik sambung kabel pada box. Sisi 'out' selalu satu titik di tengah
-   kanan. Sisi 'in' DISEBAR per-pin sepanjang sisi kiri box berdasar
-   urutan input node tsb (pakai counterpartId = id node sumber kabel) —
-   supaya gate multi-input (AND/OR/VOTING/RS) tidak membuat semua kabel
-   masuk numpuk di satu titik tengah yang sama (itu penyebab utama
-   tumpukan di zona LOGIC & PERMISSIVE sebelumnya). */
-function centerOf(id, side, counterpartId){
-  const p = pos[id], s = boxSize(nodes[id]);
-  if(side === 'out') return { x: p.x + s.w, y: p.y + s.h / 2 };
-  const slots = deps(nodes[id]);
-  if(slots && slots.length > 1 && counterpartId != null){
-    let idx = slots.indexOf(counterpartId);
-    if(idx < 0) idx = 0;
-    return { x: p.x, y: p.y + (idx + 1) / (slots.length + 1) * s.h };
-  }
-  return { x: p.x, y: p.y + s.h / 2 };
-}
-
-/* lane kabel: dikelompokkan per kolom-asal, diurutkan berdasar posisi Y
-   tujuan, lalu disebar sebagai posisi-X ABSOLUT (bukan fraksi dari jarak
-   total) di dalam gap antar-kolom yang tersedia setelah node asal —
-   setiap kabel dapat satu lane unik (tidak ada yang berbagi/numpuk),
-   dan karena berbasis piksel nyata bukan fraksi jarak, lane tidak lagi
-   "mengempis" jadi rapat saat target dekat (sumber masalah numpuk di
-   kolom CAUSE sebelumnya). Hasilnya: deretan belokan rapi seperti sisir,
-   jauh lebih mudah ditelusuri manual. */
-const edgeList = [];
-ids.forEach(function(id){
-  deps(nodes[id]).forEach(function(d){ edgeList.push({ from: d, to: id }); });
-});
-
-/* kabel "lompat kolom" (lihat skipEdgeCount di atas) dipisah dari lane
-   biasa & diberi jalur-bawah sendiri, masing-masing baris unik, supaya
-   garis horizontalnya jelas lewat DI BAWAH semua box (tidak pernah
-   sejajar dgn baris pin box manapun yang dilewati). */
-const SKIP_BOTTOM_BASE = canvasH - PAD - skipEdgeCount * 16;
-const skipLaneForEdge = {};
-/* Koreksi (2026-10-25): segmen VERTICAL naik/turun jalur-bawah sebelumnya
-   pakai offset TETAP (a.x+10 dari node asal, b.x-10 dari node tujuan) --
-   kalau >1 kabel lompat-kolom kebetulan berangkat dari KOLOM yang sama
-   (a.x sama persis, krn semua node di satu kolom berbagi x yang sama)
-   atau tiba di kolom yang sama, segmen vertical2 itu NUMPUK PERSIS (0px
-   gap, bukan cuma rapat) -- ketemu di sheet-006: 8 kabel lompat-kolom
-   berangkat dari kolom CAUSE yang sama, & 3 kabel berbeda semua menuju
-   g018_AND. Fix: offset disebar per grup (dikelompokkan per x asal &
-   per x tujuan terpisah), bukan angka tetap. */
-const skipX1ForEdge = {}, skipX2ForEdge = {};
-const skipByFromX = {}, skipByToX = {};
-let skipIdx = 0;
-edgeList.forEach(function(e){
-  if(pos[e.from] && pos[e.to] && (pos[e.to].layer - pos[e.from].layer) > 1){
-    skipLaneForEdge[e.from + '→' + e.to] = SKIP_BOTTOM_BASE + skipIdx * 16;
-    const ax = centerOf(e.from, 'out').x, bx = centerOf(e.to, 'in', e.from).x;
-    (skipByFromX[ax] = skipByFromX[ax] || []).push(e);
-    (skipByToX[bx] = skipByToX[bx] || []).push(e);
-    skipIdx++;
-  }
-});
-const SKIP_X_STEP = 7;
-Object.keys(skipByFromX).forEach(function(ax){
-  skipByFromX[ax].forEach(function(e, i){
-    skipX1ForEdge[e.from + '→' + e.to] = Number(ax) + 10 + i * SKIP_X_STEP;
+/* ======================= kabel (dari rute ELK) =======================
+   Tiap kabel digambar persis mengikuti rute orthogonal hasil ELK (lihat
+   blok layout di atas) -- TANPA busur/lengkung di persilangan (Koreksi
+   #20, atas permintaan user). Persilangan yg tersisa (sudah diminimalkan)
+   digambar sbg silang lurus biasa; sambungan sungguhan SELALU ditandai
+   titik bulat (junction dot) atau berakhir di pin box, jadi silang tanpa
+   titik = tidak tersambung. */
+const junctionRecords = []; // { el, from } untuk pewarnaan live
+const junctionSeen = {};
+LAYOUT.edges.forEach(function(e){
+  const from = edgeNet(e);
+  const to = e.targets[0].replace(/#i\d+$/, '');
+  let d = '';
+  (e.sections || []).forEach(function(sec){
+    const pts = [sec.startPoint].concat(sec.bendPoints || [], [sec.endPoint]);
+    d += 'M ' + pts[0].x + ' ' + pts[0].y;
+    for(let i = 1; i < pts.length; i++) d += ' L ' + pts[i].x + ' ' + pts[i].y;
   });
-});
-Object.keys(skipByToX).forEach(function(bx){
-  skipByToX[bx].forEach(function(e, i){
-    skipX2ForEdge[e.from + '→' + e.to] = Number(bx) - 10 - i * SKIP_X_STEP;
-  });
-});
-const nonSkipEdges = edgeList.filter(function(e){ return skipLaneForEdge[e.from + '→' + e.to] == null; });
-
-const LANE_MARGIN = 14;
-const byFromCol = {};
-nonSkipEdges.forEach(function(e){
-  const col = pos[e.from].layer;
-  (byFromCol[col] = byFromCol[col] || []).push(e);
-});
-const laneForEdge = {}; // "from→to" -> posisi-X absolut tempat kabel berbelok vertikal
-Object.keys(byFromCol).forEach(function(col){
-  const nextColX = PAD + (Number(col) + 1) * COL_W;
-  const group = byFromCol[col].slice().sort(function(a, b){
-    return centerOf(a.to, 'in', a.from).y - centerOf(b.to, 'in', b.from).y;
-  });
-  const n = group.length;
-  group.forEach(function(e, i){
-    const a = centerOf(e.from, 'out');
-    const b = centerOf(e.to, 'in', e.from);
-    const gap = Math.max(nextColX - a.x - LANE_MARGIN * 2, 10);
-    const t = n <= 1 ? 0.5 : i / (n - 1);
-    const x = a.x + LANE_MARGIN + gap * t;
-    laneForEdge[e.from + '→' + e.to] = Math.min(x, b.x - 6);
-  });
-});
-
-/* rute kabel siku (orthogonal, gaya ladder/logic diagram asli):
-   keluar horizontal → belok vertikal pada "lane" dekat node asal →
-   masuk horizontal. Belokan yang terkumpul dekat asal membuat sisa
-   jalur jadi garis horizontal lurus yang gampang diikuti mata —
-   jauh lebih mudah ditelusuri manual dibanding kurva lengkung.
-   Fungsi ini HANYA menghasilkan titik-titik polyline (bukan string 'd'
-   langsung) -- string 'd' final dibangun belakangan oleh buildPathD()
-   setelah semua kabel diketahui, supaya persilangan antar-kabel yang
-   TIDAK terhubung bisa dideteksi & digambar sbg busur "lompat" (lihat
-   blok di bawah), bukan numpuk lurus begitu saja. */
-function wirePoints(fromId, toId){
-  const a = centerOf(fromId, 'out');
-  const b = centerOf(toId, 'in', fromId);
-  const skipY = skipLaneForEdge[fromId + '→' + toId];
-  if(skipY != null){
-    /* jalur-bawah: turun tepat di sebelah node asal, mendatar sendiri
-       di bawah semua box pada ketinggian unik (skipY), baru naik ke
-       pin tujuan dekat node tujuan — tidak pernah sejajar/numpuk dgn
-       baris pin kolom manapun yang dilewati di tengah. */
-    const key = fromId + '→' + toId;
-    const x1 = skipX1ForEdge[key] != null ? skipX1ForEdge[key] : a.x + 10;
-    const x2 = skipX2ForEdge[key] != null ? skipX2ForEdge[key] : b.x - 10;
-    return [ { x: a.x, y: a.y }, { x: x1, y: a.y }, { x: x1, y: skipY }, { x: x2, y: skipY }, { x: x2, y: b.y }, { x: b.x, y: b.y } ];
-  }
-  const lane = laneForEdge[fromId + '→' + toId];
-  const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
-  return [ { x: a.x, y: a.y }, { x: midx, y: a.y }, { x: midx, y: b.y }, { x: b.x, y: b.y } ];
-}
-
-const wireGeoms = edgeList.map(function(e){
-  return { from: e.from, to: e.to, points: wirePoints(e.from, e.to) };
-});
-
-/* Koreksi (2026-10-25): dua kabel yang TIDAK terhubung tapi rutenya
-   kebetulan saling menyilang di kanvas sebelumnya digambar sbg garis
-   lurus numpuk — scr visual ambigu, bisa disalahbaca sbg sambungan
-   sungguhan (pernah jadi laporan bug "wire salah sambung" padahal
-   cuma persilangan visual, lihat ARSITEKTUR.md kasus skip-edge).
-   Fix: deteksi tiap persilangan antar-kabel BEDA (bukan milik kabel
-   yang sama) di mana segmen HORIZONTAL satu kabel memotong segmen
-   VERTICAL kabel lain di titik INTERIOR (bukan di ujung segmen —
-   ujung segmen = pin/sambungan sungguhan, bukan persilangan), lalu
-   gambar segmen horizontal itu dengan busur kecil "lompat" (SVG arc)
-   di titik silangnya — konvensi standar diagram skematik, sambungan
-   sungguhan SELALU persis di pin/ujung box, bukan di tengah garis. */
-const HOP_R = 4.2;
-const EPS = 3;
-function segsOf(points){
-  const segs = [];
-  for(let i = 0; i < points.length - 1; i++){
-    const p1 = points[i], p2 = points[i + 1];
-    if(Math.abs(p1.y - p2.y) < 0.01){
-      segs.push({ i: i, orient: 'H', y: p1.y, x1: Math.min(p1.x, p2.x), x2: Math.max(p1.x, p2.x) });
-    } else {
-      segs.push({ i: i, orient: 'V', x: p1.x, y1: Math.min(p1.y, p2.y), y2: Math.max(p1.y, p2.y) });
-    }
-  }
-  return segs;
-}
-const wireSegs = wireGeoms.map(function(g){ return segsOf(g.points); });
-const hopsBySegment = {}; // "wireIdx:segIdx" -> [x di mana harus lompat, ...]
-wireSegs.forEach(function(segsA, wa){
-  segsA.forEach(function(segA){
-    if(segA.orient !== 'H') return;
-    wireSegs.forEach(function(segsB, wb){
-      if(wb === wa) return;
-      segsB.forEach(function(segB){
-        if(segB.orient !== 'V') return;
-        if(segB.x > segA.x1 + EPS && segB.x < segA.x2 - EPS &&
-           segA.y > segB.y1 + EPS && segA.y < segB.y2 - EPS){
-          const key = wa + ':' + segA.i;
-          (hopsBySegment[key] = hopsBySegment[key] || []).push(segB.x);
-        }
-      });
-    });
-  });
-});
-
-/* Bangun string 'd' final per kabel: segmen biasa tetap H/V lurus;
-   segmen horizontal yang punya titik silang disisipi busur kecil
-   (selalu melengkung ke ATAS/y lebih kecil, konsisten arah manapun
-   kabelnya berjalan — sweep-flag dibalik sesuai arah supaya lengkung
-   fisiknya selalu sama, bukan kadang ke atas kadang ke bawah). */
-function buildPathD(points, wireIdx){
-  let d = 'M ' + points[0].x + ' ' + points[0].y;
-  for(let i = 0; i < points.length - 1; i++){
-    const p1 = points[i], p2 = points[i + 1];
-    const horiz = Math.abs(p1.y - p2.y) < 0.01;
-    const hops = horiz ? hopsBySegment[wireIdx + ':' + i] : null;
-    if(hops && hops.length){
-      const dir = p2.x >= p1.x ? 1 : -1;
-      const sorted = hops.slice().sort(function(x1, x2){ return dir * (x1 - x2); });
-      const sweep = dir > 0 ? 0 : 1;
-      sorted.forEach(function(hx){
-        const beforeX = hx - dir * HOP_R;
-        const afterX = hx + dir * HOP_R;
-        d += ' L ' + beforeX + ' ' + p1.y + ' A ' + HOP_R + ' ' + HOP_R + ' 0 0 ' + sweep + ' ' + afterX + ' ' + p1.y;
-      });
-      d += ' L ' + p2.x + ' ' + p2.y;
-    } else if(horiz){
-      d += ' H ' + p2.x;
-    } else {
-      d += ' V ' + p2.y;
-    }
-  }
-  return d;
-}
-
-/* draw wires (edge = dep -> node) */
-wireGeoms.forEach(function(g, idx){
-  const d = buildPathD(g.points, idx);
-  const path = el('path', { d: d, class: 'wire', 'data-from': g.from, 'data-to': g.to });
-  wireRecords.push({ path: path, from: g.from });
-  wireByPair[g.from + '→' + g.to] = path;
+  const path = el('path', { d: d, class: 'wire', 'data-from': from, 'data-to': to });
+  wireRecords.push({ path: path, from: from });
+  wireByPair[from + '→' + to] = path;
   wireLayer.appendChild(path);
+  (e.junctionPoints || []).forEach(function(j){
+    const k = from + '@' + Math.round(j.x) + ',' + Math.round(j.y);
+    if(junctionSeen[k]) return;
+    junctionSeen[k] = 1;
+    const dot = el('circle', { cx: j.x, cy: j.y, r: 2.8, class: 'junction' });
+    junctionRecords.push({ el: dot, from: from });
+    junctionLayer.appendChild(dot);
+  });
 });
 
 function makeGateNode(id, n){
@@ -1475,6 +1214,7 @@ function simulate(){
     rec.path.classList.toggle('on', on);
     if(on) wireLayer.appendChild(rec.path);
   });
+  junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
   saveSyncedState();
 }
 
@@ -1487,6 +1227,7 @@ function clearTrace(){
     if(nodeEls[id].g) nodeEls[id].g.classList.remove('dimmed', 'trace-focus');
   });
   wireRecords.forEach(function(rec){ rec.path.classList.remove('highlight', 'dimmed'); });
+  junctionRecords.forEach(function(rec){ rec.el.classList.remove('dimmed'); });
 }
 function traceUpstream(id){
   if(tracedNode === id){ clearTrace(); return; } // klik node yang sama = lepas jejak
@@ -1521,6 +1262,7 @@ function traceUpstream(id){
   wireRecords.forEach(function(rec){
     if(!rec.path.classList.contains('highlight')) rec.path.classList.add('dimmed');
   });
+  junctionRecords.forEach(function(rec){ if(!visited[rec.from]) rec.el.classList.add('dimmed'); });
 }
 document.getElementById('clearTraceBtn').addEventListener('click', clearTrace);
 
@@ -1531,4 +1273,10 @@ document.getElementById('resetBtn').addEventListener('click', function(){
 });
 
 simulate();
+}
+boot().catch(function(err){
+  console.error(err);
+  const wrap = document.getElementById("canvasWrap");
+  if(wrap) wrap.insertAdjacentHTML("afterbegin", "<p style=\"padding:16px;color:var(--true)\">Gagal menyusun layout diagram: " + (err && err.message ? err.message : err) + "</p>");
+});
 </script>
