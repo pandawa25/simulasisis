@@ -646,6 +646,117 @@ function groupSort(colIds, groupOrder){
 byLayer[0] = groupSort(byLayer[0] || [], NETLIST.causeGroups);
 byLayer[EFFECT_COL] = groupSort(byLayer[EFFECT_COL] || [], NETLIST.effectGroups);
 
+/* ======================= minim-silangan (barycenter sweep) =======================
+   Sebelumnya urutan BARIS dalam satu kolom LOGIC cuma ikut urutan definisi
+   node di netlist JSON -- tidak ada hubungannya dgn posisi node yang
+   dihubungkannya, jadi banyak kabel jalan diagonal/menyilang tanpa perlu
+   (ketahuan dari laporan user: gambar vendor jauh lebih rapi krn
+   posisi tiap blok memang disusun manual oleh drafter supaya kabel lurus).
+   Kolom (byLayer index, dari layerOf()) TETAP dipakai apa adanya -- itu
+   sudah merepresentasikan urutan alur sinyal kiri->kanan yang sama dgn
+   gambar sumber. Yang diperbaiki di sini HANYA urutan vertikal dalam
+   kolom LOGIC (bukan kolom CAUSE/EFFECT -- itu sengaja tetap ikut
+   causeGroups/effectGroups di atas), pakai algoritma barycenter standar
+   utk diagram berlapis (Sugiyama-style layered graph drawing): posisi
+   tiap node digeser mendekati rata-rata posisi node yang terhubung di
+   kolom tetangga, lewat beberapa sweep bolak-balik (maju pakai
+   predecessor/dependensi, mundur pakai successor/pemakai) sampai
+   konvergen ke urutan yang silangannya jauh lebih sedikit -- tujuannya
+   sama persis dgn kerapian gambar vendor, tapi otomatis (tidak perlu
+   data posisi manual per node) & langsung berlaku ke SEMUA sheet. */
+(function minimizeCrossings(){
+  if(maxLogicLayer < 1) return; // tidak ada kolom LOGIC utk diproses
+  const successors = {};
+  ids.forEach(function(id){ successors[id] = []; });
+  ids.forEach(function(id){
+    deps(nodes[id]).forEach(function(d){
+      if(successors[d]) successors[d].push(id);
+    });
+  });
+  const rowIndex = {};
+  function reindexAll(){
+    for(let l = 0; l <= maxLayer; l++){
+      (byLayer[l] || []).forEach(function(id, i){ rowIndex[id] = i; });
+    }
+  }
+  reindexAll();
+  function barycenterOf(id, neighborIds){
+    const vals = [];
+    neighborIds.forEach(function(nb){ if(rowIndex[nb] !== undefined) vals.push(rowIndex[nb]); });
+    if(!vals.length) return rowIndex[id]; // tanpa tetangga ber-posisi, biarkan tetap (stabil)
+    return vals.reduce(function(a, b){ return a + b; }, 0) / vals.length;
+  }
+  const ITER = 8;
+  for(let iter = 0; iter < ITER; iter++){
+    const forward = iter % 2 === 0;
+    const colsOrder = [];
+    for(let l = 1; l <= maxLogicLayer; l++) colsOrder.push(l);
+    if(!forward) colsOrder.reverse();
+    colsOrder.forEach(function(l){
+      const col = byLayer[l];
+      if(!col || col.length < 2) return;
+      const scored = col.map(function(id, i){
+        const neighbors = forward ? deps(nodes[id]) : successors[id];
+        return { id: id, b: barycenterOf(id, neighbors), orig: i };
+      });
+      scored.sort(function(a, b){
+        if(a.b !== b.b) return a.b - b.b;
+        return a.orig - b.orig; // tie-break stabil, hindari osilasi antar-iterasi
+      });
+      byLayer[l] = scored.map(function(s){ return s.id; });
+      reindexAll();
+    });
+  }
+
+  /* --- transpose: bersih-bersih sisa silangan lokal setelah barycenter ---
+     Barycenter cuma heuristik (bukan jaminan minimum) & gampang macet di
+     local optimum. "Transpose" (teknik standar di algoritma layout
+     berlapis ala Graphviz/dot) menyisir tiap pasangan node BERSEBELAHAN
+     dalam satu kolom, hitung jumlah silangan nyata yang disumbang kedua
+     node itu ke SEMUA tetangganya (predecessor + successor gabungan) utk
+     urutan sekarang vs urutan ditukar, lalu tukar kalau itu mengurangi
+     total silangan. Diulang sampai tidak ada lagi pertukaran yang
+     menguntungkan (atau batas iterasi tercapai) -- jauh lebih efektif
+     membersihkan silangan "nyata" dibanding cuma barycenter karena
+     memaksimalkan metrik yang relevan langsung (jumlah silangan), bukan
+     proxy posisi rata-rata. */
+  function neighborsOf(id){ return deps(nodes[id]).concat(successors[id]); }
+  function crossingsForOrder(aId, bId, aNeighbors, bNeighbors){
+    // a sebelum b: silangan muncul tiap pasang (na di a, nb di b) dgn rowIndex[na] > rowIndex[nb]
+    let c = 0;
+    aNeighbors.forEach(function(na){
+      const ia = rowIndex[na];
+      if(ia === undefined) return;
+      bNeighbors.forEach(function(nb){
+        const ib = rowIndex[nb];
+        if(ib === undefined) return;
+        if(ia > ib) c++;
+      });
+    });
+    return c;
+  }
+  let changed = true, guard = 0;
+  while(changed && guard < 12){
+    changed = false;
+    guard++;
+    for(let l = 1; l <= maxLogicLayer; l++){
+      const col = byLayer[l];
+      if(!col || col.length < 2) continue;
+      for(let i = 0; i < col.length - 1; i++){
+        const a = col[i], b = col[i + 1];
+        const an = neighborsOf(a), bn = neighborsOf(b);
+        const costAB = crossingsForOrder(a, b, an, bn);
+        const costBA = crossingsForOrder(b, a, bn, an);
+        if(costBA < costAB){
+          col[i] = b; col[i + 1] = a;
+          reindexAll();
+          changed = true;
+        }
+      }
+    }
+  }
+})();
+
 /* --- wrapping deskripsi tag (INPUT/OUTPUT) ---
    Sebelumnya desc dirender sebagai satu baris <text> tanpa wrap, jadi
    teks panjang meluber keluar box dan numpuk dengan wire/box tetangga.
