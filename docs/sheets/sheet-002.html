@@ -231,23 +231,33 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
 .pin-tick{stroke:var(--wire); stroke-width:1.4}
 .pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
-.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s, filter .15s}
+.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
-.wire.highlight{stroke:var(--accent); stroke-width:3; opacity:1; stroke-dasharray:none}
+/* Koreksi (2026-10-25): .wire.highlight SEBELUMNYA override `stroke` jadi
+   var(--accent) (oranye) -- ini DIAM-DIAM mengubah warna live TRUE/FALSE
+   (merah/hijau) jadi oranye begitu kabel itu masuk jalur jejak, melanggar
+   aturan "warna status merah/hijau jangan diubah". Fix: TIDAK override
+   stroke sama sekali lagi -- warna kabel tetap murni dari .wire/.wire.on
+   (merah=TRUE/hijau=FALSE apa adanya), penanda "ini bagian jejak" sekarang
+   murni dari stroke-width lebih tebal + glow (drop-shadow), bukan ganti warna. */
+.wire.highlight{stroke-width:3.4; filter:drop-shadow(0 0 2.5px var(--accent))}
 .trace-ring{fill:none; stroke:var(--accent); stroke-width:2.5; opacity:0; pointer-events:none}
 .trace-ring.show{opacity:1}
-.tag{cursor:default; transition:opacity .15s, filter .15s}
+.tag{cursor:default; transition:opacity .15s}
 .tag.input{cursor:pointer}
-/* Koreksi UI/UX (2026-10-25): mode jejak/trace -- sebelumnya node & kabel
-   di luar jalur yang di-trace tetap tampil normal (cuma yang kena jejak
-   yang ditandai ring/highlight), jadi jalur & urutannya kurang menonjol
-   di tengah kanvas yang ramai. Sekarang elemen DI LUAR jalur yang dipilih
-   di-blur + diredupkan (bukan dihilangkan -- teks/info tetap bisa dibaca
-   kalau diperhatikan, cuma kurang fokus), sedangkan node/kabel yang
-   termasuk jalur (dan node yang sedang diklik) tetap tajam & full-opacity
-   supaya urutan jalurnya gampang diikuti mata. Toggle lewat class
-   `.dimmed` yang ditambah/dilepas di traceUpstream()/clearTrace(). */
-.tag.dimmed, .wire.dimmed{opacity:.22; filter:blur(1.6px)}
+/* Koreksi UI/UX (2026-10-25): mode jejak/trace -- node & kabel DI LUAR
+   jalur yang di-trace diredupkan (opacity) supaya jalur yang dipilih
+   lebih menonjol. Koreksi (2026-10-25, lanjutan): versi awal pakai
+   `filter:blur(...)` + opacity sangat rendah (.22) -- user menunjukkan
+   ini bikin LABEL/INFO jadi tidak kebaca (blur) & warna box/kabel
+   kelihatan berubah drastis (opacity terlalu rendah bikin hijau/merah
+   nyaris hilang). Fix: HAPUS blur total (teks/label tetap tajam &
+   terbaca di node manapun, hanya kurang menonjol), opacity dinaikkan
+   jadi .5 (bukan .22) supaya warna status hijau/merah pada box & kabel
+   TETAP jelas terlihat sebagai hijau/merah (bukan nyaris putih/pudar
+   total) -- cuma sedikit lebih redup drpd jalur yang di-trace, bukan
+   diganti warna atau disembunyikan. */
+.tag.dimmed, .wire.dimmed{opacity:.5}
 .tag.trace-focus rect{stroke-width:2.4}
 .tag rect{stroke-width:1.2}
 .tag.off rect{fill:var(--false-bg); stroke:var(--false)}
