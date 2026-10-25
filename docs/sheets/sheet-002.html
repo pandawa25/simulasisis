@@ -234,6 +234,9 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
 .wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s}
 .wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
+.xlink-text{font-size:7.5px; font-weight:650; fill:var(--accent-text); text-decoration:underline}
+.xlink{cursor:pointer}
+.xlink:hover .xlink-text{fill:var(--accent)}
 .junction{fill:var(--false); opacity:.8}
 .junction.on{fill:var(--true); opacity:1}
 .junction.dimmed{opacity:.32; filter:blur(1.8px)}
@@ -598,10 +601,81 @@ var TagSync = (function(){
   };
 })();
 
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+/* ======================= hubungan antar sheet (effect <-> cause) =======================
+   Tag yang sama memayungi beberapa sheet (lihat _tagsync.js & data/tags.json).
+   Build (`scripts/build.js`, applyTagRegistry) menandai tiap node dengan:
+     - INPUT  .linkedFrom : sheet yang MENGHASILKAN tag ini (di sana dia effect)
+     - INPUT  .alsoIn     : sheet lain yang memakai tag ini sbg cause juga
+     - OUTPUT .linkedTo   : sheet yang MEMAKAI tag ini sbg cause/initiator
+   Modul ini mengubah penanda itu jadi daftar keterangan + link navigasi,
+   dipakai halaman Logic Detail (dirender sbg <a> di dalam SVG) maupun
+   Cause & Effect (dirender sbg <a> di sel tabel). `useCe` menentukan link
+   menuju versi Cause & Effect atau versi Logic Detail sheet tujuan —
+   supaya operator tetap berada di mode tampilan yang sama saat berpindah. */
+var CrossLink = (function(){
+  function resolve(slugs, idx, useCe){
+    return (slugs || []).map(function(s){
+      var m = idx && idx[s];
+      if(!m) return null;
+      return {
+        label: 'Sheet ' + String(m.no).padStart(3, '0'),
+        tag: m.tag,
+        href: useCe ? m.ceUrl : m.url
+      };
+    }).filter(Boolean);
+  }
+  return {
+    /* -> [{ kind, prefix, label, title, href }] (kosong kalau tag ini tidak
+       punya hubungan lintas sheet) */
+    linksFor: function(node, nav, useCe){
+      if(!node) return [];
+      var idx = nav && nav.sheetIndex;
+      var out = [];
+      resolve(node.linkedFrom, idx, useCe).forEach(function(x){
+        out.push({ kind: 'from', prefix: '← Sumber ', label: x.label, href: x.href,
+                   title: 'Nilai tag ini dihasilkan di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.linkedTo, idx, useCe).forEach(function(x){
+        out.push({ kind: 'to', prefix: '→ Menuju ', label: x.label, href: x.href,
+                   title: 'Tag ini jadi cause/initiator di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.alsoIn, idx, useCe).forEach(function(x){
+        out.push({ kind: 'also', prefix: '↔ Juga di ', label: x.label, href: x.href,
+                   title: 'Tag yang sama juga dipakai sbg cause di ' + x.label + ' (' + x.tag + ') — status keduanya selalu sama' });
+      });
+      return out;
+    }
+  };
+})();
+
+/* ======================= status normal/trip satu sheet =======================
+   Dipakai halaman portal (warna kartu tiap sheet) & halaman Cause & Effect
+   (warna shape blok logic di kolom tengah). Konvensi SAMA dgn kolom EFFECT
+   halaman CE (Koreksi #7): nilai TRUE = normal = hijau, FALSE = trip = merah,
+   seragam utk semua OUTPUT tanpa pengecualian per tipe node.
+   Satu sheet disebut NORMAL kalau SEMUA output-nya TRUE; kalau ada satu saja
+   yang FALSE -> TRIP (fail-safe: tampilkan kondisi terburuk). */
+var SheetStatus = (function(){
+  return {
+    /* values = hasil sim.step(); nodes = netlist.nodes */
+    of: function(nodes, values){
+      var total = 0, tripped = 0;
+      Object.keys(nodes).forEach(function(id){
+        if(nodes[id].type !== 'OUTPUT') return;
+        total++;
+        if(!values[id]) tripped++;
+      });
+      if(!total) return { state: 'none', total: 0, tripped: 0 };
+      return { state: tripped ? 'trip' : 'normal', total: total, tripped: tripped };
+    }
+  };
+})();
+
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = {"id":"105-UC-001-002-024","title":"105-UC-001/002/024","sheetRef":"Sheet 2 of 34 — P02_UNIT_105 v1.175","causeGroups":["Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)","ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)","Reset (manual, per latch)"],"effectGroups":["Output Proses (ke lapangan)","Internal HMI (monitor saja)","Effect — dipakai sheet lain (bukan output lapangan)"],"nodes":{"in_m105LSHH003":{"type":"INPUT","label":"m105LSHH003","desc":"SHU Feed Surge Drum 105-V501 HH Alm","group":"Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"},"in_f105HS003M":{"type":"INPUT","label":"f105HS003M","desc":"MOS 105-LSHH/LLSLL-003","isMOS":true,"group":"Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"},"in_f105HS001AE":{"type":"INPUT","label":"f105HS001AE","desc":"ESD Button Fire/Leak 105-V501 (DCS) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE","healthyWhenTrue":true,"group":"ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"},"in_f105HS001B":{"type":"INPUT","label":"f105HS001B","desc":"ESD Button Fire/Leak 105-V501 (Local) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE","healthyWhenTrue":true,"group":"ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"},"in_f105HS003UCR":{"type":"INPUT","label":"f105HS003UCR","desc":"Reset 105-UY-001 (105-UC-001/002)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105HS024UCR":{"type":"INPUT","label":"f105HS024UCR","desc":"Reset 105-UY-003 (105-UC-024)","isReset":true,"group":"Reset (manual, per latch)"},"not_001":{"type":"NOT","gateId":"001","input":"in_m105LSHH003"},"or_002":{"type":"OR","gateId":"002","inputs":["in_m105LSHH003","in_f105HS003M"]},"rs_003":{"type":"RS","gateId":"003","label":"ST_105HS003UC","s":"or_002","r":"in_f105HS003UCR"},"and_001b":{"type":"AND","gateId":"001","inputs":["in_f105HS001AE","in_f105HS001B"]},"rs_002b":{"type":"RS","gateId":"002","label":"ST_105HS024UC","s":"and_001b","r":"in_f105HS024UCR"},"out_f105UY001":{"type":"OUTPUT","label":"f105UY001","desc":"RFCC Gasoline From 102-E-509","source":"rs_003","group":"Output Proses (ke lapangan)"},"out_f105UY003":{"type":"OUTPUT","label":"f105UY003","desc":"SHU Feed Surge Drum 105-V501 Outlet","source":"rs_002b","group":"Output Proses (ke lapangan)"},"out_f105UY003_IL":{"type":"OUTPUT","label":"f105UY003_IL","desc":"105-UY-003 Interlock Signal","source":"rs_002b","group":"Internal HMI (monitor saja)"},"out_f105LAHH003":{"type":"OUTPUT","label":"f105LAHH003","desc":"SHU Feed Surge Drum 105-V501 HH Alm — hasil NOT dari m105LSHH003, dipakai sebagai input di sheet lain (sehat=TRUE)","source":"not_001","group":"Effect — dipakai sheet lain (bukan output lapangan)","internalOnly":true}},"summary":["Halaman ini sebenarnya menggabungkan 2 jalur trip yang independen satu sama lain, walau sama-sama berasal dari drum 105-V501.","Jalur pertama mematikan f105UY001 (RFCC Gasoline from 102-E-509). Koreksi (2026-10-25, #13): trip terjadi kalau SALAH SATU dari 2 kondisi ini aktif: alarm level tinggi-tinggi m105LSHH003, ATAU switch manual f105HS003M diaktifkan — HANYA 2 kondisi, bukan 3 seperti catatan versi lama. f105LAHH003 BUKAN kondisi trip ketiga yang terpisah — dia adalah EFFECT (hasil NOT dari m105LSHH003 itu sendiri, label mirip tapi pasangan prefix beda: 'm'=measurement/alarm, 'f'=field/efek), dipakai sebagai input di SHEET LAIN (bukan dibaca balik oleh gerbang OR di sheet ini). Setelah trip, output tetap terkunci mati sampai operator menekan tombol reset f105HS003UCR.","Jalur kedua mematikan f105UY003 (outlet 105-V501) dan mengirim sinyal yang sama ke f105UY003_IL (hanya untuk dipantau di HMI). Koreksi (2026-10-24, #11): kedua tombol ESD (f105HS001AE/f105HS001B) ternyata NC (Normally Closed) — sirkit utuh/belum ditekan = TRUE = sehat, bukan NO seperti diasumsikan sebelumnya. Jadi AND(#001) = TRUE hanya kalau KEDUA sirkit utuh (fully sehat), dan trip terjadi begitu SALAH SATU sirkit terbuka — baik karena ditekan SENDIRI-SENDIRI (tidak perlu bersamaan) ATAU karena kabel putus (fail-safe 1oo2 voting, lebih aman daripada butuh dua konfirmasi). Setelah trip, output terkunci mati sampai reset f105HS024UCR ditekan SAAT kedua sirkit sudah utuh lagi.","Intinya: jalur 1 = proteksi level drum (OR, gampang trip — satu kondisi saja cukup, alarm/MOS polaritas biasa: TRUE=alarm). Jalur 2 = tombol ESD fisik NC (AND dari 2 sirkit sehat=TRUE, fail-safe 1oo2 — SALAH SATU sirkit terbuka saja sudah cukup bikin trip, BUKAN butuh dua konfirmasi seperti versi lama catatan ini)."],"notes":["Nomor '00002'/'00003' yang muncul di gambar itu nomor blok/rangkaian internal di dalam dokumen, bukan nomor halaman — halaman ini sendiri tetap disebut Sheet 2.","Label latch yang benar (dikonfirmasi lewat gambar zoom): ST_105HS003UC untuk jalur f105UY001, dan ST_105HS024UC untuk jalur f105UY003/f105UY003_IL.","Semua latch (RS) di simulator ini pakai formula resmi IEC 61131-3 'RS.ST' (bistable reset-dominant): Q1 := (Q1 OR S) AND NOT R1. Begitu sinyal pemicunya (field 's' di netlist = NOT kondisi) hilang, output langsung mati dan terkunci. Output menyala lagi kalau 's' TRUE dan field 'r' (tag reset) TRUE — boleh dipulsa sesaat ATAU ditahan, keduanya berlaku sama (lihat Koreksi #9 di ARSITEKTUR.md).","Koreksi (2026-10-24, #6): konvensi pin RS SEBELUMNYA salah (field 's' diisi gerbang kondisi mentah, field 'r' diisi tag reset, tanpa NOT). Setelah re-trace pixel gambar sumber berulang kali dan dikonfirmasi user: pin S pada gambar = tag reset manual (bukan kondisi), pin R1 (yang ada lingkaran kecil) = gerbang kondisi (OR002/AND001) DENGAN inversi (NOT). Bug fungsionalnya: dengan wiring lama, saat plant benar-benar sehat (semua alarm FALSE), field 's' = FALSE sehingga Q dipaksa FALSE terus-menerus dan reset TIDAK PERNAH bisa berhasil -- kebalikan dari perilaku SIS yang benar. Fix: tambahkan node NOT eksplisit (not_s003, not_s002b) yang membalik or_002/and_001b sebelum masuk field 's', field 'r' tetap tag reset mentah (tidak berubah). Tervalidasi lewat skenario Node: sehat+reset->TRUE, trip+reset-attempt->tetap FALSE, trip lepas+reset->TRUE.","Koreksi (2026-10-24, #9): engine/sim-engine.js (bukan netlist ini) sebelumnya salah mengimplementasikan RS sebagai 'pulse-to-set' (butuh rising-edge 0->1 pada 'r'), padahal source resmi RS.ST murni kombinasional tanpa edge detection. Sudah diperbaiki di level engine (berlaku utk semua sheet) — detail lengkap di ARSITEKTUR.md Koreksi #9. Field s/r di netlist ini TIDAK berubah.","Koreksi (2026-10-24, #10): node NOT terpisah (not_s003, not_s002b) dihapus dari netlist ini -- inversi R1 sekarang dibaca lewat flag 'sInvert: true' langsung di node RS (rs_003.s = 'or_002' + sInvert, rs_002b.s = 'and_001b' + sInvert), supaya struktur netlist & render cocok gambar sumber (lingkaran inversi melekat di pin R1 block RS, bukan gerbang NOT berdiri sendiri). Perilaku logic sama persis dgn sebelumnya, divalidasi ulang. Detail di ARSITEKTUR.md Koreksi #10.","Koreksi (2026-10-24, #11 — PENTING, membatalkan asumsi polaritas di #10 KHUSUS utk rs_002b): dikonfirmasi user (instrumentasi, tahu wiring field sesungguhnya): f105HS001AE & f105HS001B itu NC (Normally Closed) -- TRUE = sirkit utuh/tombol belum ditekan = SEHAT, bukan 'alarm=TRUE' spt tag biasa. Jadi and_001b (AND dari keduanya) outputnya SUDAH berpolaritas sehat=TRUE secara alami (AND dari 2 sinyal sehat=TRUE = sehat=TRUE), BEDA dari or_002 (rs_003) yang memang dibangun murni dari tag alarm=TRUE biasa. Krn 'sInvert: true' di rs_002b mengasumsikan raw gate SELALU alarm=TRUE-polarity (aturan seragam #10), menerapkannya ke and_001b yang justru sehat=TRUE-polarity MEMBALIK logic jadi salah arah total (reset cuma 'berhasil' pas salah satu sirkit ESD terbuka -- bahaya, kebalikan dr fail-safe yg benar). Fix: hapus 'sInvert' dari rs_002b (s='and_001b' dipakai APA ADANYA, tanpa invert) -- krn and_001b SUDAH sehat=TRUE-polarity, tidak butuh inversi lagi sebelum jadi field 's'. rs_003 (s='or_002') TIDAK diubah -- or_002 tetap alarm=TRUE-polarity murni, sInvert:true tetap benar di situ. Konsekuensi fungsional yg berubah: trip jalur f105UY003/UC-024 sekarang terjadi begitu SALAH SATU sirkit ESD terbuka (fail-safe 1oo2), BUKAN butuh KEDUA ditekan bersamaan spt tercatat di summary versi lama (sudah diperbaiki juga). PENTING UTK DICEK ULANG: 4 pasang tombol ESD serupa di sheet-006 (g005_AND f105HS007A/B, g007_AND f105HS002AE/B, g011_AND f105HS006A/B, g013_AND f105HS019AE/B) KEMUNGKINAN BESAR punya masalah polaritas yg sama (NC vs NO belum dikonfirmasi) -- JANGAN asumsikan otomatis sama tanpa konfirmasi user per sheet/per tag, krn polaritas field wiring adalah fakta instrumentasi riil, bukan sesuatu yg bisa ditebak dari gambar logic diagram semata.","Koreksi (2026-10-24, #12 -- MEMBATALKAN kesimpulan 'rs_003 TIDAK diubah' di Koreksi #11): user kasih 2 screenshot LANGSUNG dari software vendor (before/after tekan reset, R1 dari or_002 TETAP merah/TRUE di kedua gambar, Q1 berubah FALSE->TRUE) -- bukti langsung reset BERHASIL saat R1 mentah=TRUE, GAGAL saat R1 mentah=FALSE (dikonfirmasi eksplisit user juga). Ternyata bukan soal polaritas NC/NO seperti rs_002b -- field 'sInvert' dihapus TOTAL dari rs_003 juga (s='or_002' dipakai apa adanya, tanpa invert), sama seperti rs_002b. Detail lengkap & penjelasan kenapa 'satu inversi seragam' (Koreksi #10) ternyata salah: ARSITEKTUR.md Koreksi #12. Tervalidasi lewat replikasi exact 2 screenshot vendor via Playwright, cocok 100%.","Koreksi (2026-10-25, #13 -- PENTING, salah arah wiring NOT(#001)/f105LAHH003 sejak awal): user kasih screenshot FULL software vendor (bukan crop sempit spt sebelumnya) yang memperlihatkan dgn jelas arah wire masuk/keluar NOT(#001): terminal 'f105LAHH003' ada di SEBELAH KIRI pill-nya (tanda dia PENERIMA sinyal), bukan di kanan (yg berarti SUMBER). Yang benar: NOT(#001) input = in_m105LSHH003 (BUKAN in_f105LAHH003), dan NOT(#001) output ditulis ke f105LAHH003 (jadi f105LAHH003 itu EFFECT/tag hasil kalkulasi, bukan INPUT independen). f105LAHH003 di sheet ini TIDAK nyambung ke mana pun lagi (dead-end di layout gambar sheet 2) -- user konfirmasi dia dipakai sbg INPUT di sheet lain (bukan di sheet 2 ini). OR(#002) ternyata cuma 2 input (m105LSHH003 langsung + f105HS003M), BUKAN 3 input spt dimodelkan sebelumnya (not_001 SEHARUSNYA TIDAK PERNAH jadi salah satu input OR#002 -- itu cabang terpisah yg nasibnya cuma jadi display f105LAHH003). Fix: hapus node INPUT 'in_f105LAHH003', ganti not_001.input jadi 'in_m105LSHH003', hapus 'not_001' dari daftar inputs or_002 (sisa 2: in_m105LSHH003, in_f105HS003M), tambah node OUTPUT baru 'out_f105LAHH003' (source: not_001, group baru 'Effect — dipakai sheet lain'). Perilaku logic jalur trip f105UY001 TIDAK berubah secara numerik (OR dari 2 input yg sama2 sudah ada, cuma hilang 1 cabang redundant yg sebenarnya memang tidak pernah terhubung balik) -- tapi struktur netlist sekarang akurat sesuai gambar sumber, dan f105LAHH003 kini benar direpresentasikan sbg effect, bukan cause/input."],"slug":"sheet-002"};
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":3,"tag":"105-UC-005 / 025","url":"sheet-003.html"},"ceUrl":"sheet-002-ce.html"};
+const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":3,"tag":"105-UC-005 / 025","url":"sheet-003.html"},"ceUrl":"sheet-002-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"}}};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -682,8 +756,11 @@ function boxSize(n){
   if(n.type === 'INPUT' || n.type === 'OUTPUT'){
     const w = 150;
     const lines = wrapDesc(n.desc, w - 20);
-    const h = Math.max(34, 26 + lines.length * 10 + 6);
-    return { w: w, h: h, descLines: lines };
+    /* tiap hubungan lintas sheet (sumber / menuju / juga dipakai) dirender
+       sbg satu baris link di dalam box -- tinggi box ikut menyesuaikan */
+    const links = CrossLink.linksFor(n, NAV, false);
+    const h = Math.max(34, 26 + lines.length * 10 + links.length * 11 + 6);
+    return { w: w, h: h, descLines: lines, links: links };
   }
   if(n.type === 'RS') return { w: 120, h: 48 };
   if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
@@ -1099,6 +1176,22 @@ function makeTagNode(id, n){
     });
     g.appendChild(desc);
   }
+  /* hubungan lintas sheet: effect sheet ini yang jadi cause sheet lain (dan
+     sebaliknya) dirender sbg link yang bisa diklik langsung dari kanvas --
+     klik link TIDAK ikut men-toggle/trace node-nya (stopPropagation). */
+  const links = s.links || CrossLink.linksFor(n, NAV, false);
+  links.forEach(function(lk, i){
+    const ly = p.y + 26 + descLines.length * 10 + i * 11 + 2;
+    const a = el('a', { href: lk.href, class: 'xlink xlink-' + lk.kind });
+    const t = el('text', { x: p.x + 10, y: ly, class: 'xlink-text' });
+    t.textContent = lk.prefix + lk.label;
+    const tt = el('title', {});
+    tt.textContent = lk.title;
+    a.appendChild(tt);
+    a.appendChild(t);
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+    g.appendChild(a);
+  });
   const val = el('text', { x: p.x + s.w - 10, y: p.y + 14, 'text-anchor': 'end', class: 'val' });
   val.textContent = 'FALSE';
   g.appendChild(val);

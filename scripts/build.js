@@ -35,6 +35,7 @@ const CE_TPL_PATH = path.join(ROOT, 'templates', 'causeeffect.template.html');
 const PORTAL_TPL_PATH = path.join(ROOT, 'templates', 'portal.template.html');
 const TOKENS_CSS_PATH = path.join(ROOT, 'templates', '_tokens.css');
 const TAGSYNC_JS_PATH = path.join(ROOT, 'templates', '_tagsync.js');
+const CROSSLINK_JS_PATH = path.join(ROOT, 'templates', '_crosslink.js');
 const TAGS_JSON_PATH = path.join(ROOT, 'data', 'tags.json');
 const SHEETS_JSON_PATH = path.join(ROOT, 'data', 'sheets.json');
 const NETLIST_DIR = path.join(ROOT, 'data', 'netlists');
@@ -90,12 +91,21 @@ function applyTagRegistry(netlistsBySlug, sheetNoBySlug) {
         ['isReset', 'isMOS', 'healthyWhenTrue'].forEach(function (k) { if (reg[k]) n[k] = true; });
         if (reg.tagNo) n.tagNo = reg.tagNo;
       }
+      /* Hubungan antar sheet (dirender sbg keterangan + link navigasi,
+         lihat renderCrossLinks di kedua template):
+         - INPUT  .linkedFrom : sheet yang MENGHASILKAN tag ini (effect di sana)
+         - INPUT  .alsoIn     : sheet lain yang memakai tag ini sbg cause juga
+         - OUTPUT .linkedTo   : sheet yang MEMAKAI tag ini sbg cause/initiator */
+      const others = slugs.filter(function (s) { return s !== u.slug; });
       if (u.type === 'INPUT') {
         const from = producerSlugs.filter(function (s) { return s !== u.slug; });
-        if (from.length) {
-          n.linkedFrom = from;
-          n.desc = (n.desc ? n.desc + ' ' : '') + '(nilai dari Sheet ' + from.map(function (s) { return String(sheetNoBySlug[s]).padStart(3, '0'); }).join(', ') + ')';
-        }
+        if (from.length) n.linkedFrom = from;
+        const also = others.filter(function (s) { return from.indexOf(s) === -1; });
+        if (also.length) n.alsoIn = also;
+      } else {
+        const to = Array.from(new Set(uses.filter(function (x) { return x.type === 'INPUT' && x.slug !== u.slug; })
+          .map(function (x) { return x.slug; })));
+        if (to.length) n.linkedTo = to;
       }
     });
   });
@@ -115,8 +125,9 @@ function main() {
   const engineJs = read(ENGINE_PATH);
   const tokensCss = read(TOKENS_CSS_PATH);
   const tagSyncJs = read(TAGSYNC_JS_PATH);
-  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs);
-  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs);
+  const crossLinkJs = read(CROSSLINK_JS_PATH);
+  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
+  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
   const portalTpl = read(PORTAL_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
@@ -155,11 +166,16 @@ function main() {
     const ceSlug = entry.slug + '-ce';
     // nav utk halaman logic detail: portal + prev/next (versi detail) +
     // link ke versi Cause & Effect sheet yang sama
+    const sheetIndex = {};
+    doneEntries.forEach(function (e) {
+      sheetIndex[e.slug] = { no: e.sheet, tag: e.tag, url: e.slug + '.html', ceUrl: e.slug + '-ce.html' };
+    });
     const navDetail = {
       portalUrl: '../index.html',
       prev: prevEntry ? { sheet: prevEntry.sheet, tag: prevEntry.tag, url: prevEntry.slug + '.html' } : null,
       next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '.html' } : null,
-      ceUrl: ceSlug + '.html'
+      ceUrl: ceSlug + '.html',
+      sheetIndex: sheetIndex
     };
     // nav utk halaman Cause & Effect: portal + prev/next (versi CE) +
     // link balik ke versi logic detail sheet yang sama
@@ -167,7 +183,8 @@ function main() {
       portalUrl: '../index.html',
       prev: prevEntry ? { sheet: prevEntry.sheet, tag: prevEntry.tag, url: prevEntry.slug + '-ce.html' } : null,
       next: nextEntry ? { sheet: nextEntry.sheet, tag: nextEntry.tag, url: nextEntry.slug + '-ce.html' } : null,
-      detailUrl: entry.slug + '.html'
+      detailUrl: entry.slug + '.html',
+      sheetIndex: sheetIndex
     };
 
     let html = sheetTpl;
@@ -193,8 +210,18 @@ function main() {
     console.log('  + sheet ' + String(entry.sheet).padStart(3, '0') + ' (' + entry.tag + ') -> docs/sheets/' + entry.slug + '.html (+ CE)');
   });
 
-  // portal
+  // portal: butuh engine + netlist RINGKAS (hanya id/slug/nodes — tanpa
+  // summary/notes yang jadi bagian terbesar file) supaya bisa menghitung
+  // sendiri status normal/trip tiap sheet dari state tersimpan
+  const portalNetlists = {};
+  doneEntries.forEach(function (e) {
+    const nl = netlistsBySlug[e.slug];
+    portalNetlists[e.slug] = { id: nl.id, slug: e.slug, nodes: nl.nodes };
+  });
   let portalHtml = portalTpl;
+  portalHtml = portalHtml.replace('<!--ENGINE_JS-->', engineJs);
+  portalHtml = portalHtml.replace('<!--CROSSLINK_JS-->', crossLinkJs);
+  portalHtml = portalHtml.replace('<!--NETLISTS_JSON-->', JSON.stringify(portalNetlists));
   portalHtml = portalHtml.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Portal Simulator SIS — 105-UC (34 Sheet)</title>');
   portalHtml = portalHtml.replace('<!--TITLE_TAG-->', '');
   portalHtml = portalHtml.replace('<!--SHEETS_JSON-->', JSON.stringify(sheetsData, null, 2));

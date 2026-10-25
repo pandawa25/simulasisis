@@ -93,6 +93,23 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
    "bukan output lapangan". SENGAJA TIDAK mengubah warna
    hijau/merah (--false/--true) sesuai permintaan -- pembeda dibuat lewat
    border kiri putus-putus + badge ikon kecil saja. */
+.xlinks{display:flex; flex-wrap:wrap; gap:6px; margin-top:3px}
+.xlink{
+  font-size:.68rem; font-weight:650; text-decoration:none; color:var(--accent-text);
+  background:var(--panel-2); border:1px solid var(--border); border-radius:6px; padding:1px 6px;
+}
+.xlink:hover{border-color:var(--accent); color:var(--accent)}
+/* Shape blok logic di kolom tengah ikut konvensi warna halaman ini:
+   semua output TRUE = normal = hijau, ada yang FALSE = trip = merah. */
+.uc-box.st-normal{border-color:var(--false); background:var(--false-bg)}
+.uc-box.st-trip{border-color:var(--true); background:var(--true-bg)}
+.uc-state{
+  margin-top:8px; display:inline-block; font-family:var(--mono); font-size:.66rem; font-weight:700;
+  letter-spacing:.06em; padding:3px 10px; border-radius:20px; border:1px solid transparent;
+}
+.uc-box.st-normal .uc-state{background:var(--false); color:var(--panel)}
+.uc-box.st-trip .uc-state{background:var(--true); color:var(--panel)}
+.uc-substate{margin-top:5px; font-size:.68rem; color:var(--fg-dim)}
 .ce-row.internal{border-left:3px dashed var(--accent-text)}
 .ce-row.internal .svc{position:relative; padding-left:0}
 .internal-badge{
@@ -188,6 +205,8 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
       <div class="uc-box">
         <div class="ucid" id="ucId"></div>
         <div class="uctitle" id="ucTitle"></div>
+        <div class="uc-state" id="ucState">—</div>
+        <div class="uc-substate" id="ucSubState"></div>
       </div>
       <div class="arrow-row">CAUSE ▶ &nbsp;●&nbsp; ▶ EFFECT</div>
       <div class="summary-mini" id="summaryMini"></div>
@@ -208,6 +227,8 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
 <!--ENGINE_JS-->
 /* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
 <!--TAGSYNC_JS-->
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+<!--CROSSLINK_JS-->
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = <!--NETLIST_JSON-->;
 /* ======================= navigasi antar sheet (inline) ======================= */
@@ -299,6 +320,23 @@ TagSync.init(NETLIST, inputState);
 const causeBody = document.getElementById('causeBody');
 const rowEls = {}; // id -> { dot, val }
 let lastGroup = null;
+/* keterangan + link navigasi ke sheet lain utk tag yang effect/cause-nya
+   nyambung antar sheet (lihat _crosslink.js). Link dibuat <a> sungguhan,
+   dan klik-nya TIDAK ikut men-toggle baris (stopPropagation). */
+function crossLinkHtml(n){
+  const links = CrossLink.linksFor(n, NAV, true);
+  if(!links.length) return '';
+  return '<div class="xlinks">' + links.map(function(lk){
+    return '<a class="xlink xlink-' + lk.kind + '" href="' + lk.href + '" title="' +
+           String(lk.title).replace(/"/g, '&quot;') + '">' + lk.prefix + lk.label + '</a>';
+  }).join('') + '</div>';
+}
+function wireCrossLinks(tr){
+  Array.prototype.forEach.call(tr.querySelectorAll('a.xlink'), function(a){
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  });
+}
+
 causeSorted.forEach(function(id){
   const n = nodes[id];
   if(n.group && n.group !== lastGroup){
@@ -312,12 +350,13 @@ causeSorted.forEach(function(id){
   tr.className = 'ce-row clickable';
   tr.innerHTML =
     '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
-    '<td class="svc">' + (n.desc || n.label) + '</td>' +
+    '<td class="svc">' + (n.desc || n.label) + crossLinkHtml(n) + '</td>' +
     '<td class="tagno">' + n.label + '</td>';
   tr.addEventListener('click', function(){
     inputState[id] = !inputState[id];
     simulate();
   });
+  wireCrossLinks(tr);
   causeBody.appendChild(tr);
   rowEls[id] = { dot: tr.querySelector('.stat-dot') };
 });
@@ -339,8 +378,9 @@ effectSorted.forEach(function(id){
   const badge = n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '';
   tr.innerHTML =
     '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
-    '<td class="svc">' + (n.desc || n.label) + badge + '</td>' +
+    '<td class="svc">' + (n.desc || n.label) + badge + crossLinkHtml(n) + '</td>' +
     '<td class="tagno">' + n.label + '</td>';
+  wireCrossLinks(tr);
   effectBody.appendChild(tr);
   rowEls[id] = { dot: tr.querySelector('.stat-dot') };
 });
@@ -462,6 +502,15 @@ function simulate(){
       re.chip.className = 'chip ' + (active ? 'off' : 'on');
     }
   });
+  /* shape blok logic (kolom tengah) ikut status keseluruhan sheet ini */
+  const st = SheetStatus.of(nodes, v);
+  const ucBox = document.querySelector('.uc-box');
+  ucBox.classList.toggle('st-normal', st.state === 'normal');
+  ucBox.classList.toggle('st-trip', st.state === 'trip');
+  document.getElementById('ucState').textContent = st.state === 'normal' ? 'NORMAL' : 'TRIP';
+  document.getElementById('ucSubState').textContent = st.state === 'normal'
+    ? 'Semua ' + st.total + ' output energized'
+    : st.tripped + ' dari ' + st.total + ' output trip';
   saveSyncedState();
   TagSync.publish(v);
 }

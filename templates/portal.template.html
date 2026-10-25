@@ -63,6 +63,26 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
   transition:border-color .15s, transform .1s;
 }
 .card.done:hover{border-color:var(--accent)}
+/* Status live tiap sheet (dihitung ulang di halaman ini dari state simulasi
+   yang tersimpan -- lihat blok "status live" di bawah). Konvensi SAMA dgn
+   halaman Cause & Effect: semua output TRUE = normal = hijau, ada yang
+   FALSE = trip = merah. Sheet yang belum digarap tidak diberi warna. */
+.card.st-normal{border-color:var(--false); background:var(--false-bg)}
+.card.st-trip{border-color:var(--true); background:var(--true-bg)}
+.stat-shape{
+  width:14px; height:14px; border-radius:4px; display:inline-block; flex:none;
+  border:1px solid var(--border); background:var(--neutral-bg);
+}
+.card.st-normal .stat-shape{background:var(--false); border-color:var(--false)}
+.card.st-trip .stat-shape{background:var(--true); border-color:var(--true)}
+.card-state{
+  display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:.66rem;
+  font-weight:700; letter-spacing:.04em; color:var(--fg-dim);
+}
+.card.st-normal .card-state{color:var(--false)}
+.card.st-trip .card-state{color:var(--true)}
+.status-legend{display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:.72rem; color:var(--fg-dim); padding:10px 4px 0}
+.status-legend .sw{width:12px; height:12px; border-radius:4px; display:inline-block; border:1px solid var(--border); margin-right:5px; vertical-align:-2px}
 .card.pending{opacity:.62}
 .card-top{display:flex; align-items:center; justify-content:space-between; gap:8px}
 .sheet-no{font-family:var(--mono); font-size:.68rem; color:var(--fg-dim); letter-spacing:.04em}
@@ -113,6 +133,12 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
     <span class="progress-label" id="progressLabel"></span>
   </div>
 
+  <div class="status-legend">
+    <span><span class="sw" style="background:var(--false); border-color:var(--false)"></span>Normal (semua output energized)</span>
+    <span><span class="sw" style="background:var(--true); border-color:var(--true)"></span>Trip (ada output yang jatuh)</span>
+    <span><span class="sw"></span>Belum digarap / belum ada status</span>
+    <span id="statusHint" class="navhint"></span>
+  </div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="emptyMsg" style="display:none">Tidak ada sheet yang cocok dengan pencarian/filter.</div>
 
@@ -122,6 +148,14 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 </div>
 
 <script>
+/* ======================= sim-engine.js (inline) ======================= */
+<!--ENGINE_JS-->
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+<!--CROSSLINK_JS-->
+/* ======================= netlist ringkas tiap sheet selesai (inline) ======================= */
+const NETLISTS = <!--NETLISTS_JSON-->;
+const TagSync = { KEY: 'sis-sim-tags' };
+
 const DATA = <!--SHEETS_JSON-->;
 
 document.getElementById('docTitle').textContent = DATA.docTitle || '';
@@ -172,7 +206,7 @@ function render(){
     shown++;
     const isDone = item.status === 'done';
     const tag = document.createElement('div');
-    tag.className = 'card ' + item.status;
+    tag.className = 'card ' + item.status + (isDone && liveStatus[item.slug] ? ' st-' + liveStatus[item.slug].state : '');
     const sheetLabel = 'Sheet ' + String(item.sheet).padStart(3, '0');
     tag.innerHTML =
       '<div class="card-top">' +
@@ -180,16 +214,73 @@ function render(){
         '<span class="badge ' + item.status + '">' + (isDone ? 'SELESAI' : 'BELUM') + '</span>' +
       '</div>' +
       '<div class="card-tag">' + item.tag + '</div>' +
+      (isDone ? '<div class="card-state"><span class="stat-shape"></span><span class="st-text">—</span></div>' : '') +
       (item.note ? '<div class="card-note">' + item.note + '</div>' : '') +
       (isDone ?
         '<div class="card-actions">' +
           '<a class="card-action-btn" href="' + item.url + '">Logic Detail →</a>' +
           (item.ceUrl ? '<a class="card-action-btn secondary" href="' + item.ceUrl + '">Cause &amp; Effect →</a>' : '') +
         '</div>' : '');
+    if(isDone){
+      const ls = liveStatus[item.slug];
+      const txt = tag.querySelector('.st-text');
+      if(txt) txt.textContent = !ls ? 'STATUS TIDAK TERSEDIA'
+        : (ls.state === 'normal' ? 'NORMAL' : 'TRIP — ' + ls.tripped + '/' + ls.total + ' output');
+    }
     grid.appendChild(tag);
   });
   emptyMsg.style.display = shown === 0 ? 'block' : 'none';
 }
+
+/* ======================= status live tiap sheet =======================
+   Portal menghitung ULANG status tiap sheet memakai engine & netlist yang
+   sama dgn halaman sheet-nya (netlist ringkas disuntikkan build.js), dari
+   state simulasi yang tersimpan: nilai INPUT dari store tag global lintas
+   sheet (localStorage 'sis-sim-tags', lihat _tagsync.js) dan memori latch
+   RS per sheet (localStorage 'sis-sim-state-<id>'). Jadi angka di sini
+   selalu cocok dgn yang tampil di halaman sheet, tanpa menyimpan status
+   terpisah yang bisa basi. Berubah otomatis saat tab lain mengubah state. */
+const liveStatus = {};
+function computeStatus(){
+  let tagStore = {};
+  try{ tagStore = JSON.parse(localStorage.getItem(TagSync.KEY) || '{}') || {}; }catch(e){}
+  Object.keys(NETLISTS).forEach(function(slug){
+    const nl = NETLISTS[slug];
+    try{
+      const sim = SimEngine.createSim(nl);
+      const inputState = {};
+      Object.keys(nl.nodes).forEach(function(id){
+        const n = nl.nodes[id];
+        if(n.type !== 'INPUT') return;
+        const entry = n.label && tagStore[n.label];
+        inputState[id] = entry ? !!entry.v : false;
+      });
+      try{
+        const raw = localStorage.getItem('sis-sim-state-' + (nl.id || slug));
+        if(raw){
+          const saved = JSON.parse(raw);
+          if(saved && saved.rsPrev){
+            Object.keys(saved.rsPrev).forEach(function(id){
+              if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id];
+            });
+          }
+        }
+      }catch(e){}
+      liveStatus[slug] = SheetStatus.of(nl.nodes, sim.step(inputState));
+    }catch(e){ delete liveStatus[slug]; }
+  });
+}
+function syncStatusHint(){
+  const nTrip = Object.keys(liveStatus).filter(function(k){ return liveStatus[k].state === 'trip'; }).length;
+  const nOk = Object.keys(liveStatus).length - nTrip;
+  document.getElementById('statusHint').textContent =
+    'Status dihitung ulang di halaman ini dari simulasi yang tersimpan di browser — ' +
+    (nTrip ? nTrip + ' sheet sedang trip, ' + nOk + ' normal.' : 'semua sheet selesai dalam kondisi normal.');
+}
+function refreshStatus(){ computeStatus(); syncStatusHint(); render(); }
+window.addEventListener('storage', function(e){
+  if(e.key === TagSync.KEY || String(e.key || '').indexOf('sis-sim-state-') === 0) refreshStatus();
+});
 
 searchBox.addEventListener('input', render);
 Object.keys(filterBtns).forEach(function(key){
@@ -206,5 +297,7 @@ const doneCount = DATA.sheets.filter(function(s){ return s.status === 'done'; })
 document.getElementById('progressFill').style.width = (total ? (doneCount / total * 100) : 0) + '%';
 document.getElementById('progressLabel').textContent = doneCount + ' dari ' + total + ' sheet selesai (' + Math.round(total ? doneCount / total * 100 : 0) + '%)';
 
+computeStatus();
+syncStatusHint();
 render();
 </script>
