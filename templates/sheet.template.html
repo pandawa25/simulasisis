@@ -308,6 +308,8 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 <script>
 /* ======================= sim-engine.js (inline) ======================= */
 <!--ENGINE_JS-->
+/* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
+<!--TAGSYNC_JS-->
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = <!--NETLIST_JSON-->;
 /* ======================= navigasi antar sheet (inline) ======================= */
@@ -439,6 +441,8 @@ function saveSyncedState(){
   }catch(e){}
 }
 loadSyncedState();
+/* status tag yang sama di sheet lain menang atas state per-sheet (lihat _tagsync.js) */
+TagSync.init(NETLIST, inputState);
 
 /* ======================= boot (async: tunggu layout ELK) =======================
    Semua render di bawah butuh posisi hasil ELK (asinkron), jadi dibungkus
@@ -949,6 +953,7 @@ function simulate(){
   });
   junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
   saveSyncedState();
+  TagSync.publish(v);
 }
 
 /* ======================= trace / tracing manual ======================= */
@@ -1005,6 +1010,7 @@ document.getElementById('resetBtn').addEventListener('click', function(){
   simulate();
 });
 
+TagSync.onChange(simulate);
 simulate();
 }
 boot().catch(function(err){

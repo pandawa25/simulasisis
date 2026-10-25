@@ -206,6 +206,8 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
 <script>
 /* ======================= sim-engine.js (inline) ======================= */
 <!--ENGINE_JS-->
+/* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
+<!--TAGSYNC_JS-->
 /* ======================= netlist data (inline) ======================= */
 const NETLIST = <!--NETLIST_JSON-->;
 /* ======================= navigasi antar sheet (inline) ======================= */
@@ -290,6 +292,8 @@ function saveSyncedState(){
   }catch(e){}
 }
 loadSyncedState();
+/* status tag yang sama di sheet lain menang atas state per-sheet (lihat _tagsync.js) */
+TagSync.init(NETLIST, inputState);
 
 /* ======================= render: CAUSE table (per grup) ======================= */
 const causeBody = document.getElementById('causeBody');
@@ -459,6 +463,7 @@ function simulate(){
     }
   });
   saveSyncedState();
+  TagSync.publish(v);
 }
 
 document.getElementById('resetBtn').addEventListener('click', function(){
@@ -467,5 +472,6 @@ document.getElementById('resetBtn').addEventListener('click', function(){
   simulate();
 });
 
+TagSync.onChange(simulate);
 simulate();
 </script>

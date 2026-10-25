@@ -34,6 +34,8 @@ const SHEET_TPL_PATH = path.join(ROOT, 'templates', 'sheet.template.html');
 const CE_TPL_PATH = path.join(ROOT, 'templates', 'causeeffect.template.html');
 const PORTAL_TPL_PATH = path.join(ROOT, 'templates', 'portal.template.html');
 const TOKENS_CSS_PATH = path.join(ROOT, 'templates', '_tokens.css');
+const TAGSYNC_JS_PATH = path.join(ROOT, 'templates', '_tagsync.js');
+const TAGS_JSON_PATH = path.join(ROOT, 'data', 'tags.json');
 const SHEETS_JSON_PATH = path.join(ROOT, 'data', 'sheets.json');
 const NETLIST_DIR = path.join(ROOT, 'data', 'netlists');
 const OUT_DIR = path.join(ROOT, 'docs');
@@ -45,11 +47,76 @@ function writeFile(p, content) {
   fs.writeFileSync(p, content, 'utf-8');
 }
 
+/* ======================= registry tag lintas sheet =======================
+   Tag dengan label yang sama di beberapa sheet = satu tag fisik yang sama,
+   jadi konfigurasinya (deskripsi, nomor tag, flag isReset/isMOS/
+   healthyWhenTrue) harus identik di semua sheet. Sumber tunggalnya
+   data/tags.json; fungsi ini (1) memvalidasi semua netlist & MENGGAGALKAN
+   build kalau ada pelanggaran, (2) menyuntikkan konfigurasi registry ke
+   node yang memakai tag itu, (3) menandai INPUT yang nilainya dihasilkan
+   sheet lain (label yang sama jadi OUTPUT di sheet lain). */
+const TAG_CONFIG_FIELDS = ['desc', 'isReset', 'isMOS', 'healthyWhenTrue'];
+function applyTagRegistry(netlistsBySlug, sheetNoBySlug) {
+  const registry = JSON.parse(read(TAGS_JSON_PATH)).tags || {};
+  const usage = {}; // label -> [{ slug, id, type }]
+  Object.keys(netlistsBySlug).forEach(function (slug) {
+    const nodes = netlistsBySlug[slug].nodes;
+    Object.keys(nodes).forEach(function (id) {
+      const n = nodes[id];
+      if ((n.type !== 'INPUT' && n.type !== 'OUTPUT') || !n.label) return;
+      (usage[n.label] = usage[n.label] || []).push({ slug: slug, id: id, type: n.type });
+    });
+  });
+  const errors = [];
+  Object.keys(usage).forEach(function (label) {
+    const uses = usage[label];
+    const slugs = Array.from(new Set(uses.map(function (u) { return u.slug; })));
+    const producers = uses.filter(function (u) { return u.type === 'OUTPUT'; });
+    const producerSlugs = Array.from(new Set(producers.map(function (u) { return u.slug; })));
+    if (slugs.length > 1 && !registry[label]) {
+      errors.push('tag "' + label + '" dipakai di ' + slugs.join(', ') + ' tapi belum terdaftar di data/tags.json');
+    }
+    if (producerSlugs.length > 1) {
+      errors.push('tag "' + label + '" jadi OUTPUT di lebih dari satu sheet (' + producerSlugs.join(', ') + ') -- satu tag hanya boleh dihasilkan satu sheet');
+    }
+    const reg = registry[label];
+    uses.forEach(function (u) {
+      const n = netlistsBySlug[u.slug].nodes[u.id];
+      if (reg) {
+        TAG_CONFIG_FIELDS.forEach(function (k) {
+          if (k in n) errors.push(u.slug + ' / ' + u.id + ': field "' + k + '" tidak boleh ditulis di netlist utk tag terdaftar "' + label + '" (ambil dari data/tags.json)');
+        });
+        n.desc = (reg.tagNo ? reg.tagNo + ' — ' : '') + (reg.desc || '');
+        ['isReset', 'isMOS', 'healthyWhenTrue'].forEach(function (k) { if (reg[k]) n[k] = true; });
+        if (reg.tagNo) n.tagNo = reg.tagNo;
+      }
+      if (u.type === 'INPUT') {
+        const from = producerSlugs.filter(function (s) { return s !== u.slug; });
+        if (from.length) {
+          n.linkedFrom = from;
+          n.desc = (n.desc ? n.desc + ' ' : '') + '(nilai dari Sheet ' + from.map(function (s) { return String(sheetNoBySlug[s]).padStart(3, '0'); }).join(', ') + ')';
+        }
+      }
+    });
+  });
+  Object.keys(registry).forEach(function (label) {
+    if (!usage[label]) console.warn('  ! data/tags.json: tag "' + label + '" tidak dipakai di sheet mana pun');
+  });
+  if (errors.length) {
+    console.error('Build GAGAL — konfigurasi tag lintas sheet tidak konsisten:');
+    errors.forEach(function (e) { console.error('  - ' + e); });
+    process.exit(1);
+  }
+  const shared = Object.keys(usage).filter(function (l) { return new Set(usage[l].map(function (u) { return u.slug; })).size > 1; });
+  console.log('  tag lintas sheet: ' + shared.length + ' (konfigurasi dari data/tags.json, status tersinkron saat runtime)');
+}
+
 function main() {
   const engineJs = read(ENGINE_PATH);
   const tokensCss = read(TOKENS_CSS_PATH);
-  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
-  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
+  const tagSyncJs = read(TAGSYNC_JS_PATH);
+  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs);
+  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs);
   const portalTpl = read(PORTAL_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
@@ -59,6 +126,14 @@ function main() {
   const doneEntries = sheetsData.sheets.filter(function (entry) {
     return entry.slug && fs.existsSync(path.join(NETLIST_DIR, entry.slug + '.json'));
   });
+
+  // pass 1b: baca & validasi semua netlist sekaligus (registry tag lintas sheet)
+  const netlistsBySlug = {}, sheetNoBySlug = {};
+  doneEntries.forEach(function (entry) {
+    netlistsBySlug[entry.slug] = JSON.parse(read(path.join(NETLIST_DIR, entry.slug + '.json')));
+    sheetNoBySlug[entry.slug] = entry.sheet;
+  });
+  applyTagRegistry(netlistsBySlug, sheetNoBySlug);
 
   let builtCount = 0;
   sheetsData.sheets.forEach(function (entry) {
@@ -70,8 +145,9 @@ function main() {
       entry.ceUrl = null;
       return;
     }
-    const netlistJson = read(netlistPath);
-    const netlist = JSON.parse(netlistJson); // validasi JSON sekalian
+    const netlist = netlistsBySlug[entry.slug]; // sudah diperkaya registry tag
+    netlist.slug = entry.slug;
+    const netlistJson = JSON.stringify(netlist);
 
     const doneIdx = doneEntries.indexOf(entry);
     const prevEntry = doneEntries[doneIdx - 1] || null;

@@ -1,0 +1,17 @@
+{
+  "_readme": [
+    "Registry konfigurasi tag lintas sheet (sumber tunggal). Kunci = label tag persis seperti di gambar vendor.",
+    "WAJIB diisi untuk setiap tag yang muncul di lebih dari satu sheet -- scripts/build.js gagal kalau tag lintas-sheet belum terdaftar di sini.",
+    "Field: tagNo (nomor tag vendor, opsional), desc (deskripsi vendor, tanpa nomor), isReset / isMOS / healthyWhenTrue (opsional).",
+    "Node INPUT/OUTPUT di netlist yang memakai tag terdaftar TIDAK BOLEH menulis desc/isReset/isMOS/healthyWhenTrue sendiri -- semuanya diambil dari sini saat build, jadi konfigurasinya selalu sama di semua sheet.",
+    "Status (nilai TRUE/FALSE) tag dengan label yang sama ikut tersinkron antar sheet saat runtime (templates/_tagsync.js)."
+  ],
+  "tags": {
+    "f105HS007A":   { "tagNo": "12055", "desc": "ESD Button In Case Of SHU Reactor (AUX)" },
+    "f105HS007B":   { "tagNo": "12056", "desc": "ESD Button In Case Of SHU Reactor (Local)" },
+    "f105HS002AE":  { "tagNo": "12036", "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)" },
+    "f105HS002B":   { "tagNo": "12037", "desc": "ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)" },
+    "f105HS005UCR": { "tagNo": "12051", "desc": "Reset 105-UY-007/008/023 (105-UC-005)", "isReset": true },
+    "f105HS025UCR": { "tagNo": "12098", "desc": "Reset 105-UY-010 (105-UC-025)", "isReset": true }
+  }
+}

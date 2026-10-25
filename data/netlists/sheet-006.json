@@ -23,25 +23,21 @@
     "in_f105HS007A": {
       "type": "INPUT",
       "label": "f105HS007A",
-      "desc": "ESD",
       "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)"
     },
     "in_f105HS007B": {
       "type": "INPUT",
       "label": "f105HS007B",
-      "desc": "ESD Button",
       "group": "ESD Pushbutton — Grup A (→ RS_A → AND009 → RST_D)"
     },
     "in_f105HS002AE": {
       "type": "INPUT",
       "label": "f105HS002AE",
-      "desc": "ESD",
       "group": "ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)"
     },
     "in_f105HS002B": {
       "type": "INPUT",
       "label": "f105HS002B",
-      "desc": "ESD Button",
       "group": "ESD Pushbutton — Grup B (→ RS_B → AND009 → RST_D)"
     },
     "in_f105HS006A": {
@@ -147,15 +143,11 @@
     "in_f105HS005UCR": {
       "type": "INPUT",
       "label": "f105HS005UCR",
-      "desc": "Reset RS_A",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105HS025UCR": {
       "type": "INPUT",
       "label": "f105HS025UCR",
-      "desc": "Reset RS_B",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105HS009UCR": {

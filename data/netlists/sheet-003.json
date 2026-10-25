@@ -13,32 +13,136 @@
     "Internal HMI (monitor saja)"
   ],
   "nodes": {
-    "in_f105HS007A": { "type": "INPUT", "label": "f105HS007A", "desc": "12055 — ESD Button In Case Of SHU Reactor (AUX)", "group": "ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)" },
-    "in_f105HS007B": { "type": "INPUT", "label": "f105HS007B", "desc": "12056 — ESD Button In Case Of SHU Reactor (Local)", "group": "ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)" },
-
-    "in_f105HS002AE": { "type": "INPUT", "label": "f105HS002AE", "desc": "12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)", "group": "ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)" },
-    "in_f105HS002B":  { "type": "INPUT", "label": "f105HS002B",  "desc": "12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)", "group": "ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)" },
-
-    "in_f105HS005UCR": { "type": "INPUT", "label": "f105HS005UCR", "desc": "12051 — Reset 105-UY-007/008/023 (105-UC-005)", "isReset": true, "group": "Reset (manual, per latch)" },
-    "in_f105HS025UCR": { "type": "INPUT", "label": "f105HS025UCR", "desc": "12098 — Reset 105-UY-010 (105-UC-025)", "isReset": true, "group": "Reset (manual, per latch)" },
-
-    "and_001a": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS007A", "in_f105HS007B"] },
-    "rs_002a":  { "type": "RS",  "gateId": "002", "label": "ST_105HS005UC", "s": "and_001a", "r": "in_f105HS005UCR" },
-
-    "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS002AE", "in_f105HS002B"] },
-    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS025UC", "s": "and_001b", "r": "in_f105HS025UCR" },
-
-    "out_f105UY007A": { "type": "OUTPUT", "label": "f105UY007A", "desc": "12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_f105UY007B": { "type": "OUTPUT", "label": "f105UY007B", "desc": "12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_f105UY008A": { "type": "OUTPUT", "label": "f105UY008A", "desc": "12221 — Splitter Overhead Depressurization Valve", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_f105UY008B": { "type": "OUTPUT", "label": "f105UY008B", "desc": "12222 — Splitter Overhead Depressurization Valve", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_f105PY023A": { "type": "OUTPUT", "label": "f105PY023A", "desc": "12209 — 105-V-502 Purge Gas Outlet", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_f105PY023B": { "type": "OUTPUT", "label": "f105PY023B", "desc": "12210 — 105-V-502 H2 Make Up", "source": "rs_002a", "group": "Output Proses UC-005 (ke lapangan)" },
-    "out_RS_1_105UC005_025": { "type": "OUTPUT", "label": "RS_1_105UC005_025", "desc": "12847 — Internal HMI (status latch ST_105HS005UC)", "source": "rs_002a", "group": "Internal HMI (monitor saja)" },
-
-    "out_f105UY010":    { "type": "OUTPUT", "label": "f105UY010",    "desc": "12224 — Splitter Bottom Outlet Valve", "source": "rs_002b", "group": "Output Proses UC-025 (ke lapangan)" },
-    "out_f105UY010_IL": { "type": "OUTPUT", "label": "f105UY010_IL", "desc": "12787 — 105-UY-010 Interlock Signal", "source": "rs_002b", "group": "Internal HMI (monitor saja)" },
-    "out_RS_2_105UC005_025": { "type": "OUTPUT", "label": "RS_2_105UC005_025", "desc": "12848 — Internal HMI (status latch ST_105HS025UC)", "source": "rs_002b", "group": "Internal HMI (monitor saja)" }
+    "in_f105HS007A": {
+      "type": "INPUT",
+      "label": "f105HS007A",
+      "group": "ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)"
+    },
+    "in_f105HS007B": {
+      "type": "INPUT",
+      "label": "f105HS007B",
+      "group": "ESD Pushbutton — SHU Reactor (blok 00004, → UC-005)"
+    },
+    "in_f105HS002AE": {
+      "type": "INPUT",
+      "label": "f105HS002AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)"
+    },
+    "in_f105HS002B": {
+      "type": "INPUT",
+      "label": "f105HS002B",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (blok 00005, → UC-025)"
+    },
+    "in_f105HS005UCR": {
+      "type": "INPUT",
+      "label": "f105HS005UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS025UCR": {
+      "type": "INPUT",
+      "label": "f105HS025UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "and_001a": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_002a": {
+      "type": "RS",
+      "gateId": "002",
+      "label": "ST_105HS005UC",
+      "s": "and_001a",
+      "r": "in_f105HS005UCR"
+    },
+    "and_001b": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS002AE",
+        "in_f105HS002B"
+      ]
+    },
+    "rs_002b": {
+      "type": "RS",
+      "gateId": "002",
+      "label": "ST_105HS025UC",
+      "s": "and_001b",
+      "r": "in_f105HS025UCR"
+    },
+    "out_f105UY007A": {
+      "type": "OUTPUT",
+      "label": "f105UY007A",
+      "desc": "12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_f105UY007B": {
+      "type": "OUTPUT",
+      "label": "f105UY007B",
+      "desc": "12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_f105UY008A": {
+      "type": "OUTPUT",
+      "label": "f105UY008A",
+      "desc": "12221 — Splitter Overhead Depressurization Valve",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_f105UY008B": {
+      "type": "OUTPUT",
+      "label": "f105UY008B",
+      "desc": "12222 — Splitter Overhead Depressurization Valve",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_f105PY023A": {
+      "type": "OUTPUT",
+      "label": "f105PY023A",
+      "desc": "12209 — 105-V-502 Purge Gas Outlet",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_f105PY023B": {
+      "type": "OUTPUT",
+      "label": "f105PY023B",
+      "desc": "12210 — 105-V-502 H2 Make Up",
+      "source": "rs_002a",
+      "group": "Output Proses UC-005 (ke lapangan)"
+    },
+    "out_RS_1_105UC005_025": {
+      "type": "OUTPUT",
+      "label": "RS_1_105UC005_025",
+      "desc": "12847 — Internal HMI (status latch ST_105HS005UC)",
+      "source": "rs_002a",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105UY010": {
+      "type": "OUTPUT",
+      "label": "f105UY010",
+      "desc": "12224 — Splitter Bottom Outlet Valve",
+      "source": "rs_002b",
+      "group": "Output Proses UC-025 (ke lapangan)"
+    },
+    "out_f105UY010_IL": {
+      "type": "OUTPUT",
+      "label": "f105UY010_IL",
+      "desc": "12787 — 105-UY-010 Interlock Signal",
+      "source": "rs_002b",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_RS_2_105UC005_025": {
+      "type": "OUTPUT",
+      "label": "RS_2_105UC005_025",
+      "desc": "12848 — Internal HMI (status latch ST_105HS025UC)",
+      "source": "rs_002b",
+      "group": "Internal HMI (monitor saja)"
+    }
   },
   "summary": [
     "Halaman ini berisi 2 jalur trip ESD yang berdiri sendiri-sendiri (blok 00004 dan 00005). Polanya sama persis: dua tombol ESD (lokal + DCS/AUX) masuk ke satu gerbang AND, lalu ke latch RS, lalu output latch dibagikan ke beberapa valve sekaligus.",
