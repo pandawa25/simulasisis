@@ -581,7 +581,7 @@ const NETLIST = {
 }
 ;
 /* ======================= navigasi antar sheet (inline) ======================= */
-const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":6,"tag":"105-UC-009","url":"sheet-006.html"},"ceUrl":"sheet-002-ce.html"};
+const NAV = {"portalUrl":"../index.html","prev":null,"next":{"sheet":3,"tag":"105-UC-005 / 025","url":"sheet-003.html"},"ceUrl":"sheet-002-ce.html"};
 
 /* ======================= theme toggle ======================= */
 (function(){
@@ -785,6 +785,9 @@ function buildElkGraph(seed){
       'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.padding': '[top=' + (PAD + ZONE_HEAD_H) + ',left=' + PAD + ',bottom=' + PAD + ',right=' + PAD + ']',
+      /* kalau beberapa urutan sama-sama minim silangan, pakai urutan node
+         di netlist (= urutan atas-bawah gambar vendor) -- Koreksi #21 */
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
       'elk.randomSeed': String(seed)
     },
     children: children,

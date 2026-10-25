@@ -515,6 +515,9 @@ function buildElkGraph(seed){
       'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.padding': '[top=' + (PAD + ZONE_HEAD_H) + ',left=' + PAD + ',bottom=' + PAD + ',right=' + PAD + ']',
+      /* kalau beberapa urutan sama-sama minim silangan, pakai urutan node
+         di netlist (= urutan atas-bawah gambar vendor) -- Koreksi #21 */
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
       'elk.randomSeed': String(seed)
     },
     children: children,
