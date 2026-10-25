@@ -10,6 +10,13 @@
   --border:#d7dde6;
   --accent:#b9770e;
   --accent-fg:#5c3a07;
+  /* Koreksi UI/UX (2026-10-25): token terpisah khusus TEKS warna aksen
+     (header grup, ucid, toggle link) -- var(--accent) asli (#b9770e)
+     cuma ~1.95:1 thd bg terang, gagal WCAG AA 4.5:1 utk teks normal.
+     --accent tetap dipakai apa adanya utk border/background/stroke
+     (tombol primary, outline fokus, dll) yg tidak butuh rasio setinggi
+     itu & kalau diganti malah bikin kontras teks tombol jadi aneh. */
+  --accent-text:#935a08;
   --false:#1f8a4c;
   --false-bg:#e4f6ec;
   --true:#c23b2e;
@@ -21,14 +28,14 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
-    --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+    --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
     --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
-  --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406;
+  --border:#263046; --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
   --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
   color-scheme: dark;
 }
@@ -86,7 +93,7 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}
 .ce-row.clickable:hover{background:var(--panel-2)}
 .ce-row td{padding:8px 10px; vertical-align:middle}
 .ce-group-row td{
-  padding:8px 10px 4px; font-size:.68rem; font-weight:700; color:var(--accent);
+  padding:8px 10px 4px; font-size:.68rem; font-weight:700; color:var(--accent-text);
   background:var(--panel-2); border-bottom:1px solid var(--border);
 }
 .stat-dot{width:16px; height:16px; border-radius:4px; display:inline-block; border:1px solid var(--border)}
@@ -98,17 +105,47 @@ a.btn{text-decoration:none; display:inline-flex; align-items:center}
 .valword.off{color:var(--false)}
 .valword.on{color:var(--true)}
 
+/* Koreksi UI/UX (2026-10-25): pembeda visual utk EFFECT yang "internal"
+   (dipakai sheet lain, BUKAN output fisik ke lapangan) -- sebelumnya
+   stylingnya identik dgn output lapangan sungguhan (mis. f105UY001),
+   jadi tidak kebeda saat scan cepat meski teks desc-nya sudah bilang
+   "bukan output lapangan". SENGAJA TIDAK mengubah warna
+   hijau/merah (--false/--true) sesuai permintaan -- pembeda dibuat lewat
+   border kiri putus-putus + badge ikon kecil saja. */
+.ce-row.internal{border-left:3px dashed var(--accent-text)}
+.ce-row.internal .svc{position:relative; padding-left:0}
+.internal-badge{
+  display:inline-flex; align-items:center; gap:3px; font-size:.64rem; font-weight:700;
+  color:var(--accent-text); background:var(--panel-2); border:1px solid var(--border);
+  border-radius:20px; padding:1px 7px; margin-left:6px; white-space:nowrap; vertical-align:middle;
+}
+
 .center-col{display:flex; flex-direction:column; gap:14px; position:sticky; top:84px}
 .uc-box{
   background:var(--panel); border:2px solid var(--accent); border-radius:12px;
   padding:16px; text-align:center;
 }
-.uc-box .ucid{font-family:var(--mono); font-size:.8rem; color:var(--accent); font-weight:700}
+.uc-box .ucid{font-family:var(--mono); font-size:.8rem; color:var(--accent-text); font-weight:700}
 .uc-box .uctitle{font-size:.92rem; font-weight:700; margin-top:4px}
 .arrow-row{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--fg-dim); font-size:1.1rem}
 .summary-mini{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:.78rem; line-height:1.55; color:var(--fg-dim)}
 .summary-mini p{margin:0 0 8px}
 .summary-mini p:last-child{margin-bottom:0}
+/* Koreksi UI/UX (2026-10-25): paragraf ke-2 dst disembunyikan default
+   supaya kolom EFFECT (yang paling sering dicek cepat) tidak terdorong
+   jauh ke bawah oleh dinding teks historis -- terutama fatal di mobile
+   dgn layout 1 kolom. Paragraf pertama (ringkasan inti) tetap selalu
+   terlihat. Lihat critique "Critical #1". */
+.summary-mini .summary-rest{display:none}
+.summary-mini.expanded .summary-rest{display:block}
+.summary-toggle{
+  background:none; border:none; padding:0; margin-top:6px;
+  font-family:var(--disp); font-size:.74rem; font-weight:700; color:var(--accent-text);
+  cursor:pointer; display:flex; align-items:center; gap:4px;
+}
+.summary-toggle:hover{text-decoration:underline}
+.summary-toggle .chev{display:inline-block; transition:transform .15s}
+.summary-mini.expanded .summary-toggle .chev{transform:rotate(90deg)}
 
 /* status strip MOS/Reset — ditaruh di bawah kolom CAUSE, bukan baris
    biasa di tabel, sesuai permintaan: cukup status aktif/tidak saja */
@@ -594,10 +631,11 @@ effectSorted.forEach(function(id){
     lastGroup = n.group;
   }
   const tr = document.createElement('tr');
-  tr.className = 'ce-row';
+  tr.className = 'ce-row' + (n.internalOnly ? ' internal' : '');
+  const badge = n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '';
   tr.innerHTML =
     '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
-    '<td class="svc">' + (n.desc || n.label) + '</td>' +
+    '<td class="svc">' + (n.desc || n.label) + badge + '</td>' +
     '<td class="tagno">' + n.label + '</td>';
   effectBody.appendChild(tr);
   rowEls[id] = { dot: tr.querySelector('.stat-dot') };
@@ -638,11 +676,35 @@ document.getElementById('ucTitle').textContent = NETLIST.title || '';
 const summaryMini = document.getElementById('summaryMini');
 const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
 if(summaryParas.length){
-  summaryParas.forEach(function(para){
-    const p = document.createElement('p');
-    p.textContent = para;
-    summaryMini.appendChild(p);
-  });
+  /* Koreksi UI/UX (2026-10-25, Critical #1): paragraf pertama = ringkasan
+     inti, selalu tampil. Paragraf ke-2 dst (riwayat koreksi teknis,
+     biasanya panjang) disembunyikan di balik toggle "Baca detail teknis"
+     -- sebelumnya semua paragraf tampil sekaligus & mendorong tabel
+     EFFECT jauh ke bawah (parah terutama di layout 1-kolom/mobile). */
+  const firstP = document.createElement('p');
+  firstP.textContent = summaryParas[0];
+  summaryMini.appendChild(firstP);
+  if(summaryParas.length > 1){
+    const rest = document.createElement('div');
+    rest.className = 'summary-rest';
+    summaryParas.slice(1).forEach(function(para){
+      const p = document.createElement('p');
+      p.textContent = para;
+      rest.appendChild(p);
+    });
+    summaryMini.appendChild(rest);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'summary-toggle';
+    toggle.innerHTML = '<span class="chev">&#9656;</span><span class="label">Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)</span>';
+    toggle.addEventListener('click', function(){
+      const expanded = summaryMini.classList.toggle('expanded');
+      toggle.querySelector('.label').textContent = expanded
+        ? 'Sembunyikan detail teknis'
+        : 'Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)';
+    });
+    summaryMini.appendChild(toggle);
+  }
 } else {
   summaryMini.style.display = 'none';
 }

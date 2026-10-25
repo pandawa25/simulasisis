@@ -32,7 +32,7 @@
     "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RFCC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
     "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
     "out_f105UY003_IL": { "type": "OUTPUT", "label": "f105UY003_IL", "desc": "105-UY-003 Interlock Signal",        "source": "rs_002b", "group": "Internal HMI (monitor saja)" },
-    "out_f105LAHH003":  { "type": "OUTPUT", "label": "f105LAHH003",  "desc": "SHU Feed Surge Drum 105-V501 HH Alm — hasil NOT dari m105LSHH003, dipakai sebagai input di sheet lain (sehat=TRUE)", "source": "not_001", "group": "Effect — dipakai sheet lain (bukan output lapangan)" }
+    "out_f105LAHH003":  { "type": "OUTPUT", "label": "f105LAHH003",  "desc": "SHU Feed Surge Drum 105-V501 HH Alm — hasil NOT dari m105LSHH003, dipakai sebagai input di sheet lain (sehat=TRUE)", "source": "not_001", "group": "Effect — dipakai sheet lain (bukan output lapangan)", "internalOnly": true }
   },
   "summary": [
     "Halaman ini sebenarnya menggabungkan 2 jalur trip yang independen satu sama lain, walau sama-sama berasal dari drum 105-V501.",

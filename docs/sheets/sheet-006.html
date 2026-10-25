@@ -19,6 +19,12 @@
   --wire:#9aa5b4;
   --accent:#b9770e;
   --accent-fg:#5c3a07;
+  /* Koreksi UI/UX (2026-10-25): token teks khusus -- var(--accent) asli
+     cuma ~1.95:1 thd background zona (CAUSE/LOGIC/EFFECT), gagal WCAG AA
+     4.5:1 utk teks label grup. --accent sendiri tetap dipakai apa adanya
+     utk border/stroke/tombol (tidak diubah, supaya styling tombol tidak
+     ikut berubah). */
+  --accent-text:#935a08;
   --zone-cause:#eaf1fb;
   --zone-logic:#f3f1ea;
   --zone-effect:#eef7ee;
@@ -41,6 +47,7 @@
     --wire:#3c485f;
     --accent:#e3a13a;
     --accent-fg:#1c1406;
+    --accent-text:#e3a13a;
     --zone-cause:#131c2c;
     --zone-logic:#1a1710;
     --zone-effect:#101d14;
@@ -61,6 +68,7 @@
   --wire:#3c485f;
   --accent:#e3a13a;
   --accent-fg:#1c1406;
+  --accent-text:#e3a13a;
   --zone-cause:#131c2c;
   --zone-logic:#1a1710;
   --zone-effect:#101d14;
@@ -198,7 +206,7 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
 .node-rect.outline-only{fill:none}
 .zone-title{font-family:var(--disp); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; fill:var(--fg-dim)}
 .zone-divider{stroke:var(--border); stroke-width:1; stroke-dasharray:3 4}
-.group-title{font-family:var(--disp); font-size:9.5px; font-weight:650; fill:var(--accent)}
+.group-title{font-family:var(--disp); font-size:9.5px; font-weight:650; fill:var(--accent-text)}
 .node-label{font-family:var(--disp); font-size:11px; fill:var(--fg); font-weight:600}
 .gate-id{font-family:var(--mono); font-size:8.5px; fill:var(--fg-dim)}
 .pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
