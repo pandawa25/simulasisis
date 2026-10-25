@@ -177,23 +177,39 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
    (merah=TRUE/hijau=FALSE apa adanya), penanda "ini bagian jejak" sekarang
    murni dari stroke-width lebih tebal + glow (drop-shadow), bukan ganti warna. */
 .wire.highlight{stroke-width:3.4; filter:drop-shadow(0 0 2.5px var(--accent))}
-.trace-ring{fill:none; stroke:var(--accent); stroke-width:2.5; opacity:0; pointer-events:none}
+/* BUG LAMA (ketemu 2026-10-25 lewat laporan user "info node yg dipilih
+   hilang"): <rect class="trace-ring"> adalah child dari <g class="tag
+   off/on ...">, jadi dia JUGA kena match selector ".tag.off rect" /
+   ".tag.on rect" (fill:var(--false-bg)/var(--true-bg) solid, stroke
+   warna status) -- spesifisitas selector itu (.tag.off + rect = 2
+   kelas+1 tag) LEBIH TINGGI drpd ".trace-ring" (1 kelas), jadi diam-diam
+   MENIMPA fill:none & stroke accent yang dimaksud di sini. Karena ring
+   digambar PALING TERAKHIR (child terakhir) & ukurannya lebih besar dari
+   box node, begitu dapat class .show (node masuk jalur jejak), dia jadi
+   persegi SOLID (warna sama dgn background box) yang nutupin SELURUH
+   teks di bawahnya -- persis keluhan user: box node yg di-trace jadi
+   kosong/blank. Gate node (AND/OR/RS, dll) tidak kena krn tidak punya
+   class .off/.on. Fix: `!important` supaya trace-ring SELALU fill:none
+   & stroke accent, terlepas dari class ancestor apa pun. */
+.trace-ring{fill:none !important; stroke:var(--accent) !important; stroke-width:2.5; opacity:0; pointer-events:none}
 .trace-ring.show{opacity:1}
-.tag{cursor:default; transition:opacity .15s}
+.tag{cursor:default; transition:opacity .15s, filter .15s}
 .tag.input{cursor:pointer}
 /* Koreksi UI/UX (2026-10-25): mode jejak/trace -- node & kabel DI LUAR
-   jalur yang di-trace diredupkan (opacity) supaya jalur yang dipilih
-   lebih menonjol. Koreksi (2026-10-25, lanjutan): versi awal pakai
-   `filter:blur(...)` + opacity sangat rendah (.22) -- user menunjukkan
-   ini bikin LABEL/INFO jadi tidak kebaca (blur) & warna box/kabel
-   kelihatan berubah drastis (opacity terlalu rendah bikin hijau/merah
-   nyaris hilang). Fix: HAPUS blur total (teks/label tetap tajam &
-   terbaca di node manapun, hanya kurang menonjol), opacity dinaikkan
-   jadi .5 (bukan .22) supaya warna status hijau/merah pada box & kabel
-   TETAP jelas terlihat sebagai hijau/merah (bukan nyaris putih/pudar
-   total) -- cuma sedikit lebih redup drpd jalur yang di-trace, bukan
-   diganti warna atau disembunyikan. */
-.tag.dimmed, .wire.dimmed{opacity:.5}
+   jalur yang di-trace di-blur + diredupkan supaya jalur yang DIPILIH
+   jauh lebih menonjol. PENTING (ditegaskan ulang user 2x): blur/redup
+   ini HANYA boleh kena elemen yang BUKAN bagian jejak (dicek via
+   `visited[nid]` di traceUpstream()) -- node/kabel yang TERMASUK jalur
+   (termasuk node yang diklik sendiri) TIDAK PERNAH dapat class
+   `.dimmed`, jadi info/label/tag-no/warna status-nya WAJIB tetap utuh
+   & tajam 100% apa adanya, tidak boleh ada bug yang bikin elemen di
+   jalur ikut ke-dim. Utk elemen DI LUAR jalur: blur dibuat cukup kuat
+   (keduanya terlihat jelas berbeda dari jalur yang di-trace) tapi
+   TIDAK sampai opacity ekstrem (.22) spt versi pertama dulu -- teks
+   tetap ADA di DOM (bukan dihapus/disembunyikan total), cuma visualnya
+   kabur, supaya kalau user benar2 perlu lihat tetap bisa dengan effort
+   (hover/zoom), bukan 100% tak terbaca. */
+.tag.dimmed, .wire.dimmed{opacity:.32; filter:blur(1.8px)}
 .tag.trace-focus rect{stroke-width:2.4}
 .tag rect{stroke-width:1.2}
 .tag.off rect{fill:var(--false-bg); stroke:var(--false)}
