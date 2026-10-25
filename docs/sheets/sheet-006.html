@@ -739,8 +739,21 @@ for(let l = 0; l <= maxLayer; l++){
   });
   if(y > maxColHeight) maxColHeight = y;
 }
+/* deteksi dini "kabel lompat kolom" (mis. NOT di kolom LOGIC yang
+   outputnya langsung dipakai sbg EFFECT, melompati kolom RS LATCH di
+   antaranya) — kabel begini HARUS dirutekan lewat jalur bawah terpisah
+   (lihat SKIP_BOTTOM_Y di bawah), karena kalau tetap pakai lane biasa
+   (belok di gap sempit tepat setelah node asal) garis horizontalnya
+   numpuk persis di baris pin box kolom yang dilewati — kelihatan
+   seperti nyambung ke pin itu padahal tidak (ketemu di Koreksi #13). */
+let skipEdgeCount = 0;
+ids.forEach(function(id){
+  deps(nodes[id]).forEach(function(d){
+    if(pos[d] && (pos[id].layer - pos[d].layer) > 1) skipEdgeCount++;
+  });
+});
 const canvasW = PAD * 2 + (maxLayer + 1) * COL_W + 140;
-const canvasH = maxColHeight + PAD;
+let canvasH = maxColHeight + PAD + (skipEdgeCount > 0 ? 16 + skipEdgeCount * 12 : 0);
 
 /* batas-batas zona (x) untuk pita latar belakang CAUSE / LOGIC / EFFECT */
 const zoneCauseX1 = PAD + COL_W - 14;
@@ -904,9 +917,25 @@ const edgeList = [];
 ids.forEach(function(id){
   deps(nodes[id]).forEach(function(d){ edgeList.push({ from: d, to: id }); });
 });
+
+/* kabel "lompat kolom" (lihat skipEdgeCount di atas) dipisah dari lane
+   biasa & diberi jalur-bawah sendiri, masing-masing baris unik, supaya
+   garis horizontalnya jelas lewat DI BAWAH semua box (tidak pernah
+   sejajar dgn baris pin box manapun yang dilewati). */
+const SKIP_BOTTOM_BASE = canvasH - PAD - skipEdgeCount * 12;
+const skipLaneForEdge = {};
+let skipIdx = 0;
+edgeList.forEach(function(e){
+  if(pos[e.from] && pos[e.to] && (pos[e.to].layer - pos[e.from].layer) > 1){
+    skipLaneForEdge[e.from + '→' + e.to] = SKIP_BOTTOM_BASE + skipIdx * 12;
+    skipIdx++;
+  }
+});
+const nonSkipEdges = edgeList.filter(function(e){ return skipLaneForEdge[e.from + '→' + e.to] == null; });
+
 const LANE_MARGIN = 8;
 const byFromCol = {};
-edgeList.forEach(function(e){
+nonSkipEdges.forEach(function(e){
   const col = pos[e.from].layer;
   (byFromCol[col] = byFromCol[col] || []).push(e);
 });
@@ -935,9 +964,21 @@ Object.keys(byFromCol).forEach(function(col){
 function drawWire(fromId, toId){
   const a = centerOf(fromId, 'out');
   const b = centerOf(toId, 'in', fromId);
-  const lane = laneForEdge[fromId + '→' + toId];
-  const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
-  const d = 'M ' + a.x + ' ' + a.y + ' H ' + midx + ' V ' + b.y + ' H ' + b.x;
+  const skipY = skipLaneForEdge[fromId + '→' + toId];
+  let d;
+  if(skipY != null){
+    /* jalur-bawah: turun tepat di sebelah node asal, mendatar sendiri
+       di bawah semua box pada ketinggian unik (skipY), baru naik ke
+       pin tujuan dekat node tujuan — tidak pernah sejajar/numpuk dgn
+       baris pin kolom manapun yang dilewati di tengah. */
+    const x1 = a.x + 10;
+    const x2 = b.x - 10;
+    d = 'M ' + a.x + ' ' + a.y + ' H ' + x1 + ' V ' + skipY + ' H ' + x2 + ' V ' + b.y + ' H ' + b.x;
+  } else {
+    const lane = laneForEdge[fromId + '→' + toId];
+    const midx = lane != null ? lane : a.x + (b.x - a.x) * 0.2;
+    d = 'M ' + a.x + ' ' + a.y + ' H ' + midx + ' V ' + b.y + ' H ' + b.x;
+  }
   const path = el('path', { d: d, class: 'wire', 'data-from': fromId, 'data-to': toId });
   wireRecords.push({ path: path, from: fromId });
   wireByPair[fromId + '→' + toId] = path;
