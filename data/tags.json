@@ -95,11 +95,11 @@
     },
     "f105HS010SB": {
       "tagNo": "12251",
-      "desc": "Switch Start Up Bypass"
+      "desc": "Switch Start Up Bypass 105-F-502 (AUX)"
     },
     "f105ZSO502": {
       "tagNo": "12206",
-      "desc": "Open Signal To Heater Stack"
+      "desc": "Open Signal To Heater Stack Damper"
     },
     "L1G14A_L1G14A": {
       "desc": "Link L1G14A (tanpa nomor tag, tanpa sumber di sheet 7 & 8)"

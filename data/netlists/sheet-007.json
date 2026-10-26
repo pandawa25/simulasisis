@@ -22,19 +22,19 @@
     "in_f105HS005A": {
       "type": "INPUT",
       "label": "f105HS005A",
-      "desc": "12049 — ESD Button To Emergency",
+      "desc": "12049 — ESD Button To Emergency Stop Hds Reactor Heater 105-F-502 (AUX)",
       "group": "ESD Pushbutton — Furnace 105-F-502 (→ AND#012)"
     },
     "in_f105HS005B": {
       "type": "INPUT",
       "label": "f105HS005B",
-      "desc": "12050 — Esd Button To Emergency",
+      "desc": "12050 — Esd Button To Emergency Stop Hds Reactor Heater 105-F-502 (Local)",
       "group": "ESD Pushbutton — Furnace 105-F-502 (→ AND#012)"
     },
     "in_m105PSHH101": {
       "type": "INPUT",
       "label": "m105PSHH101",
-      "desc": "12444 — Combustion Chamber",
+      "desc": "12444 — Combustion Chamber Press 105-F-502 HH Alm",
       "group": "Pressure Switch HH — Combustion Chamber (→ TOF#001)"
     },
     "in_f105HS010SB": {
@@ -45,75 +45,75 @@
     "in_f105HS010M": {
       "type": "INPUT",
       "label": "f105HS010M",
-      "desc": "12777 — MOS",
+      "desc": "12777 — MOS 105-PSHH-101",
       "isMOS": true,
       "group": "Bypass / MOS — Start Up (→ OR#002, OR#005)"
     },
     "in_m105PSLL107A": {
       "type": "INPUT",
       "label": "m105PSLL107A",
-      "desc": "12470 — Pilot Gas Pressure",
+      "desc": "12470 — Pilot Gas Pressure 105-F-502 Inlet LL Alm",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_m105PSLL107B": {
       "type": "INPUT",
       "label": "m105PSLL107B",
-      "desc": "12471 — Pilot Gas Pressure",
+      "desc": "12471 — Pilot Gas Pressure 105-F-502 Inlet LL Alm",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_m105PSLL107C": {
       "type": "INPUT",
       "label": "m105PSLL107C",
-      "desc": "12472 — Pilot Gas Pressure",
+      "desc": "12472 — Pilot Gas Pressure 105-F-502 Inlet LL Alm",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_m105PI107A": {
       "type": "INPUT",
       "label": "m105PI107A",
-      "desc": "12423 — 105PT107A Fault",
+      "desc": "12423 — 105PT107A Fault Status",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_m105PI107B": {
       "type": "INPUT",
       "label": "m105PI107B",
-      "desc": "12424 — 105PT107B Fault",
+      "desc": "12424 — 105PT107B Fault Status",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_m105PI107C": {
       "type": "INPUT",
       "label": "m105PI107C",
-      "desc": "12425 — 105PT107C Fault",
+      "desc": "12425 — 105PT107C Fault Status",
       "group": "Pilot Gas Pressure — Voting 2oo3 (blok #003)"
     },
     "in_f105BS620A": {
       "type": "INPUT",
       "label": "f105BS620A",
-      "desc": "12026 — Pilot Burner Flame Off",
+      "desc": "12026 — Pilot burner flame off 105-F-502",
       "group": "Pilot Burner Flame (→ NUMBITS#006)"
     },
     "in_f105BS620B": {
       "type": "INPUT",
       "label": "f105BS620B",
-      "desc": "12027 — Pilot Burner Flame Off",
+      "desc": "12027 — Pilot Burner Flame Off 105-F-502",
       "group": "Pilot Burner Flame (→ NUMBITS#006)"
     },
     "in_f105BS620C": {
       "type": "INPUT",
       "label": "f105BS620C",
-      "desc": "12028 — Pilot Burner Flame Off",
+      "desc": "12028 — Pilot Burner Flame Off 105-F-502",
       "group": "Pilot Burner Flame (→ NUMBITS#006)"
     },
     "in_f105HS620_ACM": {
       "type": "INPUT",
       "label": "f105HS620_ACM",
-      "desc": "12281 — MOS",
+      "desc": "12281 — MOS 105BS620A to 105BS620H",
       "isMOS": true,
       "group": "Pilot Burner Flame (→ NUMBITS#006)"
     },
     "in_f105HS018": {
       "type": "INPUT",
       "label": "f105HS018",
-      "desc": "12082 — Push Button Reset Pilot Valve",
+      "desc": "12082 — Push Button Reset Pilot Valve 105 F 502 (Local) (105-UY-038/039)",
       "isReset": true,
       "group": "Reset (manual, latch RS#013 & timer 30 mnt)"
     },
@@ -363,7 +363,7 @@
     "out_f105PALL107": {
       "type": "OUTPUT",
       "label": "f105PALL107",
-      "desc": "12906 — 105-F-502 INLET LL",
+      "desc": "12906 — 105-F-502 INLET LL Alm",
       "source": "not_019",
       "group": "Alarm 105-F-502"
     },
@@ -433,7 +433,7 @@
     "Polaritas f105BS620A/B/C TIDAK diinterpretasi: deskripsi vendor 'Pilot Burner Flame Off', logic mengikuti kabel apa adanya (jumlah TRUE > 1). Polaritas NC tombol f105HS005A/B dimodelkan NC (sehat = TRUE) mengikuti sheet lain, belum dikonfirmasi per tag.",
     "Setpoint numerik tidak dimodelkan sebagai node (konsisten sheet 5): iTOF_105UC010_a_1..4 (40251-40254: 3, 2, 1, 1800) dan keluaran OF_105UC010_a_1..4_O (31001-31004) disimpan sebagai setpointSec pada node TOF.",
     "Pilihan user (2026-10-26): FLT = digital input biasa tanpa pengaruh ke voting; R_TRIG pulsa 1 detik waktu nyata; timer 30 menit waktu nyata plus tombol 'Lewati timer'.",
-    "Deskripsi tag sebagian terpotong di gambar (kotak desc hanya memuat 2-3 baris); yang ditulis hanya bagian yang terbaca. Deskripsi m105PI107A ('105PT107A Fault') disimpulkan dari pola B dan C yang terbaca penuh.",
-    "Tidak ada tag sheet 7 yang dipakai di sheet 2-6, jadi belum ada entri baru di data/tags.json. Status portal menghitung semua OUTPUT (termasuk alarm dan HMI) sesuai aturan SheetStatus yang ada; alarm TRUE dihitung 'normal', sehingga NORMAL baru tercapai kalau semua output TRUE."
+    "Tidak ada tag sheet 7 yang dipakai di sheet 2-6, jadi belum ada entri baru di data/tags.json. Status portal menghitung semua OUTPUT (termasuk alarm dan HMI) sesuai aturan SheetStatus yang ada; alarm TRUE dihitung 'normal', sehingga NORMAL baru tercapai kalau semua output TRUE.",
+    "Deskripsi tag dilengkapi dari 'Tagnames Complete Listing.csv' (2026-10-26)."
   ]
 }
