@@ -28,7 +28,7 @@ Buka `docs/index.html` di browser mana pun (double-click / `file://`, atau serve
 engine/sim-engine.js           # engine simulasi generik (RS latch, VOTING, AND/OR/NOT/BUFFER) — dipakai sama di semua sheet
 templates/sheet.template.html  # template UI simulator per-sheet (canvas, zoom/pan, status dock, dst)
 templates/portal.template.html # template UI portal/menu 34 sheet
-data/sheets.json               # daftar master 34 sheet: nomor, tag UC, status, slug
+data/sheets.json               # daftar master sheet semua unit: unit, nomor, tag UC, status, slug
 data/netlists/<slug>.json      # netlist per sheet (hasil reverse-engineering dari gambar) — hanya ada utk sheet yg sudah digarap
 scripts/build.js                # build script (Node.js core only, tanpa dependency) — rakit template+engine+netlist -> docs/
 docs/                            # OUTPUT HASIL BUILD — siap di-serve langsung, via GitHub Pages, atau Railway

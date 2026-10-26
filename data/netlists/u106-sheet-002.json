@@ -1,0 +1,77 @@
+{
+  "id": "106-UC-002",
+  "title": "106-UC-002",
+  "sheetRef": "Unit 106 — Sheet 2 — P02_UNIT_106",
+  "causeGroups": [
+    "Flow Lean Amine 106-E-504A/B (→ MOVE#001, OR#003)",
+    "MOS Flow 106-FI-001 (→ OR#003)"
+  ],
+  "effectGroups": [
+    "Output Proses — Acid Gas 106-V-501 (PY-002 / UY-005)",
+    "Alarm Rich Amine Flash Drum 106-V-501"
+  ],
+  "nodes": {
+    "in_f106FIC001B": {
+      "type": "INPUT",
+      "label": "f106FIC001B",
+      "desc": "12259 — Lean Amine From 106-E-504A/B",
+      "group": "Flow Lean Amine 106-E-504A/B (→ MOVE#001, OR#003)"
+    },
+    "in_f106HS001M": {
+      "type": "INPUT",
+      "label": "f106HS001M",
+      "desc": "12260 — MOS 106-FI-001",
+      "isMOS": true,
+      "group": "MOS Flow 106-FI-001 (→ OR#003)"
+    },
+    "mv_001": {
+      "type": "MOVE",
+      "gateId": "001",
+      "input": "in_f106FIC001B"
+    },
+    "not_002": {
+      "type": "NOT",
+      "gateId": "002",
+      "input": "mv_001"
+    },
+    "or_003": {
+      "type": "OR",
+      "gateId": "003",
+      "inputs": [
+        "in_f106FIC001B",
+        "in_f106HS001M"
+      ]
+    },
+    "out_f106PY002": {
+      "type": "OUTPUT",
+      "label": "f106PY002",
+      "desc": "12190 — Acid Gas From 106-V-501 To Fuel Gas System",
+      "source": "or_003",
+      "group": "Output Proses — Acid Gas 106-V-501 (PY-002 / UY-005)"
+    },
+    "out_f106UY005": {
+      "type": "OUTPUT",
+      "label": "f106UY005",
+      "desc": "12191 — Acid Gas From 106-V-501 To Flare Valve",
+      "source": "or_003",
+      "group": "Output Proses — Acid Gas 106-V-501 (PY-002 / UY-005)"
+    },
+    "out_f106FALL001": {
+      "type": "OUTPUT",
+      "label": "f106FALL001",
+      "desc": "12280 — Rich Amine Flash Drum 106-V-501 Outlet",
+      "source": "not_002",
+      "group": "Alarm Rich Amine Flash Drum 106-V-501"
+    }
+  },
+  "summary": [
+    "Halaman 106-UC-002 (Unit 106): logic sederhana tanpa latch RS. f106PY002 dan f106UY005 (valve acid gas dari 106-V-501 ke fuel gas dan ke flare) mengikuti OR#003 = f106FIC001B ATAU MOS f106HS001M. Alarm f106FALL001 = NOT dari MOVE#001 yang membaca f106FIC001B.",
+    "Dengan semua input FALSE (kondisi gambar): f106PY002 dan f106UY005 FALSE, sedangkan f106FALL001 TRUE (merah di gambar) karena NOT dari input FALSE."
+  ],
+  "notes": [
+    "Sumber: gambar vendor '106-UC-002' (Unit 106, sheet 2; tanpa title block sehingga nomor 'of N' tidak diketahui), di-trace 2026-10-26 lewat crop 1.6-1.8x. f106FIC001B bercabang (T-junction) ke MOVE#001 dan ke pin 1 OR#003; f106HS001M ke pin 2 OR#003; keluaran OR#003 bercabang ke f106PY002 dan f106UY005.",
+    "Tidak ada RS/latch/timer/voting di sheet ini. Perilaku valve: TRUE selama FIC001B TRUE atau MOS aktif, tanpa reset — HIPOTESIS arti proses (jangan menafsirkan makna TRUE/FALSE dari deskripsi).",
+    "BUKTI SILANG nilai live: semua input FALSE -> f106PY002 & f106UY005 FALSE (hijau), f106FALL001 TRUE (merah) — cocok.",
+    "Unit 106 adalah unit kedua di repo: sheets.json punya field `unit`; slug file memakai prefiks u106-. Tag unik unit ini (f106*) belum dipakai sheet lain sehingga desc ditulis di netlist."
+  ]
+}

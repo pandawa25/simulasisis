@@ -193,38 +193,52 @@ const DATA = <!--SHEETS_JSON-->;
 document.getElementById('docVersion').textContent = DATA.docVersion || '';
 
 /* ======================= tab unit ======================= */
-const UNITS = [
-  {id:'105', label:'Unit 105', active:true}, {id:'106', label:'Unit 106'}, {id:'107', label:'Unit 107'},
-  {id:'108', label:'Unit 108'}, {id:'148', label:'Unit 148'}, {id:'47', label:'Unit 47'},
-  {id:'120', label:'Unit 120'}, {id:'140', label:'Unit 140'}, {id:'180', label:'Unit 180'},
-  {id:'100', label:'Unit 100'}, {id:'166', label:'Unit 166'}
-];
-(function(){
-  const tabs = document.getElementById('unitTabs');
-  const tip = document.getElementById('tip');
-  UNITS.forEach(function(u){
+const UNIT_LIST = ['105','106','107','108','148','47','120','140','180','100','166'];
+const UNIT_META = DATA.units || {};
+function unitOf(item){ return item.unit || '105'; }
+function unitHasSheets(id){ return DATA.sheets.some(function(s){ return unitOf(s) === id; }); }
+let activeUnit = '105';
+try{
+  const h = (location.hash || '').replace('#unit-', '');
+  if(h && unitHasSheets(h)) activeUnit = h;
+  else { const sv = localStorage.getItem('sis-portal-unit'); if(sv && unitHasSheets(sv)) activeUnit = sv; }
+}catch(e){}
+const tabsEl = document.getElementById('unitTabs');
+const tipEl = document.getElementById('tip');
+function unitLabel(id){ return (UNIT_META[id] && UNIT_META[id].label) || ('Unit ' + id); }
+function buildTabs(){
+  tabsEl.innerHTML = '';
+  UNIT_LIST.forEach(function(id){
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'tab'; b.setAttribute('role', 'tab'); b.textContent = u.label;
-    b.setAttribute('aria-selected', u.active ? 'true' : 'false');
-    if(!u.active){
+    b.type = 'button'; b.className = 'tab'; b.setAttribute('role', 'tab'); b.textContent = unitLabel(id);
+    const enabled = unitHasSheets(id);
+    b.setAttribute('aria-selected', id === activeUnit ? 'true' : 'false');
+    if(enabled){
+      b.addEventListener('click', function(){
+        activeUnit = id;
+        try{ localStorage.setItem('sis-portal-unit', id); }catch(e){}
+        history.replaceState(null, '', '#unit-' + id);
+        buildTabs(); searchBox.value = ''; syncStatusHint(); render();
+      });
+    } else {
       b.setAttribute('aria-disabled', 'true');
-      b.setAttribute('aria-label', u.label + ' — Coming Soon');
+      b.setAttribute('aria-label', unitLabel(id) + ' — Coming Soon');
       const show = function(){
-        tip.textContent = 'Coming Soon';
+        tipEl.textContent = 'Coming Soon';
         const r = b.getBoundingClientRect();
-        tip.classList.add('show');
-        tip.style.left = Math.max(8, r.left + r.width / 2 - tip.offsetWidth / 2) + 'px';
-        tip.style.top = (r.bottom + 8) + 'px';
+        tipEl.classList.add('show');
+        tipEl.style.left = Math.max(8, r.left + r.width / 2 - tipEl.offsetWidth / 2) + 'px';
+        tipEl.style.top = (r.bottom + 8) + 'px';
       };
-      const hide = function(){ tip.classList.remove('show'); };
+      const hide = function(){ tipEl.classList.remove('show'); };
       b.addEventListener('mouseenter', show); b.addEventListener('mouseleave', hide);
       b.addEventListener('focus', show); b.addEventListener('blur', hide);
       b.addEventListener('click', function(e){ e.preventDefault(); show(); });
-      tabs.addEventListener('scroll', hide, {passive:true});
+      tabsEl.addEventListener('scroll', hide, {passive:true});
     }
-    tabs.appendChild(b);
+    tabsEl.appendChild(b);
   });
-})();
+}
 
 /* ======================= theme toggle (ikon matahari/bulan) ======================= */
 (function(){
@@ -266,6 +280,7 @@ function render(){
   grid.innerHTML = '';
   let shown = 0;
   DATA.sheets.forEach(function(item){
+    if(unitOf(item) !== activeUnit) return;
     if(!matches(item, q)) return;
     shown++;
     const isDone = item.status === 'done';
@@ -291,6 +306,8 @@ function render(){
     grid.appendChild(tag);
   });
   emptyMsg.style.display = shown === 0 ? 'block' : 'none';
+  document.getElementById('unitHeading').textContent = unitLabel(activeUnit);
+  document.getElementById('unitCount').textContent = DATA.sheets.filter(function(s){ return unitOf(s) === activeUnit; }).length + ' sheet';
 }
 
 /* ======================= status live tiap sheet =======================
@@ -332,8 +349,12 @@ function computeStatus(){
   });
 }
 function syncStatusHint(){
-  const nTrip = Object.keys(liveStatus).filter(function(k){ return liveStatus[k].state === 'trip'; }).length;
-  const nOk = Object.keys(liveStatus).length - nTrip;
+  const ks = Object.keys(liveStatus).filter(function(k){
+    const it = DATA.sheets.filter(function(s){ return s.slug === k; })[0];
+    return it && unitOf(it) === activeUnit;
+  });
+  const nTrip = ks.filter(function(k){ return liveStatus[k].state === 'trip'; }).length;
+  const nOk = ks.length - nTrip;
   document.getElementById('statusHint').textContent =
     'Status dihitung ulang di halaman ini dari simulasi yang tersimpan di browser — ' +
     (nTrip ? nTrip + ' sheet sedang trip, ' + nOk + ' normal.' : 'semua sheet selesai dalam kondisi normal.');
@@ -345,8 +366,8 @@ window.addEventListener('storage', function(e){
 
 searchBox.addEventListener('input', render);
 
-document.getElementById('unitCount').textContent = DATA.sheets.length + ' sheet';
 
+buildTabs();
 computeStatus();
 syncStatusHint();
 render();

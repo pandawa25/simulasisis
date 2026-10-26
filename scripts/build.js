@@ -160,9 +160,11 @@ function main() {
     netlist.slug = entry.slug;
     const netlistJson = JSON.stringify(netlist);
 
-    const doneIdx = doneEntries.indexOf(entry);
-    const prevEntry = doneEntries[doneIdx - 1] || null;
-    const nextEntry = doneEntries[doneIdx + 1] || null;
+    // prev/next hanya di dalam unit yang sama
+    const unitDone = doneEntries.filter(function (e) { return (e.unit || '105') === (entry.unit || '105'); });
+    const doneIdx = unitDone.indexOf(entry);
+    const prevEntry = unitDone[doneIdx - 1] || null;
+    const nextEntry = unitDone[doneIdx + 1] || null;
     const ceSlug = entry.slug + '-ce';
     // nav utk halaman logic detail: portal + prev/next (versi detail) +
     // link ke versi Cause & Effect sheet yang sama
