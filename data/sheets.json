@@ -361,6 +361,36 @@
       "status": "done",
       "url": "sheets/u106-sheet-002.html",
       "ceUrl": "sheets/u106-sheet-002-ce.html"
+    },
+    {
+      "sheet": 1,
+      "slug": "u108-sheet-001",
+      "unit": "108",
+      "tag": "P02",
+      "note": "Cover / index sheet",
+      "status": "pending",
+      "url": null,
+      "ceUrl": null
+    },
+    {
+      "sheet": 2,
+      "slug": "u108-sheet-002",
+      "unit": "108",
+      "tag": "108-UC-001",
+      "note": "",
+      "status": "done",
+      "url": "sheets/u108-sheet-002.html",
+      "ceUrl": "sheets/u108-sheet-002-ce.html"
+    },
+    {
+      "sheet": 3,
+      "slug": "u108-sheet-003",
+      "unit": "108",
+      "tag": "108-UC-002",
+      "note": "",
+      "status": "done",
+      "url": "sheets/u108-sheet-003.html",
+      "ceUrl": "sheets/u108-sheet-003-ce.html"
     }
   ],
   "units": {
@@ -371,6 +401,10 @@
     "106": {
       "label": "Unit 106",
       "doc": "P02_UNIT_106"
+    },
+    "108": {
+      "label": "Unit 108",
+      "doc": "P02_UNIT_108"
     }
   }
 }

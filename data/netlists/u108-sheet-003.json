@@ -1,0 +1,308 @@
+{
+  "id": "108-UC-002",
+  "title": "108-UC-002",
+  "sheetRef": "Unit 108 — Sheet 3 — P02_UNIT_108",
+  "causeGroups": [
+    "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)",
+    "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)",
+    "Kompresor PSA Offgas 108-K-502A/B + Reset (→ AND#006/#009, RS#007/#010)"
+  ],
+  "effectGroups": [
+    "Shutdown Kompresor PSA Offgas 108-K-502A/B",
+    "Alarm 2nd Stage Suction Drum 108-LT-010A/B/C & 016A/B/C",
+    "Sinyal DCS Shutdown & HMI internal"
+  ],
+  "nodes": {
+    "in_m108LSHH010A": {
+      "type": "INPUT",
+      "label": "m108LSHH010A",
+      "desc": "12584 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LI010A": {
+      "type": "INPUT",
+      "label": "m108LI010A",
+      "desc": "12560 — 108LT010A Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LSHH010B": {
+      "type": "INPUT",
+      "label": "m108LSHH010B",
+      "desc": "12585 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LI010B": {
+      "type": "INPUT",
+      "label": "m108LI010B",
+      "desc": "12561 — 108LT010B Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LSHH010C": {
+      "type": "INPUT",
+      "label": "m108LSHH010C",
+      "desc": "12586 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LI010C": {
+      "type": "INPUT",
+      "label": "m108LI010C",
+      "desc": "12562 — 108LT010C Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #001)"
+    },
+    "in_m108LSHH016A": {
+      "type": "INPUT",
+      "label": "m108LSHH016A",
+      "desc": "12590 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_m108LI016A": {
+      "type": "INPUT",
+      "label": "m108LI016A",
+      "desc": "12566 — 108LT016A Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_m108LSHH016B": {
+      "type": "INPUT",
+      "label": "m108LSHH016B",
+      "desc": "12591 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_m108LI016B": {
+      "type": "INPUT",
+      "label": "m108LI016B",
+      "desc": "12567 — 108LT016B Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_m108LSHH016C": {
+      "type": "INPUT",
+      "label": "m108LSHH016C",
+      "desc": "12592 — PSA Offgas Comp 2nd Stage Suction Drum HH Alm",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_m108LI016C": {
+      "type": "INPUT",
+      "label": "m108LI016C",
+      "desc": "12568 — 108LT016C Fault Status",
+      "group": "Level HH 2nd Stage Suction Drum PSA Offgas Comp — Voting 2oo3 (blok #004)"
+    },
+    "in_f108HS023A": {
+      "type": "INPUT",
+      "label": "f108HS023A",
+      "desc": "12269 — PSA Offgas Compressors 108-K-502A",
+      "group": "Kompresor PSA Offgas 108-K-502A/B + Reset (→ AND#006/#009, RS#007/#010)"
+    },
+    "in_f108HS023B": {
+      "type": "INPUT",
+      "label": "f108HS023B",
+      "desc": "12271 — PSA Offgas Compressors 108-K-502B",
+      "group": "Kompresor PSA Offgas 108-K-502A/B + Reset (→ AND#006/#009, RS#007/#010)"
+    },
+    "in_f108HS002UCRB": {
+      "type": "INPUT",
+      "label": "f108HS002UCRB",
+      "desc": "12264 — Reset 108-K-502A/B (108-UC-002)",
+      "isReset": true,
+      "group": "Kompresor PSA Offgas 108-K-502A/B + Reset (→ AND#006/#009, RS#007/#010)"
+    },
+    "vot_001": {
+      "type": "VOTING",
+      "gateId": "001",
+      "label": "VOT_108UC002_1",
+      "k": 2,
+      "inputs": [
+        "in_m108LSHH010A",
+        "in_m108LSHH010B",
+        "in_m108LSHH010C"
+      ],
+      "fltInputs": [
+        "in_m108LI010A",
+        "in_m108LI010B",
+        "in_m108LI010C"
+      ]
+    },
+    "not_002": {
+      "type": "NOT",
+      "gateId": "002",
+      "input": "vot_001"
+    },
+    "not_003": {
+      "type": "NOT",
+      "gateId": "003",
+      "input": "vot_001"
+    },
+    "vot_004": {
+      "type": "VOTING",
+      "gateId": "004",
+      "label": "VOT_108UC002_2",
+      "k": 2,
+      "inputs": [
+        "in_m108LSHH016A",
+        "in_m108LSHH016B",
+        "in_m108LSHH016C"
+      ],
+      "fltInputs": [
+        "in_m108LI016A",
+        "in_m108LI016B",
+        "in_m108LI016C"
+      ]
+    },
+    "and_005": {
+      "type": "AND",
+      "gateId": "005",
+      "inputs": [
+        "vot_001",
+        "vot_004"
+      ]
+    },
+    "and_006": {
+      "type": "AND",
+      "gateId": "006",
+      "inputs": [
+        "and_005",
+        "in_f108HS023A"
+      ]
+    },
+    "rs_007": {
+      "type": "RS",
+      "gateId": "007",
+      "label": "RS_108UC002_1",
+      "s": "and_006",
+      "r": "in_f108HS002UCRB"
+    },
+    "and_009": {
+      "type": "AND",
+      "gateId": "009",
+      "inputs": [
+        "and_005",
+        "in_f108HS023B"
+      ]
+    },
+    "rs_010": {
+      "type": "RS",
+      "gateId": "010",
+      "label": "RS_108UC002_2",
+      "s": "and_009",
+      "r": "in_f108HS002UCRB"
+    },
+    "not_012": {
+      "type": "NOT",
+      "gateId": "012",
+      "input": "vot_004"
+    },
+    "not_013": {
+      "type": "NOT",
+      "gateId": "013",
+      "input": "vot_004"
+    },
+    "out_f108HS023AE": {
+      "type": "OUTPUT",
+      "label": "f108HS023AE",
+      "desc": "12270 — PSA Offgas Compressors 108-K-502A",
+      "source": "rs_007",
+      "group": "Shutdown Kompresor PSA Offgas 108-K-502A/B"
+    },
+    "out_f108XA002A": {
+      "type": "OUTPUT",
+      "label": "f108XA002A",
+      "desc": "12772 — PSA Offgas Compressors 108-K-502A Shutdown",
+      "source": "rs_007",
+      "group": "Shutdown Kompresor PSA Offgas 108-K-502A/B"
+    },
+    "out_f108HS023BE": {
+      "type": "OUTPUT",
+      "label": "f108HS023BE",
+      "desc": "12272 — PSA Offgas Compressors 108-K-502B",
+      "source": "rs_010",
+      "group": "Shutdown Kompresor PSA Offgas 108-K-502A/B"
+    },
+    "out_f108XA002B": {
+      "type": "OUTPUT",
+      "label": "f108XA002B",
+      "desc": "12773 — PSA Offgas Compressors 108-K-502B Shutdown",
+      "source": "rs_010",
+      "group": "Shutdown Kompresor PSA Offgas 108-K-502A/B"
+    },
+    "not_008": {
+      "type": "NOT",
+      "gateId": "008",
+      "input": "out_f108XA002A"
+    },
+    "not_011": {
+      "type": "NOT",
+      "gateId": "011",
+      "input": "out_f108XA002B"
+    },
+    "out_f108LAHH010": {
+      "type": "OUTPUT",
+      "label": "f108LAHH010",
+      "desc": "12921 — 108-LT-010A/B/C PSA OFFGAS COMPRESSOR 2ND STAGE SUCTION DRUM",
+      "source": "not_002",
+      "group": "Alarm 2nd Stage Suction Drum 108-LT-010A/B/C & 016A/B/C"
+    },
+    "out_f108LIA010": {
+      "type": "OUTPUT",
+      "label": "f108LIA010",
+      "desc": "12920 — 108-LT-010A/B/C PSA OFFGAS COMPRESSOR 2ND STAGE SUCTION DRUM",
+      "source": "not_003",
+      "group": "Alarm 2nd Stage Suction Drum 108-LT-010A/B/C & 016A/B/C"
+    },
+    "out_f108LIA016": {
+      "type": "OUTPUT",
+      "label": "f108LIA016",
+      "desc": "12923 — 108-LT-016A/B/C PSA OFFGAS COMPRESSOR 2ND STAGE SUCTION DRUM",
+      "source": "not_012",
+      "group": "Alarm 2nd Stage Suction Drum 108-LT-010A/B/C & 016A/B/C"
+    },
+    "out_f108LAHH016": {
+      "type": "OUTPUT",
+      "label": "f108LAHH016",
+      "desc": "12924 — 108-LT-016A/B/C PSA OFFGAS COMPRESSOR 2ND STAGE SUCTION DRUM",
+      "source": "not_013",
+      "group": "Alarm 2nd Stage Suction Drum 108-LT-010A/B/C & 016A/B/C"
+    },
+    "out_f108XA002A_DCS": {
+      "type": "OUTPUT",
+      "label": "f108XA002A_DCS",
+      "desc": "13251 — PSA Offgas Compressors 108-K-502A Shutdown",
+      "source": "not_008",
+      "group": "Sinyal DCS Shutdown & HMI internal"
+    },
+    "out_f108XA002B_DCS": {
+      "type": "OUTPUT",
+      "label": "f108XA002B_DCS",
+      "desc": "13252 — PSA Offgas Compressors 108-K-502B Shutdown",
+      "source": "not_011",
+      "group": "Sinyal DCS Shutdown & HMI internal"
+    },
+    "out_VOT_1_108UC002": {
+      "type": "OUTPUT",
+      "label": "VOT_1_108UC002",
+      "desc": "12845 — Internal HMI",
+      "source": "vot_001",
+      "group": "Sinyal DCS Shutdown & HMI internal",
+      "internalOnly": true
+    },
+    "out_VOT_2_108UC002": {
+      "type": "OUTPUT",
+      "label": "VOT_2_108UC002",
+      "desc": "12846 — Internal HMI",
+      "source": "vot_004",
+      "group": "Sinyal DCS Shutdown & HMI internal",
+      "internalOnly": true
+    }
+  },
+  "summary": [
+    "Halaman 108-UC-002 (Unit 108): dua voting 2oo3 level HH 2nd Stage Suction Drum PSA Offgas Compressor — VOT#001 (LSHH010A/B/C + fault LI010A/B/C) dan VOT#004 (LSHH016A/B/C + fault LI016A/B/C). AND#005(VOT#001, VOT#004) menjadi permissive bersama.",
+    "AND#006(AND#005, f108HS023A) → R1 RS#007 → f108HS023AE & f108XA002A (108-K-502A); AND#009(AND#005, f108HS023B) → R1 RS#010 → f108HS023BE & f108XA002B (108-K-502B). Kedua RS berbagi reset f108HS002UCRB. NOT#008/#011 membalik f108XA002A/B menjadi f108XA002A_DCS / f108XA002B_DCS.",
+    "Alarm: f108LAHH010 = NOT#002(VOT#001), f108LIA010 = NOT#003(VOT#001), f108LIA016 = NOT#012(VOT#004), f108LAHH016 = NOT#013(VOT#004). VOT_1/2_108UC002 = keluaran voting ke HMI.",
+    "Dengan semua input FALSE (kondisi gambar): voting FALSE → RS FALSE, XA002A/B FALSE (hijau); alarm LAHH010/LIA010/LIA016/LAHH016 dan XA002A/B_DCS TRUE (merah) — cocok dengan nilai live."
+  ],
+  "notes": [
+    "Sumber: gambar vendor '108-UC-002' (Unit 108, sheet 3; tanpa title block sehingga nomor 'of N' tidak diketahui), di-trace 2026-10-26 lewat crop 1.0-1.7x. Pin voting urut IN1,FLT1,IN2,FLT2,IN3,FLT3 = LSHH A, LI A, LSHH B, LI B, LSHH C, LI C.",
+    "Net OUT VOT#001: HMI VOT_1, NOT#002, NOT#003, AND#005 pin1. Net OUT VOT#004: HMI VOT_2, NOT#012, NOT#013, AND#005 pin2 (vertikal kolom 12 naik ke AND#005; terpisah dari vertikal VOT#001 yang berhenti di pin1).",
+    "RS (Koreksi #12/#14): pin S = reset → `r` (f108HS002UCRB, dipakai bersama RS#007 & RS#010); pin R1 (lingkaran) = AND#006 / AND#009 → `s` apa adanya.",
+    "f108XA002A/B digambar sebagai tag di tengah kabel Q1 → NOT#008/#011 (tanpa pin sendiri): dimodelkan OUTPUT dari Q1 RS, dibaca langsung NOT#008/#011 — HIPOTESIS, nilai identik dengan Q1.",
+    "Tag HMI VOT_1/2_108UC002: OUTPUT internalOnly dari keluaran voting (HIPOTESIS). Arti proses tidak ditafsirkan.",
+    "BUKTI SILANG nilai live: semua input FALSE → LAHH010, LIA010, LIA016, LAHH016, XA002A_DCS, XA002B_DCS TRUE; HS023AE/XA002A/HS023BE/XA002B FALSE — cocok."
+  ]
+}
