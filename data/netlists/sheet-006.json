@@ -96,14 +96,11 @@
     "in_m105FSLL030": {
       "type": "INPUT",
       "label": "m105FSLL030",
-      "desc": "12347 — Recycle Gas To HDS To 105-E-506 A/B/C/D LL Alm",
       "group": "Recycle / MOS"
     },
     "in_f105HS030M": {
       "type": "INPUT",
       "label": "f105HS030M",
-      "desc": "12106 — MOS 105-FSLL-030",
-      "isMOS": true,
       "group": "Recycle / MOS"
     },
     "in_f105HS010A": {
@@ -139,8 +136,6 @@
     "in_f105HS009UCR": {
       "type": "INPUT",
       "label": "f105HS009UCR",
-      "desc": "12066 — Reset 105-UY-011, HS-505AE/BE (105-UC-009)",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105HS007UCR": {
@@ -156,55 +151,46 @@
     "in_m105TSHH072": {
       "type": "INPUT",
       "label": "m105TSHH072",
-      "desc": "12545 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH093": {
       "type": "INPUT",
       "label": "m105TSHH093",
-      "desc": "12546 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH094": {
       "type": "INPUT",
       "label": "m105TSHH094",
-      "desc": "12547 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH095": {
       "type": "INPUT",
       "label": "m105TSHH095",
-      "desc": "12548 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH096": {
       "type": "INPUT",
       "label": "m105TSHH096",
-      "desc": "12549 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH097": {
       "type": "INPUT",
       "label": "m105TSHH097",
-      "desc": "12550 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH098": {
       "type": "INPUT",
       "label": "m105TSHH098",
-      "desc": "12551 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH099": {
       "type": "INPUT",
       "label": "m105TSHH099",
-      "desc": "12552 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH100": {
       "type": "INPUT",
       "label": "m105TSHH100",
-      "desc": "12553 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "g001_OR": {

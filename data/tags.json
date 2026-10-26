@@ -102,10 +102,60 @@
       "desc": "Open Signal To Heater Stack Damper"
     },
     "L1G14A_L1G14A": {
-      "desc": "Link L1G14A (tanpa nomor tag, tanpa sumber di sheet 7 & 8)"
+      "desc": "Link L1G14A — keluaran latch RS#016 sheet 9 (105-UC-010_c), dipakai sebagai cause di sheet 7 dan 8"
     },
     "AND_105UC010_FEED_1": {
       "desc": "Sinyal internal — keluaran AND#012 sheet 7 (105-UC-010_a)"
+    },
+    "m105FSLL030": {
+      "tagNo": "12347",
+      "desc": "Recycle Gas To HDS To 105-E-506 A/B/C/D LL Alm"
+    },
+    "f105HS030M": {
+      "tagNo": "12106",
+      "desc": "MOS 105-FSLL-030",
+      "isMOS": true
+    },
+    "f105HS009UCR": {
+      "tagNo": "12066",
+      "desc": "Reset 105-UY-011, HS-505AE/BE (105-UC-009)",
+      "isReset": true
+    },
+    "m105TSHH072": {
+      "tagNo": "12545",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH093": {
+      "tagNo": "12546",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH094": {
+      "tagNo": "12547",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH095": {
+      "tagNo": "12548",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH096": {
+      "tagNo": "12549",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH097": {
+      "tagNo": "12550",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH098": {
+      "tagNo": "12551",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH099": {
+      "tagNo": "12552",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "m105TSHH100": {
+      "tagNo": "12553",
+      "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
     }
   }
 }
