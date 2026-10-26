@@ -306,6 +306,24 @@
       "tagNo": "12775",
       "desc": "MOS 105-FSLL-045B",
       "isMOS": true
+    },
+    "f105HS003M": {
+      "tagNo": "12288",
+      "desc": "MOS 105-LSHH/LLSLL-003",
+      "isMOS": true
+    },
+    "f105HS001AE": {
+      "tagNo": "12034",
+      "desc": "ESD Button In Case Fire Or Any Leak At 105-V-501 (Dcs)"
+    },
+    "f105HS001B": {
+      "tagNo": "12035",
+      "desc": "Esd Button In Case Fire Or Any Leak At 105-V-501 (Local)"
+    },
+    "f105HS011UCR": {
+      "tagNo": "12253",
+      "desc": "Reset 105-UY-015/018 (105-UC-011/013)",
+      "isReset": true
     }
   }
 }

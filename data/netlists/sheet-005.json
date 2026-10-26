@@ -35,8 +35,6 @@
     "in_f105HS011UCR": {
       "type": "INPUT",
       "label": "f105HS011UCR",
-      "desc": "12253 — Reset 105-UY-015/018 (105-UC-011/013)",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_m105LSHH030": {

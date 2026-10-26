@@ -22,20 +22,16 @@
     "in_f105HS003M": {
       "type": "INPUT",
       "label": "f105HS003M",
-      "desc": "12288 — MOS 105-LSHH/LLSLL-003",
-      "isMOS": true,
       "group": "Alarm/MOS — SHU Feed Surge Drum 105-V-501 HH (→ OR#002)"
     },
     "in_f105HS001AE": {
       "type": "INPUT",
       "label": "f105HS001AE",
-      "desc": "12034 — ESD Button In Case Fire Or Any Leak At 105-V-501 (Dcs)",
       "group": "ESD Pushbutton — Fire/Leak 105-V-501 (→ AND#001)"
     },
     "in_f105HS001B": {
       "type": "INPUT",
       "label": "f105HS001B",
-      "desc": "12035 — Esd Button In Case Fire Or Any Leak At 105-V-501 (Local)",
       "group": "ESD Pushbutton — Fire/Leak 105-V-501 (→ AND#001)"
     },
     "in_f105HS003UCR": {

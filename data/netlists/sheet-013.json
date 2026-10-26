@@ -1,0 +1,592 @@
+{
+  "id": "105-UC-003",
+  "title": "105-UC-003",
+  "sheetRef": "Sheet 13 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)",
+    "Bypass Start Up (→ OR#002)",
+    "Level / MOS — SHU Feed Surge Drum 105-V-501 LL (→ OR#003)",
+    "ESD Pushbutton — Fire/Leak 105-V-501 (→ AND#004)",
+    "ESD Pushbutton — SHU Reactor (→ AND#006 atas, AND#002 bawah)",
+    "ESD Pushbutton — HDS Section Depressurization (→ AND#008 atas & bawah)",
+    "Reset (manual, per latch)",
+    "Posisi Valve — Pump Run Permissive (→ AND#013 atas, AND#015 bawah)",
+    "Level / MOS — Splitter Bottom LL (→ OR#001 bawah)",
+    "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004 bawah)",
+    "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009 bawah)",
+    "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011 bawah)",
+    "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010 bawah)",
+    "Shutdown Compressor 105-K-501 (→ AND#011 bawah)",
+    "Flow / MOS — Recycle Gas To HDS (→ OR#013 bawah)",
+    "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+  ],
+  "effectGroups": [
+    "Output Proses — Pompa SHU Reactor Feed 105-P-501A/B (ke lapangan)",
+    "Alarm SHU Feed Surge Drum 105-V-501 LL (NOT dari m105LSLL003)",
+    "Internal HMI (monitor saja)",
+    "Output Link — L1G15A (dipakai ulang di AND#010 atas)"
+  ],
+  "nodes": {
+    "in_m105FSLL007A": {
+      "type": "INPUT",
+      "label": "m105FSLL007A",
+      "desc": "12336 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_m105FI007A": {
+      "type": "INPUT",
+      "label": "m105FI007A",
+      "desc": "12300 — 105-FT-007A Fault Status",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_m105FSLL007B": {
+      "type": "INPUT",
+      "label": "m105FSLL007B",
+      "desc": "12337 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_m105FI007B": {
+      "type": "INPUT",
+      "label": "m105FI007B",
+      "desc": "12301 — 105FT007B Fault Status",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_m105FSLL007C": {
+      "type": "INPUT",
+      "label": "m105FSLL007C",
+      "desc": "12338 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_m105FI007C": {
+      "type": "INPUT",
+      "label": "m105FI007C",
+      "desc": "12302 — 105FT007C Fault Status",
+      "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
+    },
+    "in_f105HS007SB": {
+      "type": "INPUT",
+      "label": "f105HS007SB",
+      "desc": "12058 — Switch Start Up Bypass Permissive 105-UV-004 (AUX)",
+      "group": "Bypass Start Up (→ OR#002)"
+    },
+    "in_m105LSLL003": {
+      "type": "INPUT",
+      "label": "m105LSLL003",
+      "desc": "12398 — SHU Feed Surge Drum 105-V-501 LL Alm",
+      "group": "Level / MOS — SHU Feed Surge Drum 105-V-501 LL (→ OR#003)"
+    },
+    "in_f105HS003M": {
+      "type": "INPUT",
+      "label": "f105HS003M",
+      "group": "Level / MOS — SHU Feed Surge Drum 105-V-501 LL (→ OR#003)"
+    },
+    "in_f105HS001AE": {
+      "type": "INPUT",
+      "label": "f105HS001AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-V-501 (→ AND#004)"
+    },
+    "in_f105HS001B": {
+      "type": "INPUT",
+      "label": "f105HS001B",
+      "group": "ESD Pushbutton — Fire/Leak 105-V-501 (→ AND#004)"
+    },
+    "in_f105HS007A": {
+      "type": "INPUT",
+      "label": "f105HS007A",
+      "group": "ESD Pushbutton — SHU Reactor (→ AND#006 atas, AND#002 bawah)"
+    },
+    "in_f105HS007B": {
+      "type": "INPUT",
+      "label": "f105HS007B",
+      "group": "ESD Pushbutton — SHU Reactor (→ AND#006 atas, AND#002 bawah)"
+    },
+    "in_f105HS006A": {
+      "type": "INPUT",
+      "label": "f105HS006A",
+      "group": "ESD Pushbutton — HDS Section Depressurization (→ AND#008 atas & bawah)"
+    },
+    "in_f105HS006B": {
+      "type": "INPUT",
+      "label": "f105HS006B",
+      "group": "ESD Pushbutton — HDS Section Depressurization (→ AND#008 atas & bawah)"
+    },
+    "in_f105HS005UCR": {
+      "type": "INPUT",
+      "label": "f105HS005UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS011UCR": {
+      "type": "INPUT",
+      "label": "f105HS011UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS003UCRA": {
+      "type": "INPUT",
+      "label": "f105HS003UCRA",
+      "desc": "12044 — Reset 105-HS-501AE/BE, UY-004 (105-UC-003)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105ZSO003": {
+      "type": "INPUT",
+      "label": "f105ZSO003",
+      "desc": "12200 — Open Signal to Pump Run Permissive",
+      "group": "Posisi Valve — Pump Run Permissive (→ AND#013 atas, AND#015 bawah)"
+    },
+    "in_m105LSLL009": {
+      "type": "INPUT",
+      "label": "m105LSLL009",
+      "group": "Level / MOS — Splitter Bottom LL (→ OR#001 bawah)"
+    },
+    "in_f105HS009M": {
+      "type": "INPUT",
+      "label": "f105HS009M",
+      "group": "Level / MOS — Splitter Bottom LL (→ OR#001 bawah)"
+    },
+    "in_f105HS002AE": {
+      "type": "INPUT",
+      "label": "f105HS002AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004 bawah)"
+    },
+    "in_f105HS002B": {
+      "type": "INPUT",
+      "label": "f105HS002B",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004 bawah)"
+    },
+    "in_f105HS025UCR": {
+      "type": "INPUT",
+      "label": "f105HS025UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105ZSO010": {
+      "type": "INPUT",
+      "label": "f105ZSO010",
+      "group": "Posisi Valve — Pump Run Permissive (→ AND#013 atas, AND#015 bawah)"
+    },
+    "in_m105LSHH030": {
+      "type": "INPUT",
+      "label": "m105LSHH030",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009 bawah)"
+    },
+    "in_f105HS030LM": {
+      "type": "INPUT",
+      "label": "f105HS030LM",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009 bawah)"
+    },
+    "in_f105HS010A": {
+      "type": "INPUT",
+      "label": "f105HS010A",
+      "group": "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011 bawah)"
+    },
+    "in_f105HS010B": {
+      "type": "INPUT",
+      "label": "f105HS010B",
+      "group": "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011 bawah)"
+    },
+    "in_f105HS019AE": {
+      "type": "INPUT",
+      "label": "f105HS019AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010 bawah)"
+    },
+    "in_f105HS019B": {
+      "type": "INPUT",
+      "label": "f105HS019B",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010 bawah)"
+    },
+    "in_f105XS012": {
+      "type": "INPUT",
+      "label": "f105XS012",
+      "group": "Shutdown Compressor 105-K-501 (→ AND#011 bawah)"
+    },
+    "in_f105HS007UCR": {
+      "type": "INPUT",
+      "label": "f105HS007UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS012UCR": {
+      "type": "INPUT",
+      "label": "f105HS012UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS009UCR": {
+      "type": "INPUT",
+      "label": "f105HS009UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_m105FSLL030": {
+      "type": "INPUT",
+      "label": "m105FSLL030",
+      "group": "Flow / MOS — Recycle Gas To HDS (→ OR#013 bawah)"
+    },
+    "in_f105HS030M": {
+      "type": "INPUT",
+      "label": "f105HS030M",
+      "group": "Flow / MOS — Recycle Gas To HDS (→ OR#013 bawah)"
+    },
+    "in_m105TSHH072": {
+      "type": "INPUT",
+      "label": "m105TSHH072",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH093": {
+      "type": "INPUT",
+      "label": "m105TSHH093",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH094": {
+      "type": "INPUT",
+      "label": "m105TSHH094",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH095": {
+      "type": "INPUT",
+      "label": "m105TSHH095",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH096": {
+      "type": "INPUT",
+      "label": "m105TSHH096",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH097": {
+      "type": "INPUT",
+      "label": "m105TSHH097",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH098": {
+      "type": "INPUT",
+      "label": "m105TSHH098",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH099": {
+      "type": "INPUT",
+      "label": "m105TSHH099",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "in_m105TSHH100": {
+      "type": "INPUT",
+      "label": "m105TSHH100",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014 bawah)"
+    },
+    "vot_001t": {
+      "type": "VOTING",
+      "gateId": "001",
+      "label": "VOT_105UC003_1",
+      "k": 2,
+      "inputs": [
+        "in_m105FSLL007A",
+        "in_m105FSLL007B",
+        "in_m105FSLL007C"
+      ],
+      "fltInputs": [
+        "in_m105FI007A",
+        "in_m105FI007B",
+        "in_m105FI007C"
+      ]
+    },
+    "or_002t": {
+      "type": "OR",
+      "gateId": "002",
+      "inputs": [
+        "vot_001t",
+        "in_f105HS007SB"
+      ]
+    },
+    "or_003t": {
+      "type": "OR",
+      "gateId": "003",
+      "inputs": [
+        "in_m105LSLL003",
+        "in_f105HS003M"
+      ]
+    },
+    "and_004t": {
+      "type": "AND",
+      "gateId": "004",
+      "inputs": [
+        "in_f105HS001AE",
+        "in_f105HS001B"
+      ]
+    },
+    "and_005t": {
+      "type": "AND",
+      "gateId": "005",
+      "inputs": [
+        "or_003t",
+        "and_004t"
+      ]
+    },
+    "not_012t": {
+      "type": "NOT",
+      "gateId": "012",
+      "input": "in_m105LSLL003"
+    },
+    "and_006t": {
+      "type": "AND",
+      "gateId": "006",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_007t": {
+      "type": "RS",
+      "gateId": "007",
+      "label": "RS_105UC003_1",
+      "s": "and_006t",
+      "r": "in_f105HS005UCR"
+    },
+    "and_008t": {
+      "type": "AND",
+      "gateId": "008",
+      "inputs": [
+        "in_f105HS006A",
+        "in_f105HS006B"
+      ]
+    },
+    "rs_009t": {
+      "type": "RS",
+      "gateId": "009",
+      "label": "RS_105UC003_2",
+      "s": "and_008t",
+      "r": "in_f105HS011UCR"
+    },
+    "and_010t": {
+      "type": "AND",
+      "gateId": "010",
+      "inputs": [
+        "or_002t",
+        "and_005t",
+        "rs_007t",
+        "rs_009t",
+        "out_fL1G15A_L1G15A"
+      ]
+    },
+    "rs_011t": {
+      "type": "RS",
+      "gateId": "011",
+      "label": "RS_105UC003_3",
+      "s": "and_010t",
+      "r": "in_f105HS003UCRA"
+    },
+    "and_013t": {
+      "type": "AND",
+      "gateId": "013",
+      "inputs": [
+        "rs_011t",
+        "in_f105ZSO003"
+      ]
+    },
+    "or_001b": {
+      "type": "OR",
+      "gateId": "001",
+      "inputs": [
+        "in_m105LSLL009",
+        "in_f105HS009M"
+      ]
+    },
+    "and_002b": {
+      "type": "AND",
+      "gateId": "002",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_003b": {
+      "type": "RS",
+      "gateId": "003",
+      "label": "RS_105UC003_4",
+      "s": "and_002b",
+      "r": "in_f105HS005UCR"
+    },
+    "and_004b": {
+      "type": "AND",
+      "gateId": "004",
+      "inputs": [
+        "in_f105HS002AE",
+        "in_f105HS002B"
+      ]
+    },
+    "rs_005b": {
+      "type": "RS",
+      "gateId": "005",
+      "label": "RS_105UC003_5",
+      "s": "and_004b",
+      "r": "in_f105HS025UCR"
+    },
+    "and_006b": {
+      "type": "AND",
+      "gateId": "006",
+      "inputs": [
+        "or_001b",
+        "rs_003b",
+        "rs_005b"
+      ]
+    },
+    "rs_007b": {
+      "type": "RS",
+      "gateId": "007",
+      "label": "RS_105UC003_6",
+      "s": "and_006b",
+      "r": "in_f105HS007UCR"
+    },
+    "and_008b": {
+      "type": "AND",
+      "gateId": "008",
+      "inputs": [
+        "in_f105HS006A",
+        "in_f105HS006B"
+      ]
+    },
+    "or_009b": {
+      "type": "OR",
+      "gateId": "009",
+      "inputs": [
+        "in_m105LSHH030",
+        "in_f105HS030LM"
+      ]
+    },
+    "and_010b": {
+      "type": "AND",
+      "gateId": "010",
+      "inputs": [
+        "in_f105HS019AE",
+        "in_f105HS019B"
+      ]
+    },
+    "and_011b": {
+      "type": "AND",
+      "gateId": "011",
+      "inputs": [
+        "and_008b",
+        "or_009b",
+        "in_f105HS010A",
+        "in_f105HS010B",
+        "and_010b",
+        "in_f105XS012"
+      ]
+    },
+    "rs_012b": {
+      "type": "RS",
+      "gateId": "012",
+      "label": "RS_105UC003_7",
+      "s": "and_011b",
+      "r": "in_f105HS012UCR"
+    },
+    "or_013b": {
+      "type": "OR",
+      "gateId": "013",
+      "inputs": [
+        "in_m105FSLL030",
+        "in_f105HS030M"
+      ]
+    },
+    "vot_014b": {
+      "type": "VOTING",
+      "gateId": "014",
+      "label": "VOT_105UC003_2",
+      "k": 2,
+      "inputs": [
+        "in_m105TSHH072",
+        "in_m105TSHH093",
+        "in_m105TSHH094",
+        "in_m105TSHH095",
+        "in_m105TSHH096",
+        "in_m105TSHH097",
+        "in_m105TSHH098",
+        "in_m105TSHH099",
+        "in_m105TSHH100"
+      ],
+      "fltInputs": []
+    },
+    "and_015b": {
+      "type": "AND",
+      "gateId": "015",
+      "inputs": [
+        "rs_007b",
+        "in_f105ZSO010",
+        "rs_012b",
+        "or_013b",
+        "vot_014b"
+      ]
+    },
+    "rs_016b": {
+      "type": "RS",
+      "gateId": "016",
+      "label": "RS_105UC003_8",
+      "s": "and_015b",
+      "r": "in_f105HS009UCR"
+    },
+    "out_VOT_1_105UC003": {
+      "type": "OUTPUT",
+      "label": "VOT_1_105UC003",
+      "desc": "12802 — Internal HMI",
+      "source": "vot_001t",
+      "group": "Internal HMI (monitor saja)",
+      "internalOnly": true
+    },
+    "out_f105LALL003": {
+      "type": "OUTPUT",
+      "label": "f105LALL003",
+      "desc": "12875 — SHU FEED SURGE DRUM 105-V-501 LL Alm",
+      "source": "not_012t",
+      "group": "Alarm SHU Feed Surge Drum 105-V-501 LL (NOT dari m105LSLL003)"
+    },
+    "out_RS_1_105UC003": {
+      "type": "OUTPUT",
+      "label": "RS_1_105UC003",
+      "desc": "12803 — Internal HMI",
+      "source": "rs_011t",
+      "group": "Internal HMI (monitor saja)",
+      "internalOnly": true
+    },
+    "out_f105HS501AE": {
+      "type": "OUTPUT",
+      "label": "f105HS501AE",
+      "desc": "12123 — SHU Reactor Feed Pump 105-P-501A",
+      "source": "and_013t",
+      "group": "Output Proses — Pompa SHU Reactor Feed 105-P-501A/B (ke lapangan)"
+    },
+    "out_f105HS501BE": {
+      "type": "OUTPUT",
+      "label": "f105HS501BE",
+      "desc": "12124 — SHU Reactor Feed Pump 105-P-501B",
+      "source": "and_013t",
+      "group": "Output Proses — Pompa SHU Reactor Feed 105-P-501A/B (ke lapangan)"
+    },
+    "out_f105UY004": {
+      "type": "OUTPUT",
+      "label": "f105UY004",
+      "desc": "12216 — SHU Reactor Feed Pumps 105-P-501A/B Outlet",
+      "source": "and_013t",
+      "group": "Output Proses — Pompa SHU Reactor Feed 105-P-501A/B (ke lapangan)"
+    },
+    "out_fL1G15A_L1G15A": {
+      "type": "OUTPUT",
+      "label": "fL1G15A_L1G15A",
+      "desc": "n/a — tag link L1G15A (tanpa nomor di CSV)",
+      "source": "rs_016b",
+      "group": "Output Link — L1G15A (dipakai ulang di AND#010 atas)"
+    }
+  },
+  "summary": [
+    "Halaman ini punya dua blok. Blok atas: AND#010 (5 masukan) memicu latch RS#011 (RS_105UC003_3) yang, bersama f105ZSO003 lewat AND#013, mengeluarkan f105HS501AE, f105HS501BE dan f105UY004 (pompa SHU Reactor Feed 105-P-501A/B). Blok bawah mirip sheet 9 dan menghasilkan tag link fL1G15A_L1G15A.",
+    "Lima masukan AND#010: OR#002 (voting 2oo3 aliran m105FSLL007A/B/C atau bypass f105HS007SB), AND#005 (OR#003 level m105LSLL003/MOS f105HS003M DAN AND#004 tombol f105HS001AE/B), latch RS#007 (ESD f105HS007A/B), latch RS#009 (ESD f105HS006A/B) dan fL1G15A_L1G15A dari blok bawah.",
+    "Blok bawah: AND#015 (5 masukan) = Q1 RS#007, f105ZSO010, Q1 RS#012, OR#013 (m105FSLL030 / MOS f105HS030M) dan voting 2oo9 #014 (sembilan sensor m105TSHH072..100). Hasilnya masuk RS#016 yang mengeluarkan fL1G15A_L1G15A, dipakai lagi sebagai masukan AND#010 di blok atas.",
+    "Tiap latch punya tag reset: f105HS005UCR (RS#007 atas dan RS#003 bawah, satu tombol), f105HS011UCR, f105HS003UCRA, f105HS025UCR, f105HS007UCR, f105HS012UCR, f105HS009UCR.",
+    "Alarm f105LALL003 adalah NOT dari m105LSLL003 (effect); di gambar TRUE saat semua input FALSE."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 13 of 34 '105-UC-003' (P02_UNIT_105 v1.175), tampilan penuh plus crop zoom, di-trace 2026-10-26. Deskripsi dan nomor tag dari 'Tagnames Complete Listing.csv'.",
+    "Gate ID dibaca dari kotak kecil; ID berulang antara blok atas dan bawah sehingga key node diberi akhiran t (atas) dan b (bawah), seperti sheet 3. Di bawah, RS_105UC003_4 ber-ID 003, _5 = 005, _6 = 007, _7 = 012, _8 = 016.",
+    "Pemetaan RS mengikuti Koreksi #12/#14: field r = tag reset (pin S), field s = gerbang kondisi apa adanya (pin R1 berlingkaran).",
+    "AND#010 atas (5 pin dari atas): OR#002, AND#005, Q1 RS#007, Q1 RS#009, fL1G15A_L1G15A. AND#011 bawah (6 pin): AND#008, OR#009, f105HS010A, f105HS010B, AND#010, f105XS012. AND#015 bawah (5 pin): Q1 RS#007, f105ZSO010, Q1 RS#012, OR#013, OUT voting #014. Urutan pin diputuskan dari nesting kabel.",
+    "VOTING_2OO3 #001: k=2; pin FLT (m105FI007A/B/C) = input digital biasa tanpa pengaruh (keputusan user sheet 7). VOTING_2OO9 #014: k=2, urutan pin IN3,IN2,IN1,IN4..IN9 = m105TSHH072, 093, 094, 095, 096, 097, 098, 099, 100, sama seperti sheet 9.",
+    "fL1G15A_L1G15A digambar sebagai keluaran Q1 RS#016 (blok bawah) dan sebagai sumber di AND#010 (blok atas). HIPOTESIS: satu tag, OUTPUT dari RS#016 yang dibaca langsung AND#010 (tanpa loop karena blok bawah tidak bergantung pada blok atas). Tag ini tidak ada nomor di CSV.",
+    "VOT_1_105UC003 (12802) dan RS_1_105UC003 (12803) = internal HMI, digambar di tengah kabel; dimodelkan OUTPUT internalOnly (HIPOTESIS), tetap dihitung di status sheet.",
+    "f105HS501AE, f105HS501BE, f105UY004 bercabang dari satu keluaran AND#013.",
+    "BUKTI SILANG nilai live: semua input FALSE menghasilkan f105LALL003 TRUE (NOT dari FALSE) dan semua OUTPUT lain FALSE; sama dengan gambar.",
+    "Polaritas NC/NO tombol ESD dan sensor tidak ditafsirkan; logic mengikuti kabel apa adanya. Tag lintas sheet (f105HS003M, f105HS001AE/B, f105HS011UCR dan tag sheet 4-9) didaftarkan di data/tags.json."
+  ]
+}
