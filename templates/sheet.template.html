@@ -876,7 +876,7 @@ function makeGateNode(id, n){
     stateRectRef = stateRect;
   } else if(n.type === 'VOTING'){
     const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + 12, 'text-anchor': 'middle', class: 'pin-label' });
-    kLabel.textContent = 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
+    kLabel.textContent = (n.fltInputs || []).length ? 'IN>' + (n.inputs.length - n.k) + ' & FLT>' + (n.fltInputs.length - n.k) + ' TRUE' : 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
     g.appendChild(kLabel);
     /* nama pin sesuai gambar vendor: IN1, FLT1, IN2, ... */
     deps(n).forEach(function(depId, idx){

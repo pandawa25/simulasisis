@@ -582,7 +582,7 @@
     "Gate ID dibaca dari kotak kecil; ID berulang antara blok atas dan bawah sehingga key node diberi akhiran t (atas) dan b (bawah), seperti sheet 3. Di bawah, RS_105UC003_4 ber-ID 003, _5 = 005, _6 = 007, _7 = 012, _8 = 016.",
     "Pemetaan RS mengikuti Koreksi #12/#14: field r = tag reset (pin S), field s = gerbang kondisi apa adanya (pin R1 berlingkaran).",
     "AND#010 atas (5 pin dari atas): OR#002, AND#005, Q1 RS#007, Q1 RS#009, fL1G15A_L1G15A. AND#011 bawah (6 pin): AND#008, OR#009, f105HS010A, f105HS010B, AND#010, f105XS012. AND#015 bawah (5 pin): Q1 RS#007, f105ZSO010, Q1 RS#012, OR#013, OUT voting #014. Urutan pin diputuskan dari nesting kabel.",
-    "VOTING_2OO3 #001: k=2; pin FLT (m105FI007A/B/C) = input digital biasa tanpa pengaruh (keputusan user sheet 7). VOTING_2OO9 #014: k=2, urutan pin IN3,IN2,IN1,IN4..IN9 = m105TSHH072, 093, 094, 095, 096, 097, 098, 099, 100, sama seperti sheet 9.",
+    "VOTING_2OO3 #001: k=2; pin FLT (m105FI007A/B/C) ikut menentukan output (Koreksi #33): output TRUE bila minimal dua IN TRUE DAN minimal dua FLT TRUE. VOTING_2OO9 #014: k=2, urutan pin IN3,IN2,IN1,IN4..IN9 = m105TSHH072, 093, 094, 095, 096, 097, 098, 099, 100, sama seperti sheet 9.",
     "fL1G15A_L1G15A digambar sebagai keluaran Q1 RS#016 (blok bawah) dan sebagai sumber di AND#010 (blok atas). HIPOTESIS: satu tag, OUTPUT dari RS#016 yang dibaca langsung AND#010 (tanpa loop karena blok bawah tidak bergantung pada blok atas). Tag ini tidak ada nomor di CSV.",
     "VOT_1_105UC003 (12802) dan RS_1_105UC003 (12803) = internal HMI, digambar di tengah kabel; dimodelkan OUTPUT internalOnly (HIPOTESIS), tetap dihitung di status sheet.",
     "f105HS501AE, f105HS501BE, f105UY004 bercabang dari satu keluaran AND#013.",

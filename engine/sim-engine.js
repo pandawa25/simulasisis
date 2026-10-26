@@ -47,8 +47,8 @@
       switch (n.type) {
         case "AND": case "OR": refs = n.inputs || []; break;
         case "NUMBITS": refs = n.inputs || []; break;
-        /* VOTING: pin FLT hanya penanda tampilan (Koreksi #25), tapi tetap
-           dihitung sbg dependensi supaya urutan evaluasi konsisten */
+        /* VOTING: pin FLT ikut menentukan output (Koreksi #33, isi blok
+           VOTING_2OO3 vendor: NUMBITS+GT+AND), jadi juga dependensi */
         case "VOTING": refs = (n.inputs || []).concat(n.fltInputs || []); break;
         case "RS": refs = [n.s, n.r]; break;
         case "NOT": case "BUFFER": case "MOVE": case "TOF": case "GT": case "R_TRIG": refs = [n.input]; break;
@@ -176,7 +176,16 @@
             // input yang FALSE mencapai k (mis. 2oo9 -> output FALSE kalau
             // >=2 dari 9 input FALSE). Jadi output = (jumlah FALSE < k).
             const countFalse = n.inputs.reduce((acc, i) => acc + (v[i] ? 0 : 1), 0);
-            v[id] = countFalse < n.k;
+            let healthy = countFalse < n.k;
+            // Koreksi #33: blok VOTING dgn pin FLT di gambar vendor berisi
+            // NUMBITS#001(IN)->GT#002(>1), NUMBITS#003(FLT)->GT#004(>1),
+            // AND#005. Jadi output = (IN TRUE > n-k) DAN (FLT TRUE > n-k);
+            // utk 2oo3 konstanta GT = 1. Pin FLT TRUE = sehat.
+            if ((n.fltInputs || []).length) {
+              const fltTrue = n.fltInputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+              healthy = healthy && fltTrue > n.fltInputs.length - n.k;
+            }
+            v[id] = healthy;
             break;
           }
           case "RS": {
