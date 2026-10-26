@@ -156,6 +156,110 @@
     "m105TSHH100": {
       "tagNo": "12553",
       "desc": "HDS Reactor 105-R-502 Outlet HH Alm"
+    },
+    "f105TSHH071": {
+      "tagNo": "12595",
+      "desc": "High High Temperature At HDS Reactor Heater  Outlet 105-F-502"
+    },
+    "f105HS071M": {
+      "tagNo": "12116",
+      "desc": "MOS 105-TSHH-071",
+      "isMOS": true
+    },
+    "f105HS005A": {
+      "tagNo": "12049",
+      "desc": "ESD Button To Emergency Stop Hds Reactor Heater 105-F-502 (AUX)"
+    },
+    "f105HS005B": {
+      "tagNo": "12050",
+      "desc": "Esd Button To Emergency Stop Hds Reactor Heater 105-F-502 (Local)"
+    },
+    "m105PSLL107A": {
+      "tagNo": "12470",
+      "desc": "Pilot Gas Pressure 105-F-502 Inlet LL Alm"
+    },
+    "m105PI107A": {
+      "tagNo": "12423",
+      "desc": "105PT107A Fault Status"
+    },
+    "m105PSLL107B": {
+      "tagNo": "12471",
+      "desc": "Pilot Gas Pressure 105-F-502 Inlet LL Alm"
+    },
+    "m105PI107B": {
+      "tagNo": "12424",
+      "desc": "105PT107B Fault Status"
+    },
+    "m105PSLL107C": {
+      "tagNo": "12472",
+      "desc": "Pilot Gas Pressure 105-F-502 Inlet LL Alm"
+    },
+    "m105PI107C": {
+      "tagNo": "12425",
+      "desc": "105PT107C Fault Status"
+    },
+    "m105PSHH105": {
+      "tagNo": "12445",
+      "desc": "Fuel Gas From 105-E-512 To 105-F-502 Inlet HH Alm"
+    },
+    "m105PSLL105": {
+      "tagNo": "12469",
+      "desc": "Fuel Gas From 105-E-512 To 105-F-502 Inlet LL Alm"
+    },
+    "f105HS105M": {
+      "tagNo": "12120",
+      "desc": "MOS 105-PSHH/PSLL-105",
+      "isMOS": true
+    },
+    "m105LSHH040A": {
+      "tagNo": "12381",
+      "desc": "Fuel Gas Ko Drum 105-V-507 HH Alm"
+    },
+    "m105LI040A": {
+      "tagNo": "12367",
+      "desc": "105LT040A Fault Status"
+    },
+    "m105LSHH040B": {
+      "tagNo": "12382",
+      "desc": "Fuel Gas Ko Drum 105-V-507 HH Alm"
+    },
+    "m105LI040B": {
+      "tagNo": "12368",
+      "desc": "105LT040B Fault Status"
+    },
+    "m105LSHH040C": {
+      "tagNo": "12383",
+      "desc": "Fuel Gas Ko Drum 105-V-507 HH Alm"
+    },
+    "m105LI040C": {
+      "tagNo": "12369",
+      "desc": "105LT040C Fault Status"
+    },
+    "m105PSHH101": {
+      "tagNo": "12444",
+      "desc": "Combustion Chamber Press 105-F-502 HH Alm"
+    },
+    "f105HS010M": {
+      "tagNo": "12777",
+      "desc": "MOS 105-PSHH-101",
+      "isMOS": true
+    },
+    "f105BS620A": {
+      "tagNo": "12026",
+      "desc": "Pilot burner flame off 105-F-502"
+    },
+    "f105BS620B": {
+      "tagNo": "12027",
+      "desc": "Pilot Burner Flame Off 105-F-502"
+    },
+    "f105BS620C": {
+      "tagNo": "12028",
+      "desc": "Pilot Burner Flame Off 105-F-502"
+    },
+    "f105HS620_ACM": {
+      "tagNo": "12281",
+      "desc": "MOS 105BS620A to 105BS620H",
+      "isMOS": true
     }
   }
 }

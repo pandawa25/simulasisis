@@ -28,26 +28,21 @@
     "in_f105TSHH071": {
       "type": "INPUT",
       "label": "f105TSHH071",
-      "desc": "12595 — High High Temperature At HDS Reactor Heater Outlet 105-F-502",
       "group": "Temperatur HH — Reactor Heater (→ TOF#001, OR#003)"
     },
     "in_f105HS071M": {
       "type": "INPUT",
       "label": "f105HS071M",
-      "desc": "12116 — MOS 105-TSHH-071",
-      "isMOS": true,
       "group": "Temperatur HH — Reactor Heater (→ TOF#001, OR#003)"
     },
     "in_m105PSHH105": {
       "type": "INPUT",
       "label": "m105PSHH105",
-      "desc": "12445 — Fuel Gas From 105-E-512 To 105-F-502 Inlet HH Alm",
       "group": "Tekanan Fuel Gas HH/LL (→ TOF#004, TOF#005)"
     },
     "in_m105PSLL105": {
       "type": "INPUT",
       "label": "m105PSLL105",
-      "desc": "12469 — Fuel Gas From 105-E-512 To 105-F-502 Inlet LL Alm",
       "group": "Tekanan Fuel Gas HH/LL (→ TOF#004, TOF#005)"
     },
     "in_f105HS010SB": {
@@ -58,44 +53,36 @@
     "in_f105HS105M": {
       "type": "INPUT",
       "label": "f105HS105M",
-      "desc": "12120 — MOS 105-PSHH/PSLL-105",
-      "isMOS": true,
       "group": "Bypass / MOS (→ OR#007, OR#011)"
     },
     "in_m105LSHH040A": {
       "type": "INPUT",
       "label": "m105LSHH040A",
-      "desc": "12381 — Fuel Gas Ko Drum 105-V-507 HH Alm",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105LI040A": {
       "type": "INPUT",
       "label": "m105LI040A",
-      "desc": "12367 — 105LT040A Fault Status",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105LSHH040B": {
       "type": "INPUT",
       "label": "m105LSHH040B",
-      "desc": "12382 — Fuel Gas Ko Drum 105-V-507 HH Alm",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105LI040B": {
       "type": "INPUT",
       "label": "m105LI040B",
-      "desc": "12368 — 105LT040B Fault Status",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105LSHH040C": {
       "type": "INPUT",
       "label": "m105LSHH040C",
-      "desc": "12383 — Fuel Gas Ko Drum 105-V-507 HH Alm",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105LI040C": {
       "type": "INPUT",
       "label": "m105LI040C",
-      "desc": "12369 — 105LT040C Fault Status",
       "group": "Level Ko Drum 105-V-507 — Voting 2oo3 (blok #008)"
     },
     "in_m105PSLL300A": {

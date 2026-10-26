@@ -88,9 +88,9 @@
       "slug": "sheet-010",
       "tag": "105-UC-010",
       "note": "bagian d",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-010.html",
+      "ceUrl": "sheets/sheet-010-ce.html"
     },
     {
       "sheet": 11,
