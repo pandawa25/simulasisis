@@ -259,9 +259,9 @@
       "slug": "sheet-029",
       "tag": "105-UC-030",
       "note": "bagian 3b",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-029.html",
+      "ceUrl": "sheets/sheet-029-ce.html"
     },
     {
       "sheet": 30,

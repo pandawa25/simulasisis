@@ -21,56 +21,46 @@
     "in_m105FSLL018A": {
       "type": "INPUT",
       "label": "m105FSLL018A",
-      "desc": "12339 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018B": {
       "type": "INPUT",
       "label": "m105FSLL018B",
-      "desc": "12340 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018C": {
       "type": "INPUT",
       "label": "m105FSLL018C",
-      "desc": "12341 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018D": {
       "type": "INPUT",
       "label": "m105FSLL018D",
-      "desc": "12342 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018E": {
       "type": "INPUT",
       "label": "m105FSLL018E",
-      "desc": "12343 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018F": {
       "type": "INPUT",
       "label": "m105FSLL018F",
-      "desc": "12344 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018G": {
       "type": "INPUT",
       "label": "m105FSLL018G",
-      "desc": "12345 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_m105FSLL018H": {
       "type": "INPUT",
       "label": "m105FSLL018H",
-      "desc": "12346 — Splitter Heater 105-F-501 Inlet LL Alm",
       "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
     },
     "in_f105HS018M": {
       "type": "INPUT",
       "label": "f105HS018M",
-      "desc": "12085 — MOS 105-FSLL-018",
-      "isMOS": true,
       "group": "MOS Flow LL 018 (→ OR#009)"
     },
     "in_m105LSLL009": {

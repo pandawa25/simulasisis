@@ -463,6 +463,46 @@
       "tagNo": "12113",
       "desc": "MOS 105-TSHH-046",
       "isMOS": true
+    },
+    "m105FSLL018A": {
+      "tagNo": "12339",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018B": {
+      "tagNo": "12340",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018C": {
+      "tagNo": "12341",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018D": {
+      "tagNo": "12342",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018E": {
+      "tagNo": "12343",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018F": {
+      "tagNo": "12344",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018G": {
+      "tagNo": "12345",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "m105FSLL018H": {
+      "tagNo": "12346",
+      "desc": "Splitter Heater 105-F-501 Inlet LL Alm"
+    },
+    "f105HS018M": {
+      "tagNo": "12085",
+      "desc": "MOS 105-FSLL-018",
+      "isMOS": true
+    },
+    "AND_105UC030_3_b_FEED_1": {
+      "desc": "Sinyal internal — keluaran AND#021 sheet 29 (105-UC-030_3_b), dipakai sebagai cause di sheet 28 (AND#014)"
     }
   }
 }

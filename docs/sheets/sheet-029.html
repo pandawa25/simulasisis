@@ -1,0 +1,1659 @@
+<meta charset="utf-8">
+<title>Simulator 105-UC-030_3_b</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ===========================================================
+   Design plan
+   Layout: sticky top bar (title + global controls) · left/main =
+   auto-layered left-to-right logic canvas (topological columns,
+   mirrors original sheet's left=input / right=output flow) in its
+   own horizontal-scroll viewport · right rail = latch & output
+   readouts + collapsible netlist / assumption notes.
+   =========================================================== */
+/* ===========================================================
+   Shared design tokens — Portal, Logic Detail, Cause & Effect
+   SUMBER TUNGGAL. Sebelumnya tiap template (portal/sheet/CE)
+   punya :root sendiri yg di-copy-paste terpisah -> gampang
+   melenceng diam-diam (contoh nyata: --accent-text yg sempat
+   cuma ditambah ke 2 dari 3 template, portal ketinggalan;
+   portal juga pakai nama var beda --done/--pending padahal
+   secara makna sama dgn --false/--true di 2 template lain).
+   Diinjeksikan oleh scripts/build.js lewat placeholder
+   <!--SHARED_TOKENS--> ke semua template -- edit warna cukup
+   SEKALI DI SINI, jangan edit :root di masing-masing template.
+   =========================================================== */
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --wire:#9aa5b4;
+
+  --accent:#b9770e;       /* dipakai utk border/background/stroke (tombol primary, fokus outline, dll) */
+  --accent-fg:#5c3a07;    /* teks DI ATAS background --accent (mis. tombol primary) */
+  --accent-text:#935a08;  /* teks aksen DI ATAS background terang (header grup, dsb) -- lebih gelap drpd --accent, supaya kontras >=4.5:1 (WCAG AA) thd bg terang */
+
+  /* status "sehat/normal/selesai" vs "trip/alarm/aktif" -- SATU
+     pasangan token dipakai konsisten di semua halaman (sebelumnya
+     portal py nama sendiri --done/--pending yg representasi warna
+     sama tapi vocab beda dari --false/--true di sheet/CE). */
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --neutral-fg:#8793a6;   /* status netral: "belum dikerjakan" (portal), bukan alarm/trip */
+  --neutral-bg:#eef1f5;
+
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --wire:#3c485f;
+    --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+    --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --wire:#3c485f;
+  --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+  --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--disp);
+  margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{
+  content:"";
+  position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px);
+  z-index:20; background:var(--panel);
+}
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1600px; margin:0 auto; padding-bottom:40px}
+
+/* header */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:14px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.05rem; font-weight:650; letter-spacing:.01em}
+.topbar .sheetref{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.btn:focus-visible, .pin:focus-visible, summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+/* subnav: navigasi ke portal + sheet sebelumnya/berikutnya, supaya
+   halaman-halaman yang berkaitan gampang dijangkau (bukan dead-end). */
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
+
+/* Koreksi UI/UX (2026-10-25): pemisah visual antar-klaster tombol subnav
+   (portal-link / view-switch / pager) supaya hierarki navigasi lebih
+   jelas dibanding deretan tombol rata semua tanpa pengelompokan. */
+.subnav-divider{width:1px; height:20px; background:var(--border); flex:0 0 auto}
+
+/* "tab" switch Logic Detail <-> Cause & Effect -- sebelumnya cuma 1 link
+   bertuliskan "Lihat versi sederhana ->" yg terasa seperti aksi sekali-
+   klik, bukan penanda ada 2 tampilan utk sheet yg sama. Segmented
+   control ini menunjukkan ADA 2 opsi & yang mana sedang aktif. */
+.view-tabs{
+  display:flex; align-items:center; gap:2px; background:var(--panel);
+  border:1px solid var(--border); border-radius:8px; padding:3px;
+}
+.view-tab{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; padding:6px 12px;
+  border-radius:6px; text-decoration:none; color:var(--fg-dim); white-space:nowrap;
+  cursor:default;
+}
+a.view-tab{cursor:pointer}
+.view-tab.active{background:var(--panel-2); color:var(--fg)}
+a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
+.view-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* layout */
+.layout{padding:16px 4px}
+
+.canvas-toolbar{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap}
+.zoom-ctrl{display:inline-flex; align-items:center; gap:2px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:3px}
+.zoom-ctrl button{
+  min-width:28px; height:28px; padding:0 8px; display:flex; align-items:center; justify-content:center;
+  border:none; background:transparent; color:var(--fg); font-size:.85rem; font-weight:700;
+  cursor:pointer; border-radius:6px; font-family:var(--disp);
+}
+.zoom-ctrl button:hover{background:var(--panel-2)}
+.zoom-pct{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim); min-width:42px; text-align:center}
+.zoom-hint{font-size:.72rem; color:var(--fg-dim)}
+
+.canvas-wrap{
+  background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  overflow:auto; position:relative; max-height:72vh; cursor:grab;
+}
+.canvas-wrap svg{display:block}
+
+.ref-section{display:flex; flex-wrap:wrap; gap:12px; margin-top:16px}
+.ref-section > details, .ref-section > .card{flex:1 1 320px}
+
+.card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px}
+.card h2{font-size:.78rem; text-transform:uppercase; letter-spacing:.07em; color:var(--fg-dim); margin-bottom:10px}
+
+/* status dock: panel status (latch + output) mengambang di bawah
+   viewport, selalu terlihat walau canvas sedang discroll/di-zoom —
+   supaya kondisi output selalu kelihatan tanpa cari-cari */
+.status-dock{
+  position:fixed; left:0; right:0; bottom:0; z-index:12;
+  background:var(--panel); border-top:1px solid var(--border);
+  box-shadow:0 -6px 18px rgba(0,0,0,.12);
+  padding:10px max(16px, env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-right,0px));
+}
+.status-dock-inner{max-width:1600px; margin:0 auto; display:flex; align-items:flex-start; gap:10px}
+.status-dock-col{flex:1; min-width:0}
+.status-dock-col h2{font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-dim); margin:0 0 4px}
+.dock-toggle{
+  flex:0 0 auto; width:26px; height:26px; margin-top:16px; border:1px solid var(--border);
+  background:var(--panel-2); color:var(--fg); border-radius:6px; cursor:pointer; font-size:.8rem;
+}
+.status-dock.collapsed .status-dock-col{display:none}
+.dock-row{display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px}
+@media (max-width:640px){ .status-dock-inner{flex-direction:column; gap:6px} .dock-toggle{margin-top:0} }
+
+.latch-row, .out-row{
+  display:flex; align-items:center; gap:8px; flex:0 0 auto;
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+  padding:6px 10px; white-space:nowrap;
+}
+.latch-name{font-family:var(--mono); color:var(--fg-dim); font-size:.72rem}
+.chip{
+  font-family:var(--mono); font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:20px;
+  min-width:52px; text-align:center;
+}
+.chip.off{background:var(--false-bg); color:var(--false)}
+.chip.on{background:var(--true-bg); color:var(--true)}
+
+.out-name{font-family:var(--mono); font-size:.74rem}
+.out-desc{font-size:.64rem; color:var(--fg-dim); display:block; max-width:160px; overflow:hidden; text-overflow:ellipsis}
+
+details{border:1px solid var(--border); border-radius:10px; padding:8px 12px; background:var(--panel-2)}
+summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
+.notes{margin:10px 0 0; padding-left:18px; font-size:.78rem; color:var(--fg-dim); line-height:1.55}
+.notes li{margin-bottom:6px}
+
+/* ringkasan cara kerja — bahasa biasa, bukan istilah teknis netlist */
+.summary-text{font-size:.86rem; line-height:1.6; color:var(--fg)}
+.summary-text p{margin:0 0 10px}
+.summary-text p:last-child{margin-bottom:0}
+
+/* detail tambahan (catatan teknis/asumsi) — ditaruh di paling bawah
+   halaman, collapsed by default, untuk yang perlu cek lebih dalam saja */
+.detail-section{margin:16px 4px 0}
+
+/* svg node styling */
+.node-rect{fill:var(--panel-2); stroke:var(--border); stroke-width:1.3}
+.node-rect.outline-only{fill:none}
+.zone-title{font-family:var(--disp); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; fill:var(--fg-dim)}
+.zone-divider{stroke:var(--border); stroke-width:1; stroke-dasharray:3 4}
+.group-title{font-family:var(--disp); font-size:9.5px; font-weight:650; fill:var(--accent-text)}
+.node-label{font-family:var(--disp); font-size:11px; fill:var(--fg); font-weight:600}
+.gate-id{font-family:var(--mono); font-size:8.5px; fill:var(--fg-dim)}
+.pin-label{font-family:var(--mono); font-size:8px; fill:var(--fg-dim)}
+.pin-tick{stroke:var(--wire); stroke-width:1.4}
+.pin-invert-bubble{fill:var(--bg); stroke:var(--wire); stroke-width:1.4}
+.wire{fill:none; stroke:var(--false); stroke-width:1.3; opacity:.55; transition:opacity .15s}
+.wire.on{stroke:var(--true); stroke-width:2.4; opacity:1}
+.xlink-text{font-size:7.5px; font-weight:650; fill:var(--accent-text); text-decoration:underline}
+.xlink{cursor:pointer}
+.xlink:hover .xlink-text{fill:var(--accent)}
+.tof-countdown{font-size:7.5px; font-weight:700; fill:var(--accent-text); font-family:var(--mono)}
+.junction{fill:var(--false); opacity:.8}
+.junction.on{fill:var(--true); opacity:1}
+.junction.dimmed{opacity:.32; filter:blur(1.8px)}
+/* Koreksi (2026-10-25): .wire.highlight SEBELUMNYA override `stroke` jadi
+   var(--accent) (oranye) -- ini DIAM-DIAM mengubah warna live TRUE/FALSE
+   (merah/hijau) jadi oranye begitu kabel itu masuk jalur jejak, melanggar
+   aturan "warna status merah/hijau jangan diubah". Fix: TIDAK override
+   stroke sama sekali lagi -- warna kabel tetap murni dari .wire/.wire.on
+   (merah=TRUE/hijau=FALSE apa adanya), penanda "ini bagian jejak" sekarang
+   murni dari stroke-width lebih tebal + glow (drop-shadow), bukan ganti warna. */
+.wire.highlight{stroke-width:3.4; filter:drop-shadow(0 0 2.5px var(--accent))}
+/* BUG LAMA (ketemu 2026-10-25 lewat laporan user "info node yg dipilih
+   hilang"): <rect class="trace-ring"> adalah child dari <g class="tag
+   off/on ...">, jadi dia JUGA kena match selector ".tag.off rect" /
+   ".tag.on rect" (fill:var(--false-bg)/var(--true-bg) solid, stroke
+   warna status) -- spesifisitas selector itu (.tag.off + rect = 2
+   kelas+1 tag) LEBIH TINGGI drpd ".trace-ring" (1 kelas), jadi diam-diam
+   MENIMPA fill:none & stroke accent yang dimaksud di sini. Karena ring
+   digambar PALING TERAKHIR (child terakhir) & ukurannya lebih besar dari
+   box node, begitu dapat class .show (node masuk jalur jejak), dia jadi
+   persegi SOLID (warna sama dgn background box) yang nutupin SELURUH
+   teks di bawahnya -- persis keluhan user: box node yg di-trace jadi
+   kosong/blank. Gate node (AND/OR/RS, dll) tidak kena krn tidak punya
+   class .off/.on. Fix: `!important` supaya trace-ring SELALU fill:none
+   & stroke accent, terlepas dari class ancestor apa pun. */
+.trace-ring{fill:none !important; stroke:var(--accent) !important; stroke-width:2.5; opacity:0; pointer-events:none}
+.trace-ring.show{opacity:1}
+.tag{cursor:default; transition:opacity .15s, filter .15s}
+.tag.input{cursor:pointer}
+/* Koreksi UI/UX (2026-10-25): mode jejak/trace -- node & kabel DI LUAR
+   jalur yang di-trace di-blur + diredupkan supaya jalur yang DIPILIH
+   jauh lebih menonjol. PENTING (ditegaskan ulang user 2x): blur/redup
+   ini HANYA boleh kena elemen yang BUKAN bagian jejak (dicek via
+   `visited[nid]` di traceUpstream()) -- node/kabel yang TERMASUK jalur
+   (termasuk node yang diklik sendiri) TIDAK PERNAH dapat class
+   `.dimmed`, jadi info/label/tag-no/warna status-nya WAJIB tetap utuh
+   & tajam 100% apa adanya, tidak boleh ada bug yang bikin elemen di
+   jalur ikut ke-dim. Utk elemen DI LUAR jalur: blur dibuat cukup kuat
+   (keduanya terlihat jelas berbeda dari jalur yang di-trace) tapi
+   TIDAK sampai opacity ekstrem (.22) spt versi pertama dulu -- teks
+   tetap ADA di DOM (bukan dihapus/disembunyikan total), cuma visualnya
+   kabur, supaya kalau user benar2 perlu lihat tetap bisa dengan effort
+   (hover/zoom), bukan 100% tak terbaca. */
+.tag.dimmed, .wire.dimmed{opacity:.32; filter:blur(1.8px)}
+.tag.trace-focus rect{stroke-width:2.4}
+.tag rect{stroke-width:1.2}
+.tag.off rect{fill:var(--false-bg); stroke:var(--false)}
+.tag.on rect{fill:var(--true-bg); stroke:var(--true)}
+.tag text.val{font-family:var(--mono); font-weight:700; font-size:9px}
+.tag.off text.val{fill:var(--false)}
+.tag.on text.val{fill:var(--true)}
+.tag text.name{font-family:var(--mono); font-size:9.5px; fill:var(--fg)}
+.tag text.desc{font-family:var(--disp); font-size:8px; fill:var(--fg-dim)}
+.tag.input:hover rect{stroke-width:2.2}
+.latch-fill-off{fill:var(--false-bg)}
+.latch-fill-on{fill:var(--true-bg)}
+</style>
+
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Simulator Logic — 105-UC-009</h1>
+      <div class="sheetref" id="sheetRef"></div>
+    </div>
+    <div class="legend">
+      <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> FALSE
+      <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> TRUE
+      <span class="swatch" style="background:var(--panel-2); border-color:var(--accent)"></span> Jejak (klik node)
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+    <button class="btn" id="clearTraceBtn" type="button">Bersihkan Jejak</button>
+    <button class="btn" id="skipTimerBtn" type="button" style="display:none" title="Alat uji: anggap semua timer off-delay yang sedang menghitung sudah habis">⏩ Lewati timer</button>
+    <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
+  </div>
+
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <div class="view-tabs" role="tablist" aria-label="Tampilan sheet">
+      <span class="view-tab active" role="tab" aria-selected="true" aria-current="page">Logic Detail</span>
+      <a class="view-tab" id="ceLink" href="#" role="tab" aria-selected="false">Cause &amp; Effect</a>
+    </div>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Simulator ini bagian dari 34 sheet logic diagram — klik "Semua Sheet" untuk balik ke daftar lengkap.</span>
+  </div>
+
+  <div class="layout">
+    <div class="canvas-toolbar">
+      <div class="zoom-ctrl">
+        <button id="zoomOutBtn" type="button" title="Perkecil">−</button>
+        <span class="zoom-pct" id="zoomPct">100%</span>
+        <button id="zoomInBtn" type="button" title="Perbesar">+</button>
+        <button id="zoomFitBtn" type="button" title="Sesuaikan ke lebar panel">Fit</button>
+        <button id="zoomResetBtn" type="button" title="Reset ke 100%">100%</button>
+      </div>
+      <span class="zoom-hint">Seret kanvas untuk geser · Ctrl/Cmd + scroll untuk zoom</span>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="ref-section">
+      <div class="card">
+        <h2>Status Latch (RS)</h2>
+        <div class="dock-row" id="latchList"></div>
+      </div>
+      <div class="card" id="summaryCard">
+        <h2>Cara Kerja (Ringkasan)</h2>
+        <div class="summary-text" id="summaryText"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-section" id="detailSection" style="display:none">
+    <details>
+      <summary>Detail tambahan &amp; catatan teknis</summary>
+      <ol class="notes" id="notesList"></ol>
+    </details>
+  </div>
+</div>
+
+<div class="status-dock" id="statusDock">
+  <div class="status-dock-inner">
+    <button class="dock-toggle" id="dockToggleBtn" type="button" title="Tutup/buka panel status">▾</button>
+    <div class="status-dock-col">
+      <h2>Output / Effect — status live</h2>
+      <div class="dock-row" id="outList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../vendor/elk.bundled.js"></script>
+<script>
+/* ======================= sim-engine.js (inline) ======================= */
+/*
+  SIS Logic Sim Engine — generic, reusable untuk semua halaman (105-UC-009, dst).
+  Tidak ada dependency eksternal. Dipakai di browser maupun Node.
+
+  Netlist schema:
+  {
+    id, title, sheetRef,
+    nodes: {
+      "<nodeId>": {
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "NUMBITS" | "GT" | "R_TRIG" | "OUTPUT",
+        label, desc, gateId,
+        // AND/OR/VOTING:
+        inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
+        k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
+                      // output ikut jatuh ke FALSE (lihat case "VOTING" di
+                      // step() — bukan threshold "k dari n TRUE")
+        // RS:
+        s: "<nodeId>", r: "<nodeId>"
+        // NOT/BUFFER/MOVE ("MOVE" dipakai saat gambar asli literal memberi
+        // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
+        // (passthrough nilai apa adanya), bedanya cuma label yang tampil
+        // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
+        input: "<nodeId>"
+        // OUTPUT:
+        source: "<nodeId>"
+      }
+    },
+    notes: [...]
+  }
+*/
+(function (global) {
+  function topoOrder(nodes) {
+    const deps = {};
+    for (const id in nodes) {
+      const n = nodes[id];
+      let refs = [];
+      switch (n.type) {
+        case "AND": case "OR": refs = n.inputs || []; break;
+        case "NUMBITS": refs = n.inputs || []; break;
+        /* VOTING: pin FLT ikut menentukan output (Koreksi #33, isi blok
+           VOTING_2OO3 vendor: NUMBITS+GT+AND), jadi juga dependensi */
+        case "VOTING": refs = (n.inputs || []).concat(n.fltInputs || []); break;
+        case "RS": refs = [n.s, n.r]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": case "GT": case "R_TRIG": refs = [n.input]; break;
+        case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
+        case "INPUT": refs = []; break;
+      }
+      deps[id] = refs;
+    }
+    const visited = {}, temp = {}, order = [];
+    function visit(id) {
+      if (visited[id]) return;
+      if (temp[id]) throw new Error("Algebraic loop terdeteksi melibatkan node: " + id);
+      temp[id] = true;
+      (deps[id] || []).forEach(visit);
+      temp[id] = false;
+      visited[id] = true;
+      order.push(id);
+    }
+    Object.keys(nodes).forEach(visit);
+    return order;
+  }
+
+  function createSim(netlist) {
+    const nodes = netlist.nodes;
+    const order = topoOrder(nodes);
+    // state: nilai boolean saat ini per node, plus memory khusus utk RS
+    // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {}, rtPrev: {}, rtUntil: {}, rtSeen: {} };
+    for (const id in nodes) {
+      state.values[id] = false;
+      state.prevValues[id] = false;
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+      if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
+    }
+
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      const t = now == null ? Date.now() : now;
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, t) > 0; }) ||
+             Object.keys(state.rtUntil).some(function (id) { return state.rtUntil[id] > t; });
+    }
+    /* Percepat timer (alat uji): semua TOF yang sedang menghitung dianggap
+       sudah habis. Dipakai tombol "Lewati timer" utk setelan panjang (30 mnt). */
+    function skipTimers(now) {
+      const t = now == null ? Date.now() : now;
+      Object.keys(state.tofSince).forEach(function (id) {
+        if (state.tofSince[id] != null) state.tofSince[id] = t - ((nodes[id].setpointSec || 0) * 1000) - 1;
+      });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
+      // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
+      const v = state.values;
+      const prev = state.prevValues;
+      for (const id of order) {
+        const n = nodes[id];
+        switch (n.type) {
+          case "INPUT":
+            v[id] = !!inputOverrides[id];
+            break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
+          case "AND":
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "OR":
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "NOT":
+            v[id] = !v[n.input];
+            break;
+          case "BUFFER": case "MOVE":
+            v[id] = v[n.input];
+            break;
+          case "NUMBITS":
+            /* NUMBITS: jumlah input yang TRUE (nilai numerik, truthy kalau >0) */
+            v[id] = n.inputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+            break;
+          case "GT":
+            /* GT: IN1 > IN2, IN2 = konstanta yang digambar di pin bawah */
+            v[id] = (Number(v[n.input]) || 0) > (n.constant || 0);
+            break;
+          case "R_TRIG": {
+            /* Deteksi tepi naik. IEC: Q TRUE hanya satu scan. Atas pilihan user
+               (Koreksi #25) pulsa ditahan `pulseMs` (default 1000 ms) waktu
+               nyata supaya terlihat. Scan pertama hanya merekam nilai awal
+               (tidak ada pulsa palsu saat halaman dibuka dgn CLK sudah TRUE). */
+            const clk = !!v[n.input];
+            if (!state.rtSeen[id]) { state.rtSeen[id] = true; }
+            else if (clk && !state.rtPrev[id]) { state.rtUntil[id] = now + (n.pulseMs || 1000); }
+            state.rtPrev[id] = clk;
+            v[id] = now < state.rtUntil[id];
+            break;
+          }
+          case "VOTING": {
+            // Voting k-of-n bertipe "sehat jika kompak" (dikonfirmasi user,
+            // BUKAN "trip jika k dari n TRUE" seperti versi awal):
+            // input normal/sehat = TRUE; output jadi FALSE begitu jumlah
+            // input yang FALSE mencapai k (mis. 2oo9 -> output FALSE kalau
+            // >=2 dari 9 input FALSE). Jadi output = (jumlah FALSE < k).
+            const countFalse = n.inputs.reduce((acc, i) => acc + (v[i] ? 0 : 1), 0);
+            let healthy = countFalse < n.k;
+            // Koreksi #33: blok VOTING dgn pin FLT di gambar vendor berisi
+            // NUMBITS#001(IN)->GT#002(>1), NUMBITS#003(FLT)->GT#004(>1),
+            // AND#005. Jadi output = (IN TRUE > n-k) DAN (FLT TRUE > n-k);
+            // utk 2oo3 konstanta GT = 1. Pin FLT TRUE = sehat.
+            if ((n.fltInputs || []).length) {
+              const fltTrue = n.fltInputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+              healthy = healthy && fltTrue > n.fltInputs.length - n.k;
+            }
+            v[id] = healthy;
+            break;
+          }
+          case "RS": {
+            // Bistable Reset Dominant, PERSIS formula resmi IEC 61131-3
+            // "RS.ST" (dikonfirmasi user lewat source function block asli):
+            //   Q1 := (Q1 OR S) AND NOT R1
+            // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
+            // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
+            // ini, lihat ARSITEKTUR.md Koreksi #9).
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
+            const r = v[n.r];
+            const qPrev = state.rsPrev[id];
+            const next = s && (qPrev || r);
+            v[id] = next;
+            state.rsPrev[id] = next;
+            break;
+          }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
+          case "OUTPUT":
+            v[id] = v[n.source];
+            break;
+          default:
+            throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
+        }
+      }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
+      return v;
+    }
+
+    function reset() {
+      for (const id in nodes) {
+        state.values[id] = false;
+        state.prevValues[id] = false;
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+        if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
+      }
+    }
+
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning, skipTimers };
+  }
+
+  global.SimEngine = { createSim, topoOrder };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
+/* ======================= sinkronisasi status tag LINTAS SHEET =======================
+   Tag dengan label yang sama di beberapa sheet adalah satu tag fisik yang
+   sama (mis. tombol ESD f105HS007A dipakai di sheet 3 & sheet 6), jadi
+   statusnya harus sama di semua sheet: diubah di satu sheet = ikut berubah
+   di sheet lain. Disimpan di localStorage global (KEY di bawah, per label
+   tag -- BUKAN per sheet), dipakai halaman Logic Detail & Cause & Effect.
+   - INPUT: nilai dari store dipakai saat halaman dibuka; tiap kali
+     operator mengubah INPUT, nilainya ditulis ke store.
+   - OUTPUT: nilai hasil hitung ditulis ke store, supaya sheet lain yang
+     memakai tag itu sebagai INPUT (ditandai `linkedFrom` oleh build) ikut.
+   - Tab lain yang sedang terbuka menerima event 'storage' -> terapkan
+     nilai baru -> simulasi ulang. Penulisan hanya dilakukan kalau nilai
+     benar-benar berubah, jadi tidak ada loop antar tab.
+   Memori latch RS tetap per sheet (blok RS milik sheet masing-masing).
+   Disuntikkan ke kedua template oleh scripts/build.js (<!--TAGSYNC_JS-->). */
+var TagSync = (function(){
+  var KEY = 'sis-sim-tags';
+  var netlist = null, inputs = null, sheetId = '';
+  function readStore(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function writeStore(store){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+  }
+  function applyStore(store){
+    var changed = false;
+    Object.keys(netlist.nodes).forEach(function(id){
+      var n = netlist.nodes[id];
+      if(n.type !== 'INPUT' || !n.label) return;
+      var entry = store[n.label];
+      if(entry && typeof entry.v === 'boolean' && inputs[id] !== entry.v){
+        inputs[id] = entry.v;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+  return {
+    KEY: KEY,
+    /* panggil sekali setelah state per-sheet dimuat: nilai global menang */
+    init: function(nl, inputState){
+      netlist = nl; inputs = inputState; sheetId = nl.slug || nl.id || '';
+      applyStore(readStore());
+    },
+    /* panggil di akhir tiap simulate(values) */
+    publish: function(values){
+      if(!netlist) return;
+      var store = readStore(), dirty = false;
+      Object.keys(netlist.nodes).forEach(function(id){
+        var n = netlist.nodes[id];
+        if(!n.label) return;
+        var v;
+        if(n.type === 'INPUT') v = !!inputs[id];
+        else if(n.type === 'OUTPUT') v = !!values[id];
+        else return;
+        var cur = store[n.label];
+        if(!cur || cur.v !== v){
+          store[n.label] = { v: v, src: n.type === 'INPUT' ? 'input' : sheetId };
+          dirty = true;
+        }
+      });
+      if(dirty) writeStore(store);
+    },
+    /* cb dipanggil kalau tab lain mengubah tag yang dipakai sheet ini */
+    onChange: function(cb){
+      window.addEventListener('storage', function(e){
+        if(e.key !== KEY || !netlist) return;
+        if(applyStore(readStore())) cb();
+      });
+    }
+  };
+})();
+
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+/* ======================= hubungan antar sheet (effect <-> cause) =======================
+   Tag yang sama memayungi beberapa sheet (lihat _tagsync.js & data/tags.json).
+   Build (`scripts/build.js`, applyTagRegistry) menandai tiap node dengan:
+     - INPUT  .linkedFrom : sheet yang MENGHASILKAN tag ini (di sana dia effect)
+     - INPUT  .alsoIn     : sheet lain yang memakai tag ini sbg cause juga
+     - OUTPUT .linkedTo   : sheet yang MEMAKAI tag ini sbg cause/initiator
+   Modul ini mengubah penanda itu jadi daftar keterangan + link navigasi,
+   dipakai halaman Logic Detail (dirender sbg <a> di dalam SVG) maupun
+   Cause & Effect (dirender sbg <a> di sel tabel). `useCe` menentukan link
+   menuju versi Cause & Effect atau versi Logic Detail sheet tujuan —
+   supaya operator tetap berada di mode tampilan yang sama saat berpindah. */
+var CrossLink = (function(){
+  function resolve(slugs, idx, useCe){
+    return (slugs || []).map(function(s){
+      var m = idx && idx[s];
+      if(!m) return null;
+      return {
+        label: 'Sheet ' + String(m.no).padStart(3, '0'),
+        tag: m.tag,
+        href: useCe ? m.ceUrl : m.url
+      };
+    }).filter(Boolean);
+  }
+  return {
+    /* -> [{ kind, prefix, label, title, href }] (kosong kalau tag ini tidak
+       punya hubungan lintas sheet) */
+    linksFor: function(node, nav, useCe){
+      if(!node) return [];
+      var idx = nav && nav.sheetIndex;
+      var out = [];
+      resolve(node.linkedFrom, idx, useCe).forEach(function(x){
+        out.push({ kind: 'from', prefix: '← Sumber ', label: x.label, href: x.href,
+                   title: 'Nilai tag ini dihasilkan di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.linkedTo, idx, useCe).forEach(function(x){
+        out.push({ kind: 'to', prefix: '→ Menuju ', label: x.label, href: x.href,
+                   title: 'Tag ini jadi cause/initiator di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.alsoIn, idx, useCe).forEach(function(x){
+        out.push({ kind: 'also', prefix: '↔ Juga di ', label: x.label, href: x.href,
+                   title: 'Tag yang sama juga dipakai sbg cause di ' + x.label + ' (' + x.tag + ') — status keduanya selalu sama' });
+      });
+      return out;
+    }
+  };
+})();
+
+/* ======================= status normal/trip satu sheet =======================
+   Dipakai halaman portal (warna kartu tiap sheet) & halaman Cause & Effect
+   (warna shape blok logic di kolom tengah). Konvensi SAMA dgn kolom EFFECT
+   halaman CE (Koreksi #7): nilai TRUE = normal = hijau, FALSE = trip = merah,
+   seragam utk semua OUTPUT tanpa pengecualian per tipe node.
+   Satu sheet disebut NORMAL kalau SEMUA output-nya TRUE; kalau ada satu saja
+   yang FALSE -> TRIP (fail-safe: tampilkan kondisi terburuk). */
+var SheetStatus = (function(){
+  return {
+    /* values = hasil sim.step(); nodes = netlist.nodes */
+    of: function(nodes, values){
+      var total = 0, tripped = 0;
+      Object.keys(nodes).forEach(function(id){
+        if(nodes[id].type !== 'OUTPUT') return;
+        total++;
+        if(!values[id]) tripped++;
+      });
+      if(!total) return { state: 'none', total: 0, tripped: 0 };
+      return { state: tripped ? 'trip' : 'normal', total: total, tripped: tripped };
+    }
+  };
+})();
+
+/* ======================= netlist data (inline) ======================= */
+const NETLIST = {"id":"105-UC-030_3_b","title":"105-UC-030_3_b","sheetRef":"Sheet 29 of 34 — P02_UNIT_105 v1.175","causeGroups":["Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","MOS Flow LL 018 (→ OR#005)","Level Splitter Bottom LL 009 (→ OR#006)","ESD Splitter — HS007 (→ AND#007, #019)","ESD 105-C-501 — HS002 (→ AND#009)","Reset (manual, per latch)","Tekanan Inlet LL 096 (→ TOF#013)","DP Inlet LL 093 (→ TOF#015)","Tekanan Inlet HH 096 (→ TOF#017)","Bypass / MOS (→ OR#014, #016, #018)"],"effectGroups":["Alarm Combustion Air / Inlet 105-F-501","Internal HMI (monitor saja)","Sinyal internal (bukan output lapangan)"],"nodes":{"in_m105FSLL018A":{"type":"INPUT","label":"m105FSLL018A","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12339 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12339","alsoIn":["sheet-026"]},"in_m105FSLL018B":{"type":"INPUT","label":"m105FSLL018B","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12340 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12340","alsoIn":["sheet-026"]},"in_m105FSLL018C":{"type":"INPUT","label":"m105FSLL018C","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12341 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12341","alsoIn":["sheet-026"]},"in_m105FSLL018D":{"type":"INPUT","label":"m105FSLL018D","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12342 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12342","alsoIn":["sheet-026"]},"in_m105FSLL018E":{"type":"INPUT","label":"m105FSLL018E","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12343 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12343","alsoIn":["sheet-026"]},"in_m105FSLL018F":{"type":"INPUT","label":"m105FSLL018F","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12344 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12344","alsoIn":["sheet-026"]},"in_m105FSLL018G":{"type":"INPUT","label":"m105FSLL018G","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12345 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12345","alsoIn":["sheet-026"]},"in_m105FSLL018H":{"type":"INPUT","label":"m105FSLL018H","group":"Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001/#002)","desc":"12346 — Splitter Heater 105-F-501 Inlet LL Alm","tagNo":"12346","alsoIn":["sheet-026"]},"in_f105HS018M":{"type":"INPUT","label":"f105HS018M","group":"MOS Flow LL 018 (→ OR#005)","desc":"12085 — MOS 105-FSLL-018","isMOS":true,"tagNo":"12085","alsoIn":["sheet-026"]},"in_m105LSLL009":{"type":"INPUT","label":"m105LSLL009","group":"Level Splitter Bottom LL 009 (→ OR#006)","desc":"12400 — Level in Alm Splitter Bottom LL Alm","tagNo":"12400","alsoIn":["sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_f105HS009M":{"type":"INPUT","label":"f105HS009M","group":"Level Splitter Bottom LL 009 (→ OR#006)","desc":"12065 — MOS 105-LSLL-009","isMOS":true,"tagNo":"12065","alsoIn":["sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_f105HS007A":{"type":"INPUT","label":"f105HS007A","group":"ESD Splitter — HS007 (→ AND#007, #019)","desc":"12055 — ESD Button In Case Of SHU Reactor (AUX)","tagNo":"12055","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-014","sheet-015","sheet-016","sheet-019","sheet-026"]},"in_f105HS007B":{"type":"INPUT","label":"f105HS007B","group":"ESD Splitter — HS007 (→ AND#007, #019)","desc":"12056 — ESD Button In Case Of SHU Reactor (Local)","tagNo":"12056","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-014","sheet-015","sheet-016","sheet-019","sheet-026"]},"in_f105HS002AE":{"type":"INPUT","label":"f105HS002AE","group":"ESD 105-C-501 — HS002 (→ AND#009)","desc":"12036 — ESD Button In Case Fire Or Any Leak At 105-C-501 (DCS)","tagNo":"12036","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_f105HS002B":{"type":"INPUT","label":"f105HS002B","group":"ESD 105-C-501 — HS002 (→ AND#009)","desc":"12037 — ESD Button In Case Fire Or Any Leak At 105-C-501 (Local)","tagNo":"12037","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_f105HS005UCR":{"type":"INPUT","label":"f105HS005UCR","group":"Reset (manual, per latch)","desc":"12051 — Reset 105-UY-007/008/023 (105-UC-005)","isReset":true,"tagNo":"12051","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-014","sheet-015","sheet-016","sheet-019","sheet-026"]},"in_f105HS025UCR":{"type":"INPUT","label":"f105HS025UCR","group":"Reset (manual, per latch)","desc":"12098 — Reset 105-UY-010 (105-UC-025)","isReset":true,"tagNo":"12098","alsoIn":["sheet-003","sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_f105HS007UCR":{"type":"INPUT","label":"f105HS007UCR","group":"Reset (manual, per latch)","desc":"12059 — Reset 105-HS-504AE/BE (105-UC-007)","isReset":true,"tagNo":"12059","alsoIn":["sheet-004","sheet-006","sheet-009","sheet-013","sheet-015","sheet-019","sheet-026"]},"in_m105PSLL096":{"type":"INPUT","label":"m105PSLL096","group":"Tekanan Inlet LL 096 (→ TOF#013)"},"in_m105PDSLL093":{"type":"INPUT","label":"m105PDSLL093","group":"DP Inlet LL 093 (→ TOF#015)"},"in_m105PSHH096":{"type":"INPUT","label":"m105PSHH096","group":"Tekanan Inlet HH 096 (→ TOF#017)"},"in_f105HS030SB":{"type":"INPUT","label":"f105HS030SB","group":"Bypass / MOS (→ OR#014, #016, #018)","desc":"12107 — Switch Start Up Bypass 105-F-501 (AUX)","tagNo":"12107","alsoIn":["sheet-008","sheet-011","sheet-012","sheet-024","sheet-025","sheet-026","sheet-027","sheet-028"]},"in_f105HS096M":{"type":"INPUT","label":"f105HS096M","group":"Bypass / MOS (→ OR#014, #016, #018)"},"in_f105HS093M":{"type":"INPUT","label":"f105HS093M","group":"Bypass / MOS (→ OR#014, #016, #018)"},"and_003":{"type":"AND","gateId":"003","inputs":["in_m105FSLL018A","in_m105FSLL018B","in_m105FSLL018C","in_m105FSLL018D","in_m105FSLL018E","in_m105FSLL018F","in_m105FSLL018G","in_m105FSLL018H"]},"not_001":{"type":"NOT","gateId":"001","input":"in_m105FSLL018G"},"not_002":{"type":"NOT","gateId":"002","input":"in_m105FSLL018H"},"tof_004":{"type":"TOF","gateId":"004","input":"and_003","setpointSec":10},"or_005":{"type":"OR","gateId":"005","inputs":["tof_004","in_f105HS018M"]},"or_006":{"type":"OR","gateId":"006","inputs":["in_m105LSLL009","in_f105HS009M"]},"and_007":{"type":"AND","gateId":"007","inputs":["in_f105HS007A","in_f105HS007B"]},"rs_008":{"type":"RS","gateId":"008","label":"RS_105UC030_3_b_1","s":"and_007","r":"in_f105HS005UCR"},"and_009":{"type":"AND","gateId":"009","inputs":["in_f105HS002AE","in_f105HS002B"]},"rs_010":{"type":"RS","gateId":"010","label":"RS_105UC030_3_b_2","s":"and_009","r":"in_f105HS025UCR"},"and_011":{"type":"AND","gateId":"011","inputs":["or_006","rs_008","rs_010"]},"rs_012":{"type":"RS","gateId":"012","label":"RS_105UC030_3_b_3","s":"and_011","r":"in_f105HS007UCR"},"tof_013":{"type":"TOF","gateId":"013","input":"in_m105PSLL096","setpointSec":2},"or_014":{"type":"OR","gateId":"014","inputs":["tof_013","in_f105HS030SB","in_f105HS096M"]},"not_022":{"type":"NOT","gateId":"022","input":"tof_013"},"tof_015":{"type":"TOF","gateId":"015","input":"in_m105PDSLL093","setpointSec":2},"or_016":{"type":"OR","gateId":"016","inputs":["tof_015","in_f105HS030SB","in_f105HS093M"]},"not_023":{"type":"NOT","gateId":"023","input":"tof_015"},"tof_017":{"type":"TOF","gateId":"017","input":"in_m105PSHH096","setpointSec":2},"or_018":{"type":"OR","gateId":"018","inputs":["tof_017","in_f105HS030SB","in_f105HS096M"]},"not_024":{"type":"NOT","gateId":"024","input":"tof_017"},"and_019":{"type":"AND","gateId":"019","inputs":["in_f105HS007A","in_f105HS007B"]},"rs_020":{"type":"RS","gateId":"020","label":"RS_105UC030_3_b_4","s":"and_019","r":"in_f105HS005UCR"},"and_021":{"type":"AND","gateId":"021","inputs":["or_005","rs_012","or_014","or_016","or_018","rs_020"]},"out_f105FALL018G":{"type":"OUTPUT","label":"f105FALL018G","desc":"13141 — Combustion Air From 105-F-501-K1 Ll Alarm","source":"not_001","group":"Alarm Combustion Air / Inlet 105-F-501"},"out_f105FALL018H":{"type":"OUTPUT","label":"f105FALL018H","desc":"13142 — Combustion Air From 105-F-501-K1 Ll Alarm","source":"not_002","group":"Alarm Combustion Air / Inlet 105-F-501"},"out_f105PALL096":{"type":"OUTPUT","label":"f105PALL096","desc":"12937 — 105-F-501 INLET LL Alm","source":"not_022","group":"Alarm Combustion Air / Inlet 105-F-501"},"out_f105PDALL093":{"type":"OUTPUT","label":"f105PDALL093","desc":"12892 — 105-F-501 INLET LL Alm","source":"not_023","group":"Alarm Combustion Air / Inlet 105-F-501"},"out_f105PAHH096":{"type":"OUTPUT","label":"f105PAHH096","desc":"12930 — 105-F-501 INLET HH Alm","source":"not_024","group":"Alarm Combustion Air / Inlet 105-F-501"},"out_TOF_2_105UC017_030_3":{"type":"OUTPUT","label":"TOF_2_105UC017_030_3","desc":"12826 — Internal HMI (timer TOF#013)","source":"tof_013","group":"Internal HMI (monitor saja)"},"out_TOF_3_105UC017_030_3":{"type":"OUTPUT","label":"TOF_3_105UC017_030_3","desc":"12827 — Internal HMI (timer TOF#015)","source":"tof_015","group":"Internal HMI (monitor saja)"},"out_f105PDSLL096_TOF":{"type":"OUTPUT","label":"f105PDSLL096_TOF","desc":"Sinyal internal — keluaran timer TOF#013","source":"tof_013","internalOnly":true,"group":"Sinyal internal (bukan output lapangan)"},"out_f105PDSLL093_TOF":{"type":"OUTPUT","label":"f105PDSLL093_TOF","desc":"Sinyal internal — keluaran timer TOF#015","source":"tof_015","internalOnly":true,"group":"Sinyal internal (bukan output lapangan)"},"out_f105PSHH096_TOF":{"type":"OUTPUT","label":"f105PSHH096_TOF","desc":"12615 — Sinyal internal — keluaran timer TOF#017","source":"tof_017","internalOnly":true,"group":"Sinyal internal (bukan output lapangan)"},"out_AND_105UC030_3_b_FEED_1":{"type":"OUTPUT","label":"AND_105UC030_3_b_FEED_1","source":"and_021","internalOnly":true,"group":"Sinyal internal (bukan output lapangan)","desc":"Sinyal internal — keluaran AND#021 sheet 29 (105-UC-030_3_b), dipakai sebagai cause di sheet 28 (AND#014)","linkedTo":["sheet-028"]}},"summary":["Halaman ini adalah blok kedua (b) permissive 105-UC-030: tidak punya output lapangan, hanya alarm dan satu sinyal internal AND_105UC030_3_b_FEED_1 yang dikirim ke sheet 28 (105-UC-030_3_a, AND#014).","AND#021 (6 masukan) = OR#005 (TOF#004 10 s dari AND#003 8 flow-LL f105FSLL018A-H / MOS f105HS018M) DAN Q1 RS#012 (R1 = AND#011: OR#006 level LL 009, Q1 RS#008, Q1 RS#010) DAN OR#014 / OR#016 / OR#018 (masing-masing TOF 2 s dari m105PSLL096 / m105PDSLL093 / m105PSHH096, bypass f105HS030SB, MOS) DAN Q1 RS#020 (R1 = AND#019 ESD HS007A/B).","Alarm f105PALL096, f105PDALL093, f105PAHH096 = NOT keluaran TOF 2 s; f105FALL018G/H = NOT langsung dari m105FSLL018G/H."],"notes":["Sumber: gambar vendor sheet 29 of 34 '105-UC-030_3_b' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 1.2-1.6x. Urutan pin AND#021 dari posisi vertikal kabel: pin1 OR#005, pin2 RS#012, pin3-6 OR#014/#016/#018/RS#020 (sumber terbawah = vertikal paling kanan).","RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. RS#008 dan RS#020 berbagi reset f105HS005UCR dan masukan ESD yang sama (AND#007 dan AND#019 dobel di gambar). Label RS_105UC030_3_b_1..4 = HIPOTESIS (header terpotong).","NOT#022-#024 membaca keluaran TOF (T-junction), bukan masukan lapangan (pola sheet 26); tag in-line f105PDSLL096_TOF / f105PDSLL093_TOF / f105PSHH096_TOF dan TOF_2/3_105UC017_030_3 dimodelkan OUTPUT dari TOF = HIPOTESIS. f105HS096M digambar dua kali (OR#014 dan OR#018), satu node.","f105FSLL018A-H & f105HS018M dibagi dengan sheet 26 (registry); AND_105UC030_3_b_FEED_1 OUTPUT di sini, INPUT di sheet 28 (registry).","Setpoint iTOF_105UC030_3_b_1..4 (10, 2, 2, 2 s; 31041-31044) disimpan sebagai setpointSec.","BUKTI SILANG nilai live: semua input FALSE -> semua alarm NOT TRUE (merah di gambar), TOF/HMI dan FEED FALSE (hijau). Polaritas NC/NO tidak ditafsirkan."],"slug":"sheet-029"};
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":28,"tag":"105-UC-030","url":"sheet-028.html"},"next":null,"ceUrl":"sheet-029-ce.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"},"sheet-007":{"no":7,"tag":"105-UC-010","url":"sheet-007.html","ceUrl":"sheet-007-ce.html"},"sheet-008":{"no":8,"tag":"105-UC-010","url":"sheet-008.html","ceUrl":"sheet-008-ce.html"},"sheet-009":{"no":9,"tag":"105-UC-010","url":"sheet-009.html","ceUrl":"sheet-009-ce.html"},"sheet-010":{"no":10,"tag":"105-UC-010","url":"sheet-010.html","ceUrl":"sheet-010-ce.html"},"sheet-011":{"no":11,"tag":"105-UC-010","url":"sheet-011.html","ceUrl":"sheet-011-ce.html"},"sheet-012":{"no":12,"tag":"105-UC-010","url":"sheet-012.html","ceUrl":"sheet-012-ce.html"},"sheet-013":{"no":13,"tag":"105-UC-003","url":"sheet-013.html","ceUrl":"sheet-013-ce.html"},"sheet-014":{"no":14,"tag":"105-UC-004","url":"sheet-014.html","ceUrl":"sheet-014-ce.html"},"sheet-015":{"no":15,"tag":"105-UC-004","url":"sheet-015.html","ceUrl":"sheet-015-ce.html"},"sheet-016":{"no":16,"tag":"105-UC-006","url":"sheet-016.html","ceUrl":"sheet-016-ce.html"},"sheet-017":{"no":17,"tag":"105-UC-008","url":"sheet-017.html","ceUrl":"sheet-017-ce.html"},"sheet-018":{"no":18,"tag":"105-UC-013","url":"sheet-018.html","ceUrl":"sheet-018-ce.html"},"sheet-019":{"no":19,"tag":"105-UC-014","url":"sheet-019.html","ceUrl":"sheet-019-ce.html"},"sheet-020":{"no":20,"tag":"105-UC-015","url":"sheet-020.html","ceUrl":"sheet-020-ce.html"},"sheet-021":{"no":21,"tag":"105-UC-021","url":"sheet-021.html","ceUrl":"sheet-021-ce.html"},"sheet-022":{"no":22,"tag":"105-UC-019","url":"sheet-022.html","ceUrl":"sheet-022-ce.html"},"sheet-023":{"no":23,"tag":"105-UC-020","url":"sheet-023.html","ceUrl":"sheet-023-ce.html"},"sheet-024":{"no":24,"tag":"105-UC-030","url":"sheet-024.html","ceUrl":"sheet-024-ce.html"},"sheet-025":{"no":25,"tag":"105-UC-017-030","url":"sheet-025.html","ceUrl":"sheet-025-ce.html"},"sheet-026":{"no":26,"tag":"105-UC-017-030","url":"sheet-026.html","ceUrl":"sheet-026-ce.html"},"sheet-027":{"no":27,"tag":"105-UC-017-030","url":"sheet-027.html","ceUrl":"sheet-027-ce.html"},"sheet-028":{"no":28,"tag":"105-UC-030","url":"sheet-028.html","ceUrl":"sheet-028-ce.html"},"sheet-029":{"no":29,"tag":"105-UC-030","url":"sheet-029.html","ceUrl":"sheet-029-ce.html"}}};
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-sim-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-sim-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= layout ======================= */
+function deps(n){
+  switch(n.type){
+    case 'AND': case 'OR': case 'NUMBITS': return n.inputs || [];
+    /* VOTING_2OO3: urutan pin gambar = IN1, FLT1, IN2, FLT2, IN3, FLT3 */
+    case 'VOTING': {
+      const f = n.fltInputs || [], r = [];
+      (n.inputs || []).forEach(function(x, i){ r.push(x); if(f[i]) r.push(f[i]); });
+      return r;
+    }
+    case 'RS': return [n.r, n.s]; /* urutan render pin: r (tag reset mentah) di ATAS = pin "S" gambar sumber; s (NOT dari gerbang kondisi) di BAWAH = pin "R1" (lingkaran/inversi) gambar sumber. Lihat ARSITEKTUR.md Koreksi #6/#8 — field netlist s/r TIDAK sama dgn label pin gambar S/R1. */
+    case 'NOT': case 'BUFFER': case 'MOVE': case 'TOF': case 'GT': case 'R_TRIG': return [n.input];
+    /* FEEDBACK membaca nilai scan SEBELUMNYA, jadi tanpa dependensi -- itulah
+       yang memutus loop umpan-balik supaya layout & engine tetap acyclic */
+    case 'FEEDBACK': return [];
+    case 'OUTPUT': return [n.source];
+    default: return [];
+  }
+}
+const nodes = NETLIST.nodes;
+const ids = Object.keys(nodes);
+
+/* --- wrapping deskripsi tag (INPUT/OUTPUT) ---
+   Sebelumnya desc dirender sebagai satu baris <text> tanpa wrap, jadi
+   teks panjang meluber keluar box dan numpuk dengan wire/box tetangga.
+   Sekarang di-wrap jadi beberapa baris (maks TAG_DESC_MAX_LINES) yang
+   pas dengan lebar box, dan tinggi box dihitung otomatis mengikuti
+   jumlah baris — posisi vertikal boleh beda dari gambar sumber, yang
+   penting rapi & terbaca. */
+const _measureCtx = document.createElement('canvas').getContext('2d');
+_measureCtx.font = "8px 'IBM Plex Sans', ui-sans-serif, sans-serif";
+const TAG_DESC_MAX_LINES = 3;
+function wrapDesc(text, maxWidth, maxLines){
+  maxLines = maxLines || TAG_DESC_MAX_LINES;
+  if(!text) return [];
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  words.forEach(function(w){
+    const test = cur ? cur + ' ' + w : w;
+    if(!cur || _measureCtx.measureText(test).width <= maxWidth){
+      cur = test;
+    } else {
+      lines.push(cur);
+      cur = w;
+    }
+  });
+  if(cur) lines.push(cur);
+  if(lines.length > maxLines){
+    let last = lines[maxLines - 1];
+    while(last.length > 1 && _measureCtx.measureText(last + '…').width > maxWidth){
+      last = last.slice(0, -1);
+    }
+    lines[maxLines - 1] = last.replace(/\s+$/, '') + '…';
+    lines.length = maxLines;
+  }
+  return lines;
+}
+
+/* potong label supaya tidak menabrak teks nilai di sisi kanan box */
+const _labelCtx = document.createElement('canvas').getContext('2d');
+_labelCtx.font = "600 9px ui-monospace, SFMono-Regular, Menlo, monospace";
+function fitLabel(text, maxWidth){
+  const t = String(text || '');
+  if(_labelCtx.measureText(t).width <= maxWidth) return t;
+  let cut = t;
+  while(cut.length > 2 && _labelCtx.measureText(cut + '…').width > maxWidth) cut = cut.slice(0, -1);
+  return cut + '…';
+}
+
+/* node box sizes per type — tinggi AND/OR/VOTING menyesuaikan jumlah
+   input (bukan tinggi tetap) supaya setiap pin input punya slot sendiri
+   di sisi kiri box (lihat portY di blok layout) dan tidak numpuk di satu
+   titik tengah box saat gate punya banyak input (mis. VOT 9 input,
+   AND014 5 input) — itu sumber utama kabel "bertumpuk" di zona LOGIC.
+   Untuk INPUT/OUTPUT, tinggi juga menyesuaikan jumlah baris deskripsi
+   setelah di-wrap supaya tidak ada teks yang terpotong/meluber. */
+function boxSize(n){
+  if(n.type === 'INPUT' || n.type === 'OUTPUT'){
+    const w = 150;
+    const lines = wrapDesc(n.desc, w - 20);
+    /* tiap hubungan lintas sheet (sumber / menuju / juga dipakai) dirender
+       sbg satu baris link di dalam box -- tinggi box ikut menyesuaikan */
+    const links = CrossLink.linksFor(n, NAV, false);
+    const h = Math.max(34, 26 + lines.length * 10 + links.length * 11 + 6);
+    return { w: w, h: h, descLines: lines, links: links };
+  }
+  if(n.type === 'RS') return { w: 120, h: 48 };
+  if(n.type === 'TOF') return { w: 132, h: 56 };
+  if(n.type === 'FEEDBACK') return { w: 132, h: 34 };
+  if(n.type === 'VOTING') return { w: 128, h: Math.max(54, 32 + deps(n).length * 13) };
+  if(n.type === 'NUMBITS') return { w: 92, h: Math.max(56, 20 + (n.inputs ? n.inputs.length : 2) * 13) };
+  if(n.type === 'GT') return { w: 78, h: 56 };
+  if(n.type === 'R_TRIG') return { w: 116, h: 60 };
+  if(n.type === 'AND' || n.type === 'OR') return { w: 78, h: Math.max(34, 16 + (n.inputs ? n.inputs.length : 2) * 13) };
+  return { w: 70, h: 34 }; // NOT/BUFFER/MOVE (1 input)
+}
+
+/* ======================= sim instance ======================= */
+const sim = SimEngine.createSim(NETLIST);
+const inputState = {};
+ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false; });
+
+/* ======================= sinkronisasi state dgn halaman Cause & Effect =======================
+   Logic Detail & Cause & Effect sebuah sheet berasal dari netlist yang
+   sama (NETLIST.id sama persis) tapi jalan sbg 2 instance JS terpisah
+   (2 file HTML beda) — tanpa ini, toggle di satu halaman tidak kebawa
+   kalau pindah ke halaman satunya. Disimpan ke localStorage per sheet
+   (key dari NETLIST.id, jadi tidak bentrok antar sheet), isinya nilai
+   INPUT mentah + memory internal RS latch (rsPrev) supaya status
+   latch (sudah di-trip / sudah di-reset) ikut kebawa juga, bukan cuma
+   posisi tombol. Disimpan tiap kali simulate() jalan, dibaca sekali di
+   awal sebelum simulate() pertama. */
+const SYNC_KEY = 'sis-sim-state-' + (NETLIST.id || NETLIST.title || 'sheet');
+function loadSyncedState(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved.inputState){
+      Object.keys(saved.inputState).forEach(function(id){
+        if(id in inputState) inputState[id] = !!saved.inputState[id];
+      });
+    }
+    if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
+    /* 'rPrev' TIDAK ada lagi di engine sejak Koreksi #9 (RS bukan
+       edge-triggered lagi) -- baris pemulihan rPrev sengaja dihapus,
+       bukan diset ke objek kosong, supaya tidak ada referensi mati. */
+  }catch(e){}
+}
+function saveSyncedState(){
+  try{
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev }));
+  }catch(e){}
+}
+loadSyncedState();
+/* status tag yang sama di sheet lain menang atas state per-sheet (lihat _tagsync.js) */
+TagSync.init(NETLIST, inputState);
+
+/* ======================= boot (async: tunggu layout ELK) =======================
+   Semua render di bawah butuh posisi hasil ELK (asinkron), jadi dibungkus
+   satu fungsi async. Indentasi isi sengaja tidak digeser supaya diff &
+   riwayat komentar lama tetap mudah dibaca. */
+async function boot(){
+
+/* ======================= layout otomatis (ELK layered) =======================
+   Koreksi (2026-10-25, #20) -- MENGGANTIKAN seluruh mekanisme layout lama
+   (kolom tetap per layerOf + barycenter/transpose + field `row` eksplisit
+   + lane/skip-lane buatan sendiri + busur "hop" di titik silang).
+   Atas permintaan user: (1) busur/lengkung di persilangan TIDAK dipakai
+   lagi (jelek di logic kompleks), (2) penataan otomatis & terbaik
+   (simpel, minim silangan), (3) SELALU ada gap antar kabel, (4) blok
+   logic boleh di posisi mana saja (tidak harus grid rapi) asal minim
+   silangan & ber-gap.
+   Sekarang dipakai ELK (Eclipse Layout Kernel, algoritma "layered" --
+   implementasi Sugiyama yg matang: crossing minimization layer-sweep +
+   greedy switch, node placement Brandes-Köpf, routing orthogonal dgn
+   jarak antar-kabel dijamin lewat elk.spacing.edgeEdge /
+   edgeEdgeBetweenLayers / edgeNode). Pin input tiap blok dikunci di
+   posisi persis tanda pin (FIXED_POS) supaya urutan pin tetap sama dgn
+   gambar sumber. INPUT dipaksa ke layer pertama (kolom CAUSE), OUTPUT ke
+   layer terakhir (kolom EFFECT); blok di antaranya bebas.
+   Beberapa seed dicoba & dipilih yg silangannya paling sedikit (lalu
+   belokan paling sedikit). Kabel yang BERCABANG (satu sinyal ke banyak
+   tujuan) sengaja berbagi segmen & diberi titik sambung (junction dot)
+   -- itulah satu-satunya tempat dua garis boleh berimpit; garis beda
+   sinyal tidak pernah berimpit/menempel. ELK dimuat dari
+   ../vendor/elk.bundled.js (disalin build.js dari vendor/). */
+const EDGE_GAP = 12;          // jarak minimum antar kabel beda sinyal (px)
+const LAYOUT_SEEDS = [1, 2, 3, 4, 5];
+const ZONE_HEAD_H = 46, PAD = 28;
+
+function portY(n, s, i, count){
+  return count > 1 ? (i + 1) / (count + 1) * s.h : s.h / 2;
+}
+/* OUTPUT biasanya dikunci ke kolom terakhir (zona EFFECT). Tapi ada tag
+   yang selain jadi effect juga DIPAKAI LAGI sebagai sumber oleh node lain
+   (mis. RST_..._B_FEED di sheet 5 yang masuk MOVE#013) -- tag begitu tidak
+   boleh dikunci di kolom terakhir, karena pemakainya harus berada SESUDAH
+   dia. Tanpa pengecualian ini ELK tidak bisa menyelesaikan layout sama
+   sekali (Koreksi #24). */
+const referencedIds = {};
+ids.forEach(function(id){ deps(nodes[id]).forEach(function(d){ referencedIds[d] = true; }); });
+
+function buildElkGraph(seed){
+  const children = ids.map(function(id){
+    const n = nodes[id], s = boxSize(n), d = deps(n);
+    const ports = [];
+    /* OUTPUT yang dipakai lagi sbg sumber (lihat referencedIds) tetap butuh
+       port keluaran, kalau tidak ELK menolak edge-nya */
+    if(n.type !== 'OUTPUT' || referencedIds[id]){
+      ports.push({ id: id + '#o', width: 0, height: 0, x: s.w, y: s.h / 2, layoutOptions: { 'elk.port.side': 'EAST' } });
+    }
+    d.forEach(function(dep, i){
+      ports.push({ id: id + '#i' + i, width: 0, height: 0, x: 0, y: portY(n, s, i, d.length), layoutOptions: { 'elk.port.side': 'WEST' } });
+    });
+    const lo = { 'elk.portConstraints': 'FIXED_POS' };
+    if(n.type === 'INPUT') lo['elk.layered.layering.layerConstraint'] = 'FIRST';
+    if(n.type === 'OUTPUT' && !referencedIds[id]) lo['elk.layered.layering.layerConstraint'] = 'LAST';
+    return { id: id, width: s.w, height: s.h, ports: ports, layoutOptions: lo };
+  });
+  const edges = [];
+  ids.forEach(function(id){
+    deps(nodes[id]).forEach(function(dep, i){
+      if(!nodes[dep]) return;
+      edges.push({ id: dep + '→' + id + '#' + i, sources: [dep + '#o'], targets: [id + '#i' + i] });
+    });
+  });
+  return {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'RIGHT',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.separateConnectedComponents': 'false',
+      'elk.spacing.edgeEdge': String(EDGE_GAP),
+      'elk.layered.spacing.edgeEdgeBetweenLayers': String(EDGE_GAP),
+      'elk.spacing.edgeNode': '16',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '16',
+      'elk.spacing.nodeNode': '22',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '48',
+      'elk.layered.thoroughness': '40',
+      'elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'elk.padding': '[top=' + (PAD + ZONE_HEAD_H) + ',left=' + PAD + ',bottom=' + PAD + ',right=' + PAD + ']',
+      /* kalau beberapa urutan sama-sama minim silangan, pakai urutan node
+         di netlist (= urutan atas-bawah gambar vendor) -- Koreksi #21 */
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      'elk.randomSeed': String(seed)
+    },
+    children: children,
+    edges: edges
+  };
+}
+function edgeNet(e){ return e.sources[0].replace(/#o$/, ''); }
+function edgeSegments(e){
+  const out = [];
+  (e.sections || []).forEach(function(sec){
+    const pts = [sec.startPoint].concat(sec.bendPoints || [], [sec.endPoint]);
+    for(let i = 0; i < pts.length - 1; i++) out.push({ a: pts[i], b: pts[i + 1] });
+  });
+  return out;
+}
+/* kualitas layout: jumlah silangan antar kabel BEDA sinyal + jumlah belokan */
+function layoutQuality(res){
+  const H = [], V = [];
+  let bends = 0;
+  res.edges.forEach(function(e){
+    const net = edgeNet(e);
+    (e.sections || []).forEach(function(sec){ bends += (sec.bendPoints || []).length; });
+    edgeSegments(e).forEach(function(sg){
+      if(Math.abs(sg.a.y - sg.b.y) < 0.01) H.push({ net: net, y: sg.a.y, x1: Math.min(sg.a.x, sg.b.x), x2: Math.max(sg.a.x, sg.b.x) });
+      else V.push({ net: net, x: sg.a.x, y1: Math.min(sg.a.y, sg.b.y), y2: Math.max(sg.a.y, sg.b.y) });
+    });
+  });
+  const seen = {};
+  let cross = 0;
+  H.forEach(function(h){
+    V.forEach(function(v){
+      if(v.net === h.net) return;
+      if(v.x > h.x1 + 0.5 && v.x < h.x2 - 0.5 && h.y > v.y1 + 0.5 && h.y < v.y2 - 0.5){
+        const k = Math.round(v.x) + ',' + Math.round(h.y) + ',' + h.net + ',' + v.net;
+        if(!seen[k]){ seen[k] = 1; cross++; }
+      }
+    });
+  });
+  return { cross: cross, bends: bends };
+}
+async function computeLayout(){
+  const elk = new ELK();
+  let best = null;
+  for(let i = 0; i < LAYOUT_SEEDS.length; i++){
+    const res = await elk.layout(buildElkGraph(LAYOUT_SEEDS[i]));
+    const q = layoutQuality(res);
+    if(!best || q.cross < best.q.cross || (q.cross === best.q.cross && q.bends < best.q.bends)) best = { res: res, q: q };
+    if(best.q.cross === 0) break;
+  }
+  window.__layoutQuality = best.q; // utk verifikasi otomatis (Playwright)
+  return best.res;
+}
+
+const layoutMsg = document.createElement('p');
+layoutMsg.textContent = 'Menyusun layout diagram…';
+layoutMsg.style.cssText = 'padding:16px;margin:0;color:var(--fg-dim);font-size:13px';
+document.getElementById('canvasWrap').prepend(layoutMsg);
+const LAYOUT = await computeLayout();
+layoutMsg.remove();
+const pos = {};
+LAYOUT.children.forEach(function(c){ pos[c.id] = { x: c.x, y: c.y }; });
+const canvasW = Math.ceil(LAYOUT.width);
+const canvasH = Math.ceil(LAYOUT.height);
+
+/* batas-batas zona (x) untuk pita latar CAUSE / LOGIC / EFFECT: di tengah
+   celah antara blok paling kanan zona kiri & blok paling kiri zona kanan */
+function edgeX(filterFn, useRight, pick){
+  const xs = ids.filter(filterFn).map(function(id){ return useRight ? pos[id].x + boxSize(nodes[id]).w : pos[id].x; });
+  return xs.length ? pick.apply(null, xs) : null;
+}
+const isIn = function(id){ return nodes[id].type === 'INPUT'; };
+const isOut = function(id){ return nodes[id].type === 'OUTPUT'; };
+/* FEEDBACK digambar di tengah kanvas tapi bukan penanda batas zona yang
+   bermakna (dia tidak punya dependensi, jadi ELK bisa menaruhnya di kolom
+   paling kiri) -- dikecualikan supaya pita zona tidak jadi melar/terbalik. */
+const isLogic = function(id){ return !isIn(id) && !isOut(id) && nodes[id].type !== 'FEEDBACK'; };
+const inRight = edgeX(isIn, true, Math.max) || PAD;
+const outLeft = edgeX(isOut, false, Math.min) || canvasW - PAD;
+const logicLeft = edgeX(isLogic, false, Math.min);
+const logicRight = edgeX(isLogic, true, Math.max);
+let zoneCauseX1 = logicLeft != null ? (inRight + logicLeft) / 2 : (inRight + outLeft) / 2;
+let zoneEffectX0 = logicRight != null ? (logicRight + outLeft) / 2 : (inRight + outLeft) / 2;
+/* jaga urutan pita tetap waras walau ada node yang posisinya tak terduga */
+zoneCauseX1 = Math.max(zoneCauseX1, inRight + 8);
+zoneEffectX0 = Math.max(zoneEffectX0, zoneCauseX1 + 8);
+
+/* ======================= render ======================= */
+const svg = document.getElementById('svg');
+svg.setAttribute('viewBox', '0 0 ' + canvasW + ' ' + canvasH);
+svg.setAttribute('width', canvasW);
+svg.setAttribute('height', canvasH);
+
+/* ======================= zoom & pan ======================= */
+const canvasWrap = document.getElementById('canvasWrap');
+let zoom = 1;
+const ZOOM_MIN = 0.3, ZOOM_MAX = 3, ZOOM_STEP = 0.15;
+const zoomPct = document.getElementById('zoomPct');
+function applyZoom(){
+  zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+  svg.setAttribute('width', Math.round(canvasW * zoom));
+  svg.setAttribute('height', Math.round(canvasH * zoom));
+  zoomPct.textContent = Math.round(zoom * 100) + '%';
+}
+document.getElementById('zoomInBtn').addEventListener('click', function(){ zoom += ZOOM_STEP; applyZoom(); });
+document.getElementById('zoomOutBtn').addEventListener('click', function(){ zoom -= ZOOM_STEP; applyZoom(); });
+document.getElementById('zoomResetBtn').addEventListener('click', function(){ zoom = 1; applyZoom(); });
+document.getElementById('zoomFitBtn').addEventListener('click', function(){
+  const avail = canvasWrap.clientWidth - 20;
+  zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, avail / canvasW));
+  applyZoom();
+});
+canvasWrap.addEventListener('wheel', function(e){
+  if(!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  zoom += (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+  applyZoom();
+}, { passive: false });
+(function(){
+  let dragging = false, startX = 0, startY = 0, scrollX0 = 0, scrollY0 = 0;
+  canvasWrap.addEventListener('mousedown', function(e){
+    if(e.target.closest && e.target.closest('.tag')) return;
+    dragging = true; startX = e.clientX; startY = e.clientY;
+    scrollX0 = canvasWrap.scrollLeft; scrollY0 = canvasWrap.scrollTop;
+    canvasWrap.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', function(e){
+    if(!dragging) return;
+    canvasWrap.scrollLeft = scrollX0 - (e.clientX - startX);
+    canvasWrap.scrollTop = scrollY0 - (e.clientY - startY);
+  });
+  window.addEventListener('mouseup', function(){ dragging = false; canvasWrap.style.cursor = 'grab'; });
+})();
+applyZoom();
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/* --- pita zona CAUSE / LOGIC / EFFECT (paling belakang) --- */
+const zoneLayer = el('g', {});
+svg.appendChild(zoneLayer);
+
+function zoneBand(x0, x1, fillVar, title, shortTitle){
+  zoneLayer.appendChild(el('rect', { x: x0, y: 0, width: Math.max(0, x1 - x0), height: canvasH, fill: fillVar }));
+  const t = el('text', { x: x0 + 10, y: 22, class: 'zone-title' });
+  t.textContent = title;
+  zoneLayer.appendChild(t);
+  /* lebar zona sekarang mengikuti hasil layout (bisa sempit di sheet
+     kecil) -- kalau judul panjang tidak muat, pakai versi pendek */
+  if(shortTitle && t.getComputedTextLength() > (x1 - x0) - 16) t.textContent = shortTitle;
+}
+zoneBand(0, zoneCauseX1, 'var(--zone-cause)', 'CAUSE / INITIATOR');
+zoneBand(zoneCauseX1, zoneEffectX0, 'var(--zone-logic)', 'LOGIC & PERMISSIVE  (RS Latch · AND/OR · Voting)', 'LOGIC & PERMISSIVE');
+zoneBand(zoneEffectX0, canvasW, 'var(--zone-effect)', 'EFFECT / OUTPUT');
+zoneLayer.appendChild(el('line', { x1: zoneCauseX1, x2: zoneCauseX1, y1: 0, y2: canvasH, class: 'zone-divider' }));
+zoneLayer.appendChild(el('line', { x1: zoneEffectX0, x2: zoneEffectX0, y1: 0, y2: canvasH, class: 'zone-divider' }));
+
+const wireLayer = el('g', {});
+const nodeLayer = el('g', {});
+const junctionLayer = el('g', {});
+svg.appendChild(wireLayer);
+svg.appendChild(junctionLayer);
+svg.appendChild(nodeLayer);
+
+const nodeEls = {}; // id -> {g, rect, valText,...}
+const countdownEls = {}; // id TOF -> elemen teks hitung mundur
+const countEls = {};     // id NUMBITS -> elemen teks jumlah TRUE
+const wireRecords = []; // { path, from } untuk pewarnaan live
+const wireByPair = {}; // "from→to" -> path, untuk highlight trace
+
+/* ======================= kabel (dari rute ELK) =======================
+   Tiap kabel digambar persis mengikuti rute orthogonal hasil ELK (lihat
+   blok layout di atas) -- TANPA busur/lengkung di persilangan (Koreksi
+   #20, atas permintaan user). Persilangan yg tersisa (sudah diminimalkan)
+   digambar sbg silang lurus biasa; sambungan sungguhan SELALU ditandai
+   titik bulat (junction dot) atau berakhir di pin box, jadi silang tanpa
+   titik = tidak tersambung. */
+const junctionRecords = []; // { el, from } untuk pewarnaan live
+const junctionSeen = {};
+LAYOUT.edges.forEach(function(e){
+  const from = edgeNet(e);
+  const to = e.targets[0].replace(/#i\d+$/, '');
+  let d = '';
+  (e.sections || []).forEach(function(sec){
+    const pts = [sec.startPoint].concat(sec.bendPoints || [], [sec.endPoint]);
+    d += 'M ' + pts[0].x + ' ' + pts[0].y;
+    for(let i = 1; i < pts.length; i++) d += ' L ' + pts[i].x + ' ' + pts[i].y;
+  });
+  const path = el('path', { d: d, class: 'wire', 'data-from': from, 'data-to': to });
+  wireRecords.push({ path: path, from: from });
+  wireByPair[from + '→' + to] = path;
+  wireLayer.appendChild(path);
+  (e.junctionPoints || []).forEach(function(j){
+    const k = from + '@' + Math.round(j.x) + ',' + Math.round(j.y);
+    if(junctionSeen[k]) return;
+    junctionSeen[k] = 1;
+    const dot = el('circle', { cx: j.x, cy: j.y, r: 2.8, class: 'junction' });
+    junctionRecords.push({ el: dot, from: from });
+    junctionLayer.appendChild(dot);
+  });
+});
+
+function makeGateNode(id, n){
+  const p = pos[id], s = boxSize(n);
+  const g = el('g', { class: 'tag', 'data-id': id });
+  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'node-rect' });
+  g.appendChild(rect);
+  let label = n.type === 'RS' ? (n.label || 'RS') : n.type;
+  if(n.type === 'TOF') label = 'T_OFF_SP';
+  if(n.type === 'FEEDBACK') label = '↺ umpan balik';
+  if(n.type === 'VOTING') label = n.label || 'VOTING';
+  const t = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 - (n.type === 'RS' ? 6 : 2), 'text-anchor': 'middle', class: 'node-label' });
+  t.textContent = n.type === 'RS' ? label.replace('RST_105UC009_', 'RST_').replace('RS_105UC009_', 'RS_') : label;
+  g.appendChild(t);
+  if(n.gateId){
+    const gid = el('text', { x: p.x + 4, y: p.y + s.h - 4, class: 'gate-id' });
+    gid.textContent = '#' + n.gateId;
+    g.appendChild(gid);
+  }
+  /* tanda pin (garis kecil) di sisi kiri box, persis di titik tempat
+     setiap kabel input masuk — gate multi-input (AND/OR/VOTING/RS) jadi
+     kelihatan jelas berapa pin & yang mana, bukan numpuk di satu titik
+     tengah seperti sebelumnya. */
+  const inSlots = deps(n);
+  if(inSlots && inSlots.length > 1){
+    inSlots.forEach(function(depId, idx){
+      const py = p.y + (idx + 1) / (inSlots.length + 1) * s.h;
+      g.appendChild(el('line', { x1: p.x - 7, x2: p.x, y1: py, y2: py, class: 'pin-tick' }));
+      /* lingkaran inversi yang MELEKAT di pin input tertentu (AND/OR dgn
+         `invertInputs` -- lihat Koreksi #24), persis spt gambar vendor */
+      if(n.invertInputs && n.invertInputs[idx]){
+        g.appendChild(el('circle', { cx: p.x - 3.5, cy: py, r: 3.5, class: 'pin-invert-bubble' }));
+      }
+    });
+  }
+  let stateRectRef = null;
+  if(n.type === 'RS'){
+    /* Urutan render pin sengaja mengikuti deps(n) = [n.r, n.s] (lihat
+       fungsi deps() di atas) supaya cocok dgn gambar sumber: pin ATAS =
+       tag reset mentah (field netlist 'r', label gambar "S"), pin BAWAH
+       = gerbang kondisi (field netlist 's', label gambar "R1"). JANGAN
+       tukar balik tanpa cek ARSITEKTUR.md Koreksi #6/#8/#10.
+       Koreksi (2026-10-24, #10): inversi R1 digambar sbg lingkaran kecil
+       MELEKAT LANGSUNG di pin R1 (persis gambar sumber), BUKAN lagi
+       gerbang NOT kotak terpisah sebelum RS — lingkaran ini digambar utk
+       SEMUA block RS tanpa kecuali (konvensi block, bukan tergantung
+       flag `sInvert` di netlist — untuk rstD_010/rstE_019 yg gerbang
+       kondisinya sudah "pre-corrected" polaritas sehat=TRUE, inversi
+       matematisnya sudah terserap di dalam and009_corrected/and018_corrected,
+       tapi lingkaran tetap digambar demi kesetiaan visual ke gambar asli). */
+    const sY = p.y + s.h / 3, rY = p.y + (s.h * 2) / 3;
+    const sLabel = el('text', { x: p.x + 4, y: sY - 3, class: 'pin-label' });
+    sLabel.textContent = 'S';
+    g.appendChild(sLabel);
+    const rLabel = el('text', { x: p.x + 4, y: rY - 3, class: 'pin-label' });
+    rLabel.textContent = 'R1';
+    g.appendChild(rLabel);
+    // Bulatan inversi kecil di pin R1 (bawah), pas di titik wire masuk.
+    const invertBubble = el('circle', { cx: p.x - 3.5, cy: rY, r: 3.5, class: 'pin-invert-bubble' });
+    g.appendChild(invertBubble);
+    // state fill rect behind, updated on simulate
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+  } else if(n.type === 'TOF'){
+    /* blok timer: tampilkan setpoint & sisa hitung mundur waktu nyata */
+    const sp = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 11, 'text-anchor': 'middle', class: 'pin-label' });
+    sp.textContent = 'TOF = ' + (n.setpointSec || 0) + ' SEC';
+    g.appendChild(sp);
+    const cd = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 5, 'text-anchor': 'middle', class: 'tof-countdown' });
+    cd.textContent = '';
+    g.appendChild(cd);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+    countdownEls[id] = cd;
+  } else if(n.type === 'FEEDBACK'){
+    const src = nodes[n.input];
+    const t2 = el('text', { x: p.x + s.w / 2, y: p.y + s.h - 6, 'text-anchor': 'middle', class: 'pin-label' });
+    t2.textContent = (src && src.label ? src.label : n.input).slice(0, 26);
+    g.appendChild(t2);
+    const tt = el('title', {});
+    tt.textContent = 'Nilai ' + ((src && src.label) || n.input) + ' dari scan sebelumnya (umpan balik, seperti scan cycle PLC)';
+    g.appendChild(tt);
+  } else if(n.type === 'NUMBITS'){
+    const cnt = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    cnt.textContent = 'Σ TRUE = 0';
+    g.appendChild(cnt);
+    countEls[id] = cnt;
+  } else if(n.type === 'GT'){
+    const c = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    c.textContent = 'IN1 > ' + n.constant;
+    g.appendChild(c);
+  } else if(n.type === 'R_TRIG'){
+    const c = el('text', { x: p.x + s.w / 2, y: p.y + s.h / 2 + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    c.textContent = 'tepi naik · pulsa ' + ((n.pulseMs || 1000) / 1000) + ' s';
+    g.appendChild(c);
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+  } else if(n.type === 'VOTING'){
+    const kLabel = el('text', { x: p.x + s.w / 2, y: p.y + 12, 'text-anchor': 'middle', class: 'pin-label' });
+    kLabel.textContent = (n.fltInputs || []).length ? 'IN>' + (n.inputs.length - n.k) + ' & FLT>' + (n.fltInputs.length - n.k) + ' TRUE' : 'FALSE≥' + n.k + '/' + n.inputs.length + '→trip';
+    g.appendChild(kLabel);
+    /* nama pin sesuai gambar vendor: IN1, FLT1, IN2, ... */
+    deps(n).forEach(function(depId, idx){
+      const isFlt = (n.fltInputs || []).indexOf(depId) >= 0;
+      const num = isFlt ? (n.fltInputs.indexOf(depId) + 1) : (n.inputs.indexOf(depId) + 1);
+      const py = p.y + (idx + 1) / (deps(n).length + 1) * s.h;
+      const pl = el('text', { x: p.x + 4, y: py + 3, class: 'pin-label' });
+      pl.textContent = (isFlt ? 'FLT' : 'IN') + num;
+      g.appendChild(pl);
+    });
+    const stateRect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 6, class: 'latch-fill-off', style: 'pointer-events:none' });
+    g.insertBefore(stateRect, rect);
+    rect.setAttribute('class', 'node-rect outline-only');
+    stateRectRef = stateRect;
+  }
+  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 8, class: 'trace-ring' });
+  g.appendChild(ring);
+  g.addEventListener('click', function(){ traceUpstream(id); });
+  nodeLayer.appendChild(g);
+  nodeEls[id] = { g: g, stateRect: stateRectRef, ring: ring };
+}
+
+function makeTagNode(id, n){
+  const p = pos[id], s = boxSize(n);
+  const isInput = n.type === 'INPUT';
+  const g = el('g', { class: 'tag off' + (isInput ? ' input' : ''), 'data-id': id });
+  const rect = el('rect', { x: p.x, y: p.y, width: s.w, height: s.h, rx: 12 });
+  g.appendChild(rect);
+  const name = el('text', { x: p.x + 10, y: p.y + 14, class: 'name' });
+  /* label tag bisa sangat panjang (mis. RST_105UC032_011_012_027_B_FEED) dan
+     dulu menabrak teks nilai TRUE/FALSE di kanan -- dipotong agar muat */
+  name.textContent = fitLabel(n.label, s.w - 20 - 40);
+  g.appendChild(name);
+  /* desc di-wrap jadi beberapa baris (lihat wrapDesc/boxSize) supaya
+     rapi di dalam box, bukan satu baris panjang yang meluber. */
+  const descLines = s.descLines || wrapDesc(n.desc, s.w - 20);
+  if(descLines.length){
+    const desc = el('text', { x: p.x + 10, y: p.y + 26, class: 'desc' });
+    descLines.forEach(function(line, i){
+      const tspan = el('tspan', { x: p.x + 10, dy: i === 0 ? 0 : 10 });
+      tspan.textContent = line;
+      desc.appendChild(tspan);
+    });
+    g.appendChild(desc);
+  }
+  /* hubungan lintas sheet: effect sheet ini yang jadi cause sheet lain (dan
+     sebaliknya) dirender sbg link yang bisa diklik langsung dari kanvas --
+     klik link TIDAK ikut men-toggle/trace node-nya (stopPropagation). */
+  const links = s.links || CrossLink.linksFor(n, NAV, false);
+  links.forEach(function(lk, i){
+    const ly = p.y + 26 + descLines.length * 10 + i * 11 + 2;
+    const a = el('a', { href: lk.href, class: 'xlink xlink-' + lk.kind });
+    const t = el('text', { x: p.x + 10, y: ly, class: 'xlink-text' });
+    t.textContent = lk.prefix + lk.label;
+    const tt = el('title', {});
+    tt.textContent = lk.title;
+    a.appendChild(tt);
+    a.appendChild(t);
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+    g.appendChild(a);
+  });
+  const val = el('text', { x: p.x + s.w - 10, y: p.y + 14, 'text-anchor': 'end', class: 'val' });
+  val.textContent = 'FALSE';
+  g.appendChild(val);
+  const ring = el('rect', { x: p.x - 3, y: p.y - 3, width: s.w + 6, height: s.h + 6, rx: 15, class: 'trace-ring' });
+  g.appendChild(ring);
+  if(isInput){
+    g.addEventListener('click', function(){
+      inputState[id] = !inputState[id];
+      simulate();
+    });
+  } else {
+    g.addEventListener('click', function(){ traceUpstream(id); });
+  }
+  nodeLayer.appendChild(g);
+  nodeEls[id] = { g: g, val: val, ring: ring };
+}
+
+ids.forEach(function(id){
+  const n = nodes[id];
+  if(n.type === 'INPUT' || n.type === 'OUTPUT') makeTagNode(id, n);
+  else makeGateNode(id, n);
+});
+
+/* ======================= status rail ======================= */
+const RS_IDS = ids.filter(function(id){ return nodes[id].type === 'RS'; });
+const OUT_IDS = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+
+const latchList = document.getElementById('latchList');
+RS_IDS.forEach(function(id){
+  const n = nodes[id];
+  const row = document.createElement('div');
+  row.className = 'latch-row';
+  row.innerHTML = '<span class="latch-name">' + (n.label || id) + '</span><span class="chip off" id="chip_' + id + '">FALSE</span>';
+  latchList.appendChild(row);
+});
+
+const outList = document.getElementById('outList');
+OUT_IDS.forEach(function(id){
+  const n = nodes[id];
+  const row = document.createElement('div');
+  row.className = 'out-row';
+  row.innerHTML = '<span><span class="out-name">' + n.label + '</span><span class="out-desc">' + (n.desc || '') + '</span></span><span class="chip off" id="chip_' + id + '">FALSE</span>';
+  outList.appendChild(row);
+});
+
+document.getElementById('pageTitle').textContent = 'Simulator Logic — ' + (NETLIST.title || NETLIST.id);
+document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
+
+/* ======================= ringkasan cara kerja (bahasa biasa) ======================= */
+const summaryCard = document.getElementById('summaryCard');
+const summaryText = document.getElementById('summaryText');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  summaryParas.forEach(function(para){
+    const p = document.createElement('p');
+    p.textContent = para;
+    summaryText.appendChild(p);
+  });
+} else {
+  summaryCard.style.display = 'none';
+}
+
+/* ======================= detail tambahan / catatan teknis (collapsed, di bawah) ======================= */
+const notesList = document.getElementById('notesList');
+const notes = NETLIST.notes || [];
+if(notes.length){
+  notes.forEach(function(note){
+    const li = document.createElement('li');
+    li.textContent = note;
+    notesList.appendChild(li);
+  });
+  document.getElementById('detailSection').style.display = '';
+}
+
+/* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+if(NAV && NAV.ceUrl) document.getElementById('ceLink').href = NAV.ceUrl;
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
+
+/* ======================= status dock (panel bawah) ======================= */
+const statusDock = document.getElementById('statusDock');
+const dockToggleBtn = document.getElementById('dockToggleBtn');
+function syncDockPadding(){
+  const h = statusDock.getBoundingClientRect().height;
+  document.body.style.paddingBottom = (h + 16) + 'px';
+}
+dockToggleBtn.addEventListener('click', function(){
+  statusDock.classList.toggle('collapsed');
+  dockToggleBtn.textContent = statusDock.classList.contains('collapsed') ? '▴' : '▾';
+  syncDockPadding();
+});
+window.addEventListener('resize', syncDockPadding);
+syncDockPadding();
+
+/* ======================= simulate + repaint ======================= */
+function simulate(){
+  const v = sim.step(inputState);
+  ids.forEach(function(id){
+    const n = nodes[id];
+    const val = v[id];
+    if(n.type === 'INPUT' || n.type === 'OUTPUT'){
+      const ne = nodeEls[id];
+      ne.g.classList.toggle('on', val);
+      ne.g.classList.toggle('off', !val);
+      ne.val.textContent = val ? 'TRUE' : 'FALSE';
+    } else if(nodeEls[id] && nodeEls[id].stateRect){
+      nodeEls[id].stateRect.setAttribute('class', val ? 'latch-fill-on' : 'latch-fill-off');
+    }
+  });
+  RS_IDS.forEach(function(id){
+    const chip = document.getElementById('chip_' + id);
+    const on = v[id];
+    chip.textContent = on ? 'TRUE' : 'FALSE';
+    chip.className = 'chip ' + (on ? 'on' : 'off');
+  });
+  OUT_IDS.forEach(function(id){
+    const chip = document.getElementById('chip_' + id);
+    const on = v[id];
+    chip.textContent = on ? 'TRUE' : 'FALSE';
+    chip.className = 'chip ' + (on ? 'on' : 'off');
+  });
+  /* warnai kabel sesuai nilai live sinyal yang dibawanya (hijau=FALSE,
+     merah=TRUE) — kabel TRUE ditebalkan & dipindah ke depan supaya
+     jalur aktif gampang diikuti mata di antara kabel hijau lainnya */
+  wireRecords.forEach(function(rec){
+    const on = v[rec.from];
+    rec.path.classList.toggle('on', on);
+    if(on) wireLayer.appendChild(rec.path);
+  });
+  junctionRecords.forEach(function(rec){ rec.el.classList.toggle('on', !!v[rec.from]); });
+  /* hitung mundur timer waktu nyata: tampilkan sisa detik & jadwalkan
+     simulasi ulang selama masih berjalan (lihat case "TOF" di engine) */
+  Object.keys(countdownEls).forEach(function(tid){
+    const left = sim.tofRemaining(tid, Date.now());
+    countdownEls[tid].textContent = left > 0
+      ? ('sisa ' + (left >= 120 ? Math.floor(left / 60) + ' mnt ' + Math.floor(left % 60) + ' s' : left.toFixed(1) + ' s'))
+      : '';
+  });
+  Object.keys(countEls).forEach(function(cid){ countEls[cid].textContent = 'Σ TRUE = ' + v[cid]; });
+  scheduleTimerTick();
+  saveSyncedState();
+  TagSync.publish(v);
+}
+
+/* Selama ada TOF yang sedang menghitung mundur, halaman menjalankan
+   simulate() berkala supaya angka & warna ikut berjalan tanpa interaksi.
+   Begitu semua timer berhenti, tick dimatikan lagi (tidak ada polling sia-sia). */
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null){
+    timerTick = setInterval(function(){ simulate(); }, 200);
+  } else if(!running && timerTick != null){
+    clearInterval(timerTick); timerTick = null;
+  }
+}
+
+/* ======================= trace / tracing manual ======================= */
+let tracedNode = null;
+function clearTrace(){
+  tracedNode = null;
+  Object.keys(nodeEls).forEach(function(id){
+    if(nodeEls[id].ring) nodeEls[id].ring.classList.remove('show');
+    if(nodeEls[id].g) nodeEls[id].g.classList.remove('dimmed', 'trace-focus');
+  });
+  wireRecords.forEach(function(rec){ rec.path.classList.remove('highlight', 'dimmed'); });
+  junctionRecords.forEach(function(rec){ rec.el.classList.remove('dimmed'); });
+}
+function traceUpstream(id){
+  if(tracedNode === id){ clearTrace(); return; } // klik node yang sama = lepas jejak
+  clearTrace();
+  tracedNode = id;
+  const visited = {};
+  const queue = [id];
+  while(queue.length){
+    const cur = queue.shift();
+    if(visited[cur]) continue;
+    visited[cur] = true;
+    if(nodeEls[cur] && nodeEls[cur].ring) nodeEls[cur].ring.classList.add('show');
+    deps(nodes[cur]).forEach(function(d){
+      const w = wireByPair[d + '→' + cur];
+      if(w){ w.classList.add('highlight'); wireLayer.appendChild(w); }
+      queue.push(d);
+    });
+  }
+  /* Koreksi UI/UX (2026-10-25): blur + redupkan semua node & kabel yang
+     TIDAK termasuk jalur (visited) -- lihat komentar CSS `.dimmed` di
+     atas. Node yang di-klik sendiri dapat `.trace-focus` (outline lebih
+     tebal) supaya titik awal jejak juga jelas, bukan cuma node hulu. */
+  Object.keys(nodeEls).forEach(function(nid){
+    if(!nodeEls[nid].g) return;
+    if(visited[nid]){
+      nodeEls[nid].g.classList.remove('dimmed');
+      if(nid === id) nodeEls[nid].g.classList.add('trace-focus');
+    } else {
+      nodeEls[nid].g.classList.add('dimmed');
+    }
+  });
+  wireRecords.forEach(function(rec){
+    if(!rec.path.classList.contains('highlight')) rec.path.classList.add('dimmed');
+  });
+  junctionRecords.forEach(function(rec){ if(!visited[rec.from]) rec.el.classList.add('dimmed'); });
+}
+document.getElementById('clearTraceBtn').addEventListener('click', clearTrace);
+/* tombol alat uji: hanya muncul kalau sheet punya timer TOF >= 60 detik */
+(function(){
+  const longTimer = ids.some(function(i){ return nodes[i].type === 'TOF' && (nodes[i].setpointSec || 0) >= 60; });
+  const b = document.getElementById('skipTimerBtn');
+  if(!longTimer) return;
+  b.style.display = '';
+  b.addEventListener('click', function(){ sim.skipTimers(Date.now()); simulate(); });
+})();
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  ids.forEach(function(id){ if(nodes[id].type === 'INPUT') inputState[id] = false; });
+  sim.reset();
+  simulate();
+});
+
+/* handle utk verifikasi otomatis (Playwright) & penelusuran manual di
+   console — semua render ada di dalam boot(), jadi tanpa ini tidak ada
+   cara memeriksa state simulasi dari luar */
+window.__sim = sim; window.__simulate = simulate;
+TagSync.onChange(simulate);
+simulate();
+}
+boot().catch(function(err){
+  console.error(err);
+  const wrap = document.getElementById("canvasWrap");
+  if(wrap) wrap.insertAdjacentHTML("afterbegin", "<p style=\"padding:16px;color:var(--true)\">Gagal menyusun layout diagram: " + (err && err.message ? err.message : err) + "</p>");
+});
+</script>
