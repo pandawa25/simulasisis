@@ -40,7 +40,6 @@
     "in_f105HS010SB": {
       "type": "INPUT",
       "label": "f105HS010SB",
-      "desc": "12251 — Switch Start Up Bypass",
       "group": "Bypass / MOS — Start Up (→ OR#002, OR#005)"
     },
     "in_f105HS010M": {
@@ -121,7 +120,6 @@
     "in_f105ZSO502": {
       "type": "INPUT",
       "label": "f105ZSO502",
-      "desc": "12206 — Open Signal To Heater Stack",
       "group": "Posisi Valve & Link (→ OR#014, AND#012)"
     },
     "in_L1G14A": {
@@ -329,7 +327,6 @@
     "out_AND_FEED_1": {
       "type": "OUTPUT",
       "label": "AND_105UC010_FEED_1",
-      "desc": "Sinyal internal — keluaran AND#012",
       "source": "and_012",
       "group": "Sinyal internal (bukan output lapangan)",
       "internalOnly": true

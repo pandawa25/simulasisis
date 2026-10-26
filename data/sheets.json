@@ -70,9 +70,9 @@
       "slug": "sheet-008",
       "tag": "105-UC-010",
       "note": "bagian b",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-008.html",
+      "ceUrl": "sheets/sheet-008-ce.html"
     },
     {
       "sheet": 9,

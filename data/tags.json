@@ -92,6 +92,20 @@
       "tagNo": "12074",
       "desc": "Reset 105-UY-019/045, FY-029, HS-010AE (105-UC-012)",
       "isReset": true
+    },
+    "f105HS010SB": {
+      "tagNo": "12251",
+      "desc": "Switch Start Up Bypass"
+    },
+    "f105ZSO502": {
+      "tagNo": "12206",
+      "desc": "Open Signal To Heater Stack"
+    },
+    "L1G14A_L1G14A": {
+      "desc": "Link L1G14A (tanpa nomor tag, tanpa sumber di sheet 7 & 8)"
+    },
+    "AND_105UC010_FEED_1": {
+      "desc": "Sinyal internal — keluaran AND#012 sheet 7 (105-UC-010_a)"
     }
   }
 }
