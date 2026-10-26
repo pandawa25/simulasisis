@@ -132,7 +132,7 @@ Sumber-of-truth status & URL ada di `data/sheets.json` (field `status`/`url`, ot
 | 027 | 105-UC-017_030_2_c | Damper natural draft 105-F-501: RS#007 (AND#006: OR#003 [TOF#002 dari voting 300, bypass], OR#005 [TOF#004 FSLL045B, bypass, MOS]) → UY605D–H; RS#010 (OR#009 [TOF#008 FSLL645B, MOS, bypass]) + AND#011 → UY605A–C | **Selesai** |
 | 028 | 105-UC-030_3_a | Izin fuel oil 105-F-501 (UY-030/031): AND#014 11 masukan → RS#015 → AND#018 (seal-in OR#017) → MOVE#019 | **Selesai** |
 | 029 | 105-UC-030_3_b | Blok b permissive 105-UC-030: AND#021 (6 masukan) → AND_105UC030_3_b_FEED_1 ke sheet 28; 4 RS, 4 TOF, 5 alarm NOT | **Selesai** |
-| 030 | 105-UC-031 bag.1 | | Belum |
+| 030 | 105-UC-031_1 | Izin fuel gas 105-F-503 (UY-040/041): AND#024 10 masukan → RS#025 → AND#028 (seal-in OR#027) → MOVE#030; 2 voting 2oo3, NUMBITS/GT, 6 TOF | **Selesai** |
 | 031 | 105-UC-031 bag.2 | | Belum |
 | 032 | CPRS | | Belum |
 | 033 | XA003 | | Belum |
@@ -189,6 +189,7 @@ Sumber-of-truth status & URL ada di `data/sheets.json` (field `status`/`url`, ot
 - **Koreksi (2026-10-26, #47 — sheet 27 105-UC-017_030_2_c)**: tanpa perubahan engine/template. 11 gate. f105HS604UCR didaftarkan (isReset, dipakai sheet 11; desc/flag dihapus dari sheet 11). RS#007 Q1 bercabang T ke RS_2 HMI, 5 valve (D–H) dan AND#011; RS#010 Q1 ke RS_3 HMI dan AND#011. Hipotesis: label RS_105UC030_2_c_1/_2. Uji s27test lulus, regresi 7–26 lulus.
 - **Koreksi (2026-10-26, #48 — sheet 28 105-UC-030_3_a)**: Sheet 28 hampir klon sheet 25 (OR#017 seal-in terpisah, tanpa NOT alarm). f105PSHH024E/f105TSHH046/f105HS046M didaftarkan di registry (sheet 25 & 28). AND_105UC030_3_b_FEED_1 INPUT sementara dari sheet 29. Label RS/VOT dan R_TRIG#016 membaca Q1 RS#015 = HIPOTESIS.
 - **Koreksi (2026-10-26, #49 — sheet 29 105-UC-030_3_b)**: Sheet 29: pin AND#021 dari posisi vertikal (sumber terbawah = vertikal paling kanan). m105FSLL018A-H & f105HS018M didaftarkan (sheet 26 & 29); AND_105UC030_3_b_FEED_1 OUTPUT di sheet 29, INPUT di sheet 28 (desc dipindah ke registry). NOT#022-024 membaca keluaran TOF; label RS_105UC030_3_b_1..4 = HIPOTESIS.
+- **Koreksi (2026-10-26, #50 — sheet 30 105-UC-031_1)**: Sheet 30 (dapur 105-F-503): R_TRIG#029 membaca keluaran AND#028 (bukan Q1 RS); NOT#032/#033 (PSLL112/PSHH112) terpisah walau segaris vertikal (gap dikonfirmasi zoom 8x); tag bersama sheet 20 (m105LSLL033, f105HS033M, f105HS008AE/B, f105HS015UCR, f105ZSO023) didaftarkan. Input non-registry wajib punya desc dari CSV (tanpa desc, klik UI gagal). In-line tag f105PSLL112Ior105PSHH112_TOF dari CSV.
 - **Koreksi (2026-10-26, #33 — isi blok VOTING_2OO3 dengan pin FLT, engine + template)**: gambar vendor isi blok (dikirim user) menunjukkan VOTING dengan FLT bukan voting biasa: NUMBITS#001 (IN1, IN3, IN2) -> GT#002 (>1), NUMBITS#003 (FLT1..3) -> GT#004 (>1), AND#005 -> OUT. Output = (IN TRUE > 1) DAN (FLT TRUE > 1), jadi FLT TRUE = sehat dan ikut menentukan hasil (tidak lagi "input biasa tanpa pengaruh" seperti arahan sheet 7, Koreksi #25 dibatalkan untuk bagian itu). Engine: VOTING dengan fltInputs menambah syarat fltTrue > n-k (konstanta 1 untuk 2oo3); VOTING tanpa FLT (2oo9 sheet 9/13) tidak berubah. Berlaku untuk semua sheet ber-FLT: 7, 8, 10, 11, 12, 13. Label voting di Logic Detail jadi "IN>1 & FLT>1 TRUE". Tes s7-s13 diperbarui: set sehat wajib menyertakan FLT TRUE.
 
 ## Riwayat
