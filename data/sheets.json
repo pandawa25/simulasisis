@@ -151,9 +151,9 @@
       "slug": "sheet-017",
       "tag": "105-UC-008",
       "note": "+ 026",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-017.html",
+      "ceUrl": "sheets/sheet-017-ce.html"
     },
     {
       "sheet": 18,
