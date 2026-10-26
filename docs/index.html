@@ -68,6 +68,10 @@
 }
 
 *{box-sizing:border-box}
+/* Palet portal (indigo-violet) -- hanya untuk halaman ini, token bersama tidak diubah */
+:root{ --accent:#4f46e5; --accent-fg:#ffffff; --accent-text:#4338ca; --g1:#4338ca; --g2:#7c3aed; --g3:#0ea5e9; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --accent:#818cf8; --accent-fg:#0b1020; --accent-text:#a5b4fc; --g1:#312e81; --g2:#5b21b6; --g3:#0369a1; } }
+:root[data-theme="dark"]{ --accent:#818cf8; --accent-fg:#0b1020; --accent-text:#a5b4fc; --g1:#312e81; --g2:#5b21b6; --g3:#0369a1; }
 :root{ --r-lg:16px; --r-md:12px; --shadow:0 1px 2px rgba(16,24,38,.05), 0 4px 14px rgba(16,24,38,.05); --shadow-hover:0 2px 4px rgba(16,24,38,.06), 0 10px 26px rgba(16,24,38,.10); }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --shadow-hover:0 2px 4px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.45);} }
 :root[data-theme="dark"]{ --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --shadow-hover:0 2px 4px rgba(0,0,0,.5), 0 10px 26px rgba(0,0,0,.45); }
@@ -84,25 +88,29 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 /* ---------- header ---------- */
 .topbar{
   position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
-  margin:12px 0 0; padding:14px 18px; display:flex; align-items:center; gap:14px;
-  background:var(--panel); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow);
+  margin:12px 0 0; padding:20px 22px; display:flex; align-items:center; gap:16px; overflow:hidden;
+  color:#fff; border-radius:20px; box-shadow:0 10px 30px -8px rgba(79,70,229,.45);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.22), transparent 55%),
+    linear-gradient(120deg, var(--g1) 0%, var(--g2) 55%, var(--g3) 120%);
 }
 .brand-mark{
-  width:42px; height:42px; flex:none; border-radius:12px; display:grid; place-items:center;
-  background:var(--accent); color:var(--accent-fg);
+  width:46px; height:46px; flex:none; border-radius:14px; display:grid; place-items:center;
+  background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff;
+  backdrop-filter:blur(6px);
 }
-.brand-mark svg{width:24px; height:24px}
+.brand-mark svg{width:26px; height:26px}
 .brand-text{min-width:0; flex:1}
-.topbar h1{font-size:1.18rem; font-weight:700; letter-spacing:-.005em; line-height:1.25}
-.topbar .sub{display:flex; gap:8px; align-items:center; margin-top:3px; font-size:.74rem; color:var(--fg-dim); flex-wrap:wrap}
-.chip{font-family:var(--mono); font-size:.68rem; padding:2px 8px; border-radius:20px; background:var(--panel-2); border:1px solid var(--border); color:var(--fg-dim)}
+.topbar h1{font-size:1.3rem; font-weight:700; letter-spacing:-.01em; line-height:1.25; color:#fff}
+.topbar .sub{display:flex; gap:8px; align-items:center; margin-top:6px}
+.chip{font-family:var(--mono); font-size:.7rem; padding:2px 10px; border-radius:20px; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff}
 .icon-btn{
   width:42px; height:42px; flex:none; border-radius:12px; cursor:pointer; display:grid; place-items:center;
-  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
-  transition:border-color .15s, background .15s;
+  border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.18); color:#fff;
+  backdrop-filter:blur(6px); transition:background .15s;
 }
-.icon-btn:hover{border-color:var(--accent)}
-.icon-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.icon-btn:hover{background:rgba(255,255,255,.3)}
+.icon-btn:focus-visible{outline:2px solid #fff; outline-offset:2px}
 .icon-btn svg{width:20px; height:20px}
 .icon-btn .i-sun{display:none}
 :root[data-eff="dark"] .icon-btn .i-sun{display:block}
@@ -120,7 +128,7 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
   white-space:nowrap; transition:background .15s, color .15s;
 }
 .tab:hover{background:var(--panel-2); color:var(--fg)}
-.tab[aria-selected="true"]{background:var(--accent); color:var(--accent-fg)}
+.tab[aria-selected="true"]{background:linear-gradient(120deg,var(--g1),var(--g2)); color:#fff; box-shadow:0 4px 12px -4px rgba(79,70,229,.6)}
 .tab[aria-disabled="true"]{cursor:not-allowed; opacity:.55}
 .tab[aria-disabled="true"]:hover{background:transparent; color:var(--fg-dim)}
 .tab:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
@@ -178,7 +186,7 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 .card-actions{display:flex; gap:8px; margin-top:auto; padding-top:4px; flex-wrap:wrap}
 .card-action-btn{
   flex:1 1 auto; text-align:center; font-size:.76rem; font-weight:650; text-decoration:none;
-  color:var(--accent-fg); background:var(--accent); border:1px solid var(--accent); border-radius:10px;
+  color:#fff; background:linear-gradient(120deg,var(--g1),var(--g2)); border:1px solid transparent; border-radius:10px;
   padding:8px 10px; white-space:nowrap; transition:opacity .15s;
 }
 .card-action-btn.secondary{color:var(--fg); background:var(--panel-2); border-color:var(--border)}
@@ -187,9 +195,9 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
 
 .empty{padding:48px 4px; text-align:center; color:var(--fg-dim); font-size:.88rem}
 @media (max-width:560px){
-  .topbar{padding:12px; gap:10px}
+  .topbar{padding:14px; gap:10px}
   .topbar h1{font-size:1rem}
-  .brand-mark{width:36px; height:36px}
+  .brand-mark{width:38px; height:38px}
 }
 </style>
 
@@ -201,7 +209,7 @@ h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
     </div>
     <div class="brand-text">
       <h1>Portal Simulator Logic Safety Instrumented System (SIS)</h1>
-      <div class="sub"><span id="docTitle"></span><span class="chip" id="docVersion"></span></div>
+      <div class="sub"><span class="chip" id="docVersion"></span></div>
     </div>
     <button class="icon-btn" id="themeBtn" type="button" aria-label="Ganti tema terang/gelap" title="Ganti tema">
       <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -885,7 +893,6 @@ const DATA = {
   ]
 };
 
-document.getElementById('docTitle').textContent = DATA.docTitle || '';
 document.getElementById('docVersion').textContent = DATA.docVersion || '';
 
 /* ======================= tab unit ======================= */
