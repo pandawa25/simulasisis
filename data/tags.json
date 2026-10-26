@@ -368,6 +368,15 @@
     },
     "RS_105UC004_FEED_1": {
       "desc": "Sinyal internal — keluaran RS#016 sheet 15 (105-UC-004_b), dipakai sebagai cause di sheet 14 (AND#011 bawah)"
+    },
+    "m105LSHH019": {
+      "tagNo": "12784",
+      "desc": "HDS Separator Drum 105-V-503 HH Alm"
+    },
+    "f105HS019M": {
+      "tagNo": "12291",
+      "desc": "MOS 105-LSHH/LSLL-019",
+      "isMOS": true
     }
   }
 }

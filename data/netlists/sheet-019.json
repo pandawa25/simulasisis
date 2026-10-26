@@ -1,0 +1,489 @@
+{
+  "id": "105-UC-014/016",
+  "title": "105-UC-014/016",
+  "sheetRef": "Sheet 19 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Level / MOS — HDS Separator Drum 105-V-503 LL (→ NOT#001t, OR#002t)",
+    "Level / MOS — HDS Separator Drum 105-V-503 HH (→ NOT#005t, OR#006t)",
+    "Level / MOS — HDS Separator Drum 105-V-503 HH (→ OR#007t)",
+    "Reset (manual, per latch)",
+    "Level / MOS — Splitter Bottom LL (→ OR#001b)",
+    "ESD Pushbutton — SHU Reactor (→ AND#002b)",
+    "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004b)",
+    "ESD Pushbutton — HDS Section Depressurization (→ AND#008b)",
+    "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009b)",
+    "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011b)",
+    "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010b)",
+    "Shutdown Compressor 105-K-501 (→ AND#011b)",
+    "Flow / MOS — Recycle Gas To HDS (→ OR#013b)",
+    "Posisi Valve — Pump Run Permissive (→ AND#015b)",
+    "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+  ],
+  "effectGroups": [
+    "Alarm HDS Separator Drum 105-V-503 (NOT dari level)",
+    "Output Proses — HDS Separator Drum / Wash Water",
+    "Output Link — L1G20A (dibaca AND#003 dan AND#008 blok atas)"
+  ],
+  "nodes": {
+    "in_m105LSLL018": {
+      "type": "INPUT",
+      "label": "m105LSLL018",
+      "desc": "12402 — HDS Seperator Drum 105-V-503 LL Alm",
+      "group": "Level / MOS — HDS Separator Drum 105-V-503 LL (→ NOT#001t, OR#002t)"
+    },
+    "in_f105HS018LM": {
+      "type": "INPUT",
+      "label": "f105HS018LM",
+      "desc": "12084 — MOS 105-LSHH/LSLL-018",
+      "isMOS": true,
+      "group": "Level / MOS — HDS Separator Drum 105-V-503 LL (→ NOT#001t, OR#002t)"
+    },
+    "in_m105LSHH018": {
+      "type": "INPUT",
+      "label": "m105LSHH018",
+      "desc": "12378 — HDS Seperator Drum 105-V-503 HH Alm",
+      "group": "Level / MOS — HDS Separator Drum 105-V-503 HH (→ NOT#005t, OR#006t)"
+    },
+    "in_m105LSHH019": {
+      "type": "INPUT",
+      "label": "m105LSHH019",
+      "group": "Level / MOS — HDS Separator Drum 105-V-503 HH (→ OR#007t)"
+    },
+    "in_f105HS019M": {
+      "type": "INPUT",
+      "label": "f105HS019M",
+      "group": "Level / MOS — HDS Separator Drum 105-V-503 HH (→ OR#007t)"
+    },
+    "in_f105HS014UCR": {
+      "type": "INPUT",
+      "label": "f105HS014UCR",
+      "desc": "12078 — Reset 105-UY-013 (105-UC-014)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS016UCR": {
+      "type": "INPUT",
+      "label": "f105HS016UCR",
+      "desc": "12080 — Reset 105-FY-024 (105-UC-016)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_m105LSLL009": {
+      "type": "INPUT",
+      "label": "m105LSLL009",
+      "group": "Level / MOS — Splitter Bottom LL (→ OR#001b)"
+    },
+    "in_f105HS009M": {
+      "type": "INPUT",
+      "label": "f105HS009M",
+      "group": "Level / MOS — Splitter Bottom LL (→ OR#001b)"
+    },
+    "in_f105HS007A": {
+      "type": "INPUT",
+      "label": "f105HS007A",
+      "group": "ESD Pushbutton — SHU Reactor (→ AND#002b)"
+    },
+    "in_f105HS007B": {
+      "type": "INPUT",
+      "label": "f105HS007B",
+      "group": "ESD Pushbutton — SHU Reactor (→ AND#002b)"
+    },
+    "in_f105HS002AE": {
+      "type": "INPUT",
+      "label": "f105HS002AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004b)"
+    },
+    "in_f105HS002B": {
+      "type": "INPUT",
+      "label": "f105HS002B",
+      "group": "ESD Pushbutton — Fire/Leak 105-C-501 (→ AND#004b)"
+    },
+    "in_f105HS005UCR": {
+      "type": "INPUT",
+      "label": "f105HS005UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS025UCR": {
+      "type": "INPUT",
+      "label": "f105HS025UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS007UCR": {
+      "type": "INPUT",
+      "label": "f105HS007UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS012UCR": {
+      "type": "INPUT",
+      "label": "f105HS012UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS009UCR": {
+      "type": "INPUT",
+      "label": "f105HS009UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS006A": {
+      "type": "INPUT",
+      "label": "f105HS006A",
+      "group": "ESD Pushbutton — HDS Section Depressurization (→ AND#008b)"
+    },
+    "in_f105HS006B": {
+      "type": "INPUT",
+      "label": "f105HS006B",
+      "group": "ESD Pushbutton — HDS Section Depressurization (→ AND#008b)"
+    },
+    "in_m105LSHH030": {
+      "type": "INPUT",
+      "label": "m105LSHH030",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009b)"
+    },
+    "in_f105HS030LM": {
+      "type": "INPUT",
+      "label": "f105HS030LM",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505 (→ OR#009b)"
+    },
+    "in_f105HS010A": {
+      "type": "INPUT",
+      "label": "f105HS010A",
+      "group": "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011b)"
+    },
+    "in_f105HS010B": {
+      "type": "INPUT",
+      "label": "f105HS010B",
+      "group": "ESD Pushbutton — Stop Recycle Gas Compressor 105-K-501 (→ AND#011b)"
+    },
+    "in_f105HS019AE": {
+      "type": "INPUT",
+      "label": "f105HS019AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010b)"
+    },
+    "in_f105HS019B": {
+      "type": "INPUT",
+      "label": "f105HS019B",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501 (→ AND#010b)"
+    },
+    "in_f105XS012": {
+      "type": "INPUT",
+      "label": "f105XS012",
+      "group": "Shutdown Compressor 105-K-501 (→ AND#011b)"
+    },
+    "in_m105FSLL030": {
+      "type": "INPUT",
+      "label": "m105FSLL030",
+      "group": "Flow / MOS — Recycle Gas To HDS (→ OR#013b)"
+    },
+    "in_f105HS030M": {
+      "type": "INPUT",
+      "label": "f105HS030M",
+      "group": "Flow / MOS — Recycle Gas To HDS (→ OR#013b)"
+    },
+    "in_f105ZSO010": {
+      "type": "INPUT",
+      "label": "f105ZSO010",
+      "group": "Posisi Valve — Pump Run Permissive (→ AND#015b)"
+    },
+    "in_m105TSHH072": {
+      "type": "INPUT",
+      "label": "m105TSHH072",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH093": {
+      "type": "INPUT",
+      "label": "m105TSHH093",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH094": {
+      "type": "INPUT",
+      "label": "m105TSHH094",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH095": {
+      "type": "INPUT",
+      "label": "m105TSHH095",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH096": {
+      "type": "INPUT",
+      "label": "m105TSHH096",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH097": {
+      "type": "INPUT",
+      "label": "m105TSHH097",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH098": {
+      "type": "INPUT",
+      "label": "m105TSHH098",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH099": {
+      "type": "INPUT",
+      "label": "m105TSHH099",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "in_m105TSHH100": {
+      "type": "INPUT",
+      "label": "m105TSHH100",
+      "group": "Temperatur HH — HDS Reactor 105-R-502 Outlet (voting 2oo9 #014b)"
+    },
+    "not_001t": {
+      "type": "NOT",
+      "gateId": "001",
+      "input": "in_m105LSLL018"
+    },
+    "or_002t": {
+      "type": "OR",
+      "gateId": "002",
+      "inputs": [
+        "in_m105LSLL018",
+        "in_f105HS018LM"
+      ]
+    },
+    "and_003t": {
+      "type": "AND",
+      "gateId": "003",
+      "inputs": [
+        "or_002t",
+        "out_L1G20A_L1G20A"
+      ]
+    },
+    "rs_004t": {
+      "type": "RS",
+      "gateId": "004",
+      "label": "RS_105UC014_016_1",
+      "s": "and_003t",
+      "r": "in_f105HS014UCR"
+    },
+    "not_005t": {
+      "type": "NOT",
+      "gateId": "005",
+      "input": "in_m105LSHH018"
+    },
+    "or_006t": {
+      "type": "OR",
+      "gateId": "006",
+      "inputs": [
+        "in_m105LSHH018",
+        "in_f105HS018LM"
+      ]
+    },
+    "or_007t": {
+      "type": "OR",
+      "gateId": "007",
+      "inputs": [
+        "in_m105LSHH019",
+        "in_f105HS019M"
+      ]
+    },
+    "and_008t": {
+      "type": "AND",
+      "gateId": "008",
+      "inputs": [
+        "out_L1G20A_L1G20A",
+        "or_006t",
+        "or_007t"
+      ]
+    },
+    "rs_009t": {
+      "type": "RS",
+      "gateId": "009",
+      "label": "RS_105UC014_016_2",
+      "s": "and_008t",
+      "r": "in_f105HS016UCR"
+    },
+    "or_001b": {
+      "type": "OR",
+      "gateId": "001",
+      "inputs": [
+        "in_m105LSLL009",
+        "in_f105HS009M"
+      ]
+    },
+    "and_002b": {
+      "type": "AND",
+      "gateId": "002",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_003b": {
+      "type": "RS",
+      "gateId": "003",
+      "label": "RS_105UC014_016_3",
+      "s": "and_002b",
+      "r": "in_f105HS005UCR"
+    },
+    "and_004b": {
+      "type": "AND",
+      "gateId": "004",
+      "inputs": [
+        "in_f105HS002AE",
+        "in_f105HS002B"
+      ]
+    },
+    "rs_005b": {
+      "type": "RS",
+      "gateId": "005",
+      "label": "RS_105UC014_016_4",
+      "s": "and_004b",
+      "r": "in_f105HS025UCR"
+    },
+    "and_006b": {
+      "type": "AND",
+      "gateId": "006",
+      "inputs": [
+        "or_001b",
+        "rs_003b",
+        "rs_005b"
+      ]
+    },
+    "rs_007b": {
+      "type": "RS",
+      "gateId": "007",
+      "label": "RS_105UC014_016_5",
+      "s": "and_006b",
+      "r": "in_f105HS007UCR"
+    },
+    "and_008b": {
+      "type": "AND",
+      "gateId": "008",
+      "inputs": [
+        "in_f105HS006A",
+        "in_f105HS006B"
+      ]
+    },
+    "or_009b": {
+      "type": "OR",
+      "gateId": "009",
+      "inputs": [
+        "in_m105LSHH030",
+        "in_f105HS030LM"
+      ]
+    },
+    "and_010b": {
+      "type": "AND",
+      "gateId": "010",
+      "inputs": [
+        "in_f105HS019AE",
+        "in_f105HS019B"
+      ]
+    },
+    "and_011b": {
+      "type": "AND",
+      "gateId": "011",
+      "inputs": [
+        "and_008b",
+        "or_009b",
+        "in_f105HS010A",
+        "in_f105HS010B",
+        "and_010b",
+        "in_f105XS012"
+      ]
+    },
+    "rs_012b": {
+      "type": "RS",
+      "gateId": "012",
+      "label": "RS_105UC014_016_6",
+      "s": "and_011b",
+      "r": "in_f105HS012UCR"
+    },
+    "or_013b": {
+      "type": "OR",
+      "gateId": "013",
+      "inputs": [
+        "in_m105FSLL030",
+        "in_f105HS030M"
+      ]
+    },
+    "vot_014b": {
+      "type": "VOTING",
+      "gateId": "014",
+      "label": "VOT_105UC014_016_1",
+      "k": 2,
+      "inputs": [
+        "in_m105TSHH072",
+        "in_m105TSHH093",
+        "in_m105TSHH094",
+        "in_m105TSHH095",
+        "in_m105TSHH096",
+        "in_m105TSHH097",
+        "in_m105TSHH098",
+        "in_m105TSHH099",
+        "in_m105TSHH100"
+      ],
+      "fltInputs": []
+    },
+    "and_015b": {
+      "type": "AND",
+      "gateId": "015",
+      "inputs": [
+        "rs_007b",
+        "in_f105ZSO010",
+        "rs_012b",
+        "or_013b",
+        "vot_014b"
+      ]
+    },
+    "rs_016b": {
+      "type": "RS",
+      "gateId": "016",
+      "label": "RS_105UC014_016_7",
+      "s": "and_015b",
+      "r": "in_f105HS009UCR"
+    },
+    "out_f105LALL018": {
+      "type": "OUTPUT",
+      "label": "f105LALL018",
+      "desc": "12881 — HDS SEPERATOR DRUM 105-V-503 LL Alm",
+      "source": "not_001t",
+      "group": "Alarm HDS Separator Drum 105-V-503 (NOT dari level)"
+    },
+    "out_f105LAHH018": {
+      "type": "OUTPUT",
+      "label": "f105LAHH018",
+      "desc": "12880 — HDS SEPERATOR DRUM 105-V-503 HH Alm",
+      "source": "not_005t",
+      "group": "Alarm HDS Separator Drum 105-V-503 (NOT dari level)"
+    },
+    "out_f105UY013": {
+      "type": "OUTPUT",
+      "label": "f105UY013",
+      "desc": "12227 — Sour Water Bootleg 105-V-503 To 107-T-501",
+      "source": "rs_004t",
+      "group": "Output Proses — HDS Separator Drum / Wash Water"
+    },
+    "out_f105FY024": {
+      "type": "OUTPUT",
+      "label": "f105FY024",
+      "desc": "12102 — Wash Water Injection To Finfan 105-E-507",
+      "source": "rs_009t",
+      "group": "Output Proses — HDS Separator Drum / Wash Water"
+    },
+    "out_L1G20A_L1G20A": {
+      "type": "OUTPUT",
+      "label": "L1G20A_L1G20A",
+      "desc": "n/a — tag link L1G20A (tanpa nomor di CSV)",
+      "source": "rs_016b",
+      "group": "Output Link — L1G20A (dibaca AND#003 dan AND#008 blok atas)"
+    }
+  },
+  "summary": [
+    "Dua blok. Blok bawah sama dengan sheet 15: lima RS bertingkat (ESD, level splitter, ESD kompresor, shutdown XS012, MOS) dan voting 2oo9 suhu HDS Reactor 105-R-502 mengunci RS#016 yang mengeluarkan tag link L1G20A_L1G20A.",
+    "Blok atas: AND#003 (OR#002 level LL HDS Separator Drum + L1G20A) mengunci RS#004 → f105UY013. AND#008 (L1G20A, OR#006 level HH + MOS, OR#007 level HH 019 + MOS) mengunci RS#009 → f105FY024. NOT#001 dan NOT#005 menghasilkan alarm f105LALL018 dan f105LAHH018 langsung dari m105LSLL018 dan m105LSHH018."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 19 of 34 '105-UC-014/016' (P02_UNIT_105 v1.175), satu tampilan penuh plus crop zoom, di-trace 2026-10-26. Nomor/desc tag dari 'Tagnames Complete Listing.csv'.",
+    "Dua halaman gambar (00024 atas, 00025 bawah). Gate ID berulang di kedua blok, jadi key node diberi akhiran t/b.",
+    "Pemetaan RS mengikuti Koreksi #12/#14: field r = tag reset (pin S), field s = gerbang kondisi apa adanya (pin R1 berlingkaran).",
+    "Blok bawah identik dgn sheet 15 (105-UC-004_b): gate OR#001, AND#002/004/006/008/010/011/015, OR#009/013, RS#003/005/007/012/016, VOTING_2OO9#014, urutan pin sama. Hanya keluaran akhir berbeda: L1G20A_L1G20A (bukan RS_105UC004_FEED_1).",
+    "Header kotak RS terpotong di gambar (\"S_105UC014_016_\"). Nomor akhir RS_105UC014_016_1..7 adalah HIPOTESIS (urut gate ID, halaman atas dulu, seperti penomoran sheet 14); tidak mempengaruhi logic. VOT_105UC014_016_1 terbaca jelas.",
+    "L1G20A_L1G20A digambar sbg tag sumber di blok atas dan sbg keluaran RS#016 blok bawah (tag sama). Dimodelkan satu OUTPUT yang dibaca langsung AND#003/AND#008 atas, tanpa FEEDBACK (tidak ada loop); HIPOTESIS seperti sheet 13/14.",
+    "NOT#001 dan NOT#005 menerima tag level langsung (kabel bercabang T), bukan keluaran OR; nilai live LSLL018/LSHH018 FALSE -> f105LALL018/f105LAHH018 TRUE (merah di gambar). f105HS018LM (MOS 12084) digambar dua kali, satu tag dipakai OR#002 dan OR#006.",
+    "AND#003 atas: pin 1 = OR#002, pin 2 = L1G20A. AND#008 atas: pin 1 = L1G20A, pin 2 = OR#006, pin 3 = OR#007.",
+    "Voting 2oo9 dimodelkan k=2 (hipotesis sama dgn sheet 9/15). Registry ditambah m105LSHH019 dan f105HS019M (juga di sheet 6).",
+    "BUKTI SILANG nilai live: semua input FALSE menghasilkan f105LALL018 dan f105LAHH018 TRUE, lainnya FALSE; cocok dgn gambar. Polaritas NC/NO tidak ditafsirkan."
+  ]
+}

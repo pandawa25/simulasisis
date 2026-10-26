@@ -63,14 +63,11 @@
     "in_m105LSHH019": {
       "type": "INPUT",
       "label": "m105LSHH019",
-      "desc": "12784 — HDS Separator Drum 105-V-503 HH Alm",
       "group": "Level / MOS"
     },
     "in_f105HS019M": {
       "type": "INPUT",
       "label": "f105HS019M",
-      "desc": "12291 — MOS 105-LSHH/LSLL-019",
-      "isMOS": true,
       "group": "Level / MOS"
     },
     "in_m105LSLL009": {
