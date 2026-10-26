@@ -76,14 +76,14 @@
     "out_f105UY007A": {
       "type": "OUTPUT",
       "label": "f105UY007A",
-      "desc": "12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter",
+      "desc": "12219 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter.",
       "source": "rs_002a",
       "group": "Output Proses UC-005 (ke lapangan)"
     },
     "out_f105UY007B": {
       "type": "OUTPUT",
       "label": "f105UY007B",
-      "desc": "12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter",
+      "desc": "12220 — Depressurization Valve On The Bypass Of 105-TV-006A And 105-PV-016 To The Splitter.",
       "source": "rs_002a",
       "group": "Output Proses UC-005 (ke lapangan)"
     },
@@ -132,7 +132,7 @@
     "out_f105UY010_IL": {
       "type": "OUTPUT",
       "label": "f105UY010_IL",
-      "desc": "12787 — 105-UY-010 Interlock Signal",
+      "desc": "12787 — 105-UY-010 INTERLOCK SIGNAL",
       "source": "rs_002b",
       "group": "Internal HMI (monitor saja)"
     },

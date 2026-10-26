@@ -63,13 +63,13 @@
     "in_m105LSHH019": {
       "type": "INPUT",
       "label": "m105LSHH019",
-      "desc": "HDS",
+      "desc": "12784 — HDS Separator Drum 105-V-503 HH Alm",
       "group": "Level / MOS"
     },
     "in_f105HS019M": {
       "type": "INPUT",
       "label": "f105HS019M",
-      "desc": "MOS",
+      "desc": "12291 — MOS 105-LSHH/LSLL-019",
       "isMOS": true,
       "group": "Level / MOS"
     },
@@ -96,13 +96,13 @@
     "in_m105FSLL030": {
       "type": "INPUT",
       "label": "m105FSLL030",
-      "desc": "Recycle",
+      "desc": "12347 — Recycle Gas To HDS To 105-E-506 A/B/C/D LL Alm",
       "group": "Recycle / MOS"
     },
     "in_f105HS030M": {
       "type": "INPUT",
       "label": "f105HS030M",
-      "desc": "MOS",
+      "desc": "12106 — MOS 105-FSLL-030",
       "isMOS": true,
       "group": "Recycle / MOS"
     },
@@ -139,7 +139,7 @@
     "in_f105HS009UCR": {
       "type": "INPUT",
       "label": "f105HS009UCR",
-      "desc": "Reset RST_F & RST_E (satu tag, dua latch)",
+      "desc": "12066 — Reset 105-UY-011, HS-505AE/BE (105-UC-009)",
       "isReset": true,
       "group": "Reset (manual, per latch)"
     },
@@ -156,55 +156,55 @@
     "in_m105TSHH072": {
       "type": "INPUT",
       "label": "m105TSHH072",
-      "desc": "HDS",
+      "desc": "12545 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH093": {
       "type": "INPUT",
       "label": "m105TSHH093",
-      "desc": "HDS",
+      "desc": "12546 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH094": {
       "type": "INPUT",
       "label": "m105TSHH094",
-      "desc": "HDS",
+      "desc": "12547 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH095": {
       "type": "INPUT",
       "label": "m105TSHH095",
-      "desc": "HDS",
+      "desc": "12548 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH096": {
       "type": "INPUT",
       "label": "m105TSHH096",
-      "desc": "HDS",
+      "desc": "12549 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH097": {
       "type": "INPUT",
       "label": "m105TSHH097",
-      "desc": "HDS",
+      "desc": "12550 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH098": {
       "type": "INPUT",
       "label": "m105TSHH098",
-      "desc": "HDS",
+      "desc": "12551 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH099": {
       "type": "INPUT",
       "label": "m105TSHH099",
-      "desc": "HDS",
+      "desc": "12552 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "in_m105TSHH100": {
       "type": "INPUT",
       "label": "m105TSHH100",
-      "desc": "HDS",
+      "desc": "12553 — HDS Reactor 105-R-502 Outlet HH Alm",
       "group": "Voting Temperature HH — 2oo9"
     },
     "g001_OR": {
@@ -394,35 +394,35 @@
     "out_f105UY011": {
       "type": "OUTPUT",
       "label": "f105UY011",
-      "desc": "Splitter",
+      "desc": "12225 — Splitter Bottom To HDS Feed 105-E-506A/B/C/D",
       "source": "g003_AND",
       "group": "Output Proses (ke lapangan)"
     },
     "out_HDSReedAE": {
       "type": "OUTPUT",
       "label": "f105HS505AE",
-      "desc": "HDS Reed",
+      "desc": "12130 — HDS Feed Pumps 105-P-505A",
       "source": "mv_feed1",
       "group": "Output Proses (ke lapangan)"
     },
     "out_HDSReedBE": {
       "type": "OUTPUT",
       "label": "f105HS505BE",
-      "desc": "HDS Reed",
+      "desc": "12131 — HDS Feed Pumps 105-P-505B",
       "source": "mv_feed1",
       "group": "Output Proses (ke lapangan)"
     },
     "out_f105XA097": {
       "type": "OUTPUT",
       "label": "f105XA097",
-      "desc": "HDS",
+      "desc": "12768 — HDS Reactor 105-R-502 Temperature High High",
       "source": "vot_017",
       "group": "Output Proses (ke lapangan)"
     },
     "out_f105FALL030": {
       "type": "OUTPUT",
       "label": "f105FALL030",
-      "desc": "RECYCLE",
+      "desc": "12544 — RECYCLE GAS TO HDS TO 105-E-506 A/B/C/D LL Alm",
       "source": "not_023",
       "group": "Output Proses (ke lapangan)"
     },

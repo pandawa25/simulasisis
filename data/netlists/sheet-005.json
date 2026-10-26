@@ -22,86 +22,388 @@
     "Effect — dipakai sheet lain (bukan output lapangan)"
   ],
   "nodes": {
-    "in_f105HS006A":   { "type": "INPUT", "label": "f105HS006A",   "group": "ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)" },
-    "in_f105HS006B":   { "type": "INPUT", "label": "f105HS006B",   "group": "ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)" },
-    "in_f105HS011UCR": { "type": "INPUT", "label": "f105HS011UCR", "desc": "12253 — Reset 105-UY-015/018 (105-UC-011/013)", "isReset": true, "group": "Reset (manual, per latch)" },
-
-    "in_m105LSHH030":  { "type": "INPUT", "label": "m105LSHH030",  "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505" },
-    "in_f105HS030LM":  { "type": "INPUT", "label": "f105HS030LM",  "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505" },
-
-    "in_f105XS012":    { "type": "INPUT", "label": "f105XS012",    "group": "Shutdown & ESD Compressor 105-K-501" },
-    "in_f105HS010A":   { "type": "INPUT", "label": "f105HS010A",   "group": "Shutdown & ESD Compressor 105-K-501" },
-    "in_f105HS010B":   { "type": "INPUT", "label": "f105HS010B",   "group": "Shutdown & ESD Compressor 105-K-501" },
-
-    "in_f105HS019AE":  { "type": "INPUT", "label": "f105HS019AE",  "group": "ESD Pushbutton — Fire/Leak 105-K-501" },
-    "in_f105HS019B":   { "type": "INPUT", "label": "f105HS019B",   "group": "ESD Pushbutton — Fire/Leak 105-K-501" },
-
-    "in_f105ZSO021":   { "type": "INPUT", "label": "f105ZSO021",   "desc": "12203 — Open Signal Of 105-UV-021 To Compressor Start Permissive", "group": "Posisi Valve — Open (start permissive)" },
-    "in_f105ZSO022":   { "type": "INPUT", "label": "f105ZSO022",   "desc": "12765 — Open Signal Of 105-UV-022 To Compressor Start Permissive", "group": "Posisi Valve — Open (start permissive)" },
-
-    "in_f105ZSC021":   { "type": "INPUT", "label": "f105ZSC021",   "desc": "12766 — Close Signal Of 105-UV-021 To Compressor Shutdown", "group": "Posisi Valve — Close (shutdown)" },
-    "in_f105ZSC022":   { "type": "INPUT", "label": "f105ZSC022",   "desc": "12764 — Close Signal Of 105-UV-022 To Compressor Shutdown", "group": "Posisi Valve — Close (shutdown)" },
-    "in_f105HS012UCR": { "type": "INPUT", "label": "f105HS012UCR", "group": "Reset (manual, per latch)" },
-
-    "in_f105HS027UCR": { "type": "INPUT", "label": "f105HS027UCR", "desc": "12256 — Reset 105-UY-021/022 (105-UC-027)", "isReset": true, "group": "Reset (manual, per latch)" },
-
-    "in_f105XS616":    { "type": "INPUT", "label": "f105XS616",    "desc": "12593 — Input for 105-XA-616", "group": "Motor Trip 105-K-501M (blok 00008)" },
-
-    "and_001": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS006A", "in_f105HS006B"] },
-    "rs_002":  { "type": "RS",  "gateId": "002", "label": "RS #002", "s": "and_001", "r": "in_f105HS011UCR" },
-
-    "not_003": { "type": "NOT", "gateId": "003", "input": "in_m105LSHH030" },
-    "or_006":  { "type": "OR",  "gateId": "006", "inputs": ["in_m105LSHH030", "in_f105HS030LM"] },
-
-    "and_007": { "type": "AND", "gateId": "007", "inputs": ["in_f105HS010A", "in_f105HS010B"] },
-    "not_015": { "type": "NOT", "gateId": "015", "input": "and_007" },
-
-    "and_008": { "type": "AND", "gateId": "008", "inputs": ["in_f105HS019AE", "in_f105HS019B"] },
-    "and_010": { "type": "AND", "gateId": "010", "inputs": ["in_f105ZSO021", "in_f105ZSO022"] },
-
-    "and_009": { "type": "AND", "gateId": "009", "inputs": ["rs_002", "or_006", "in_f105XS012", "and_007", "and_008"] },
-
-    "and_004": { "type": "AND", "gateId": "004", "inputs": ["in_f105ZSC022", "in_f105ZSC021"], "invertInputs": [true, true] },
-
-    "fb_bfeed": { "type": "FEEDBACK", "input": "out_RST_B_FEED" },
-    "and_005": { "type": "AND", "gateId": "005", "inputs": ["in_f105ZSC021", "in_f105ZSC022", "in_f105HS012UCR", "fb_bfeed"], "invertInputs": [true, true, false, true] },
-    "or_011":  { "type": "OR",  "gateId": "011", "inputs": ["and_009", "and_010"], "invertInputs": [true, true] },
-    "rs_012":  { "type": "RS",  "gateId": "012", "label": "RS #012", "s": "or_011", "r": "and_005" },
-
-    "mv_013":  { "type": "MOVE", "gateId": "013", "input": "out_RST_B_FEED" },
-    "not_014": { "type": "NOT",  "gateId": "014", "input": "mv_013" },
-
-    "tof_016": { "type": "TOF", "gateId": "016", "input": "and_010", "setpointSec": 30 },
-    "rs_017":  { "type": "RS",  "gateId": "017", "label": "RS #017", "s": "tof_016", "r": "in_f105HS027UCR" },
-
-    "mv_b001":  { "type": "MOVE", "gateId": "001", "input": "in_f105XS616" },
-    "not_b002": { "type": "NOT",  "gateId": "002", "input": "mv_b001" },
-
-    "out_f105UY015A": { "type": "OUTPUT", "label": "f105UY015A", "desc": "12229 — HDS Depressurization To Flare", "source": "rs_002", "group": "Output Proses — Depressurization & Amine (UC-011/013)" },
-    "out_f105UY015B": { "type": "OUTPUT", "label": "f105UY015B", "desc": "12230 — HDS Depressurization To Flare", "source": "rs_002", "group": "Output Proses — Depressurization & Amine (UC-011/013)" },
-    "out_f105UY018":  { "type": "OUTPUT", "label": "f105UY018",  "desc": "12233 — Lean Amine Supply To 105-C-502", "source": "rs_002", "group": "Output Proses — Depressurization & Amine (UC-011/013)" },
-
-    "out_f105LAHH030": { "type": "OUTPUT", "label": "f105LAHH030", "desc": "12883 — Level in Alm Splitter Bottom LL Alm — hasil NOT dari m105LSHH030, dipakai di sheet lain", "source": "not_003", "group": "Effect — dipakai sheet lain (bukan output lapangan)", "internalOnly": true },
-    "out_f105HA010":   { "type": "OUTPUT", "label": "f105HA010",   "desc": "12276 — Level in Alm Splitter Bottom LL Alm — hasil NOT dari AND#007, dipakai di sheet lain", "source": "not_015", "group": "Effect — dipakai sheet lain (bukan output lapangan)", "internalOnly": true },
-
-    "out_AND_1_HMI":   { "type": "OUTPUT", "label": "AND_1_105UC032_011_012_027", "desc": "12849 — Internal HMI (status AND#009)", "source": "and_009", "group": "Internal HMI (monitor saja)" },
-    "out_f105UY019_P": { "type": "OUTPUT", "label": "f105UY019_P", "desc": "12286 — Permisive from 105-ZSO-021 & 105-ZSO-022", "source": "and_004", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-
-    "out_RST_B_FEED":  { "type": "OUTPUT", "label": "RST_105UC032_011_012_027_B_FEED", "desc": "Sinyal internal — Q1 RS#012, dipakai ulang sebagai input MOVE#013 dan (lewat umpan balik) AND#005", "source": "rs_012", "group": "Internal HMI (monitor saja)", "internalOnly": true },
-    "out_RS_1_HMI":    { "type": "OUTPUT", "label": "RS_1_105UC032_011_012_027", "desc": "12277 — Internal HMI (status latch RS#012)", "source": "rs_012", "group": "Internal HMI (monitor saja)" },
-
-    "out_f105HS010AE": { "type": "OUTPUT", "label": "f105HS010AE", "desc": "12249 — Motor Stop 105-K-501 (DCS)", "source": "mv_013", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-    "out_f105UY019":   { "type": "OUTPUT", "label": "f105UY019",   "desc": "12234 — H2 Make-Up To HDS System", "source": "mv_013", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-    "out_f105FY029":   { "type": "OUTPUT", "label": "f105FY029",   "desc": "12069 — HDS Reaction Section Purge Gas", "source": "mv_013", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-    "out_f105XA010":   { "type": "OUTPUT", "label": "f105XA010",   "desc": "12767 — 105-XS-010 Recycle Gas Compressor 105-K-501 Shutdown", "source": "mv_013", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-    "out_f105UY045":   { "type": "OUTPUT", "label": "f105UY045",   "desc": "12164 — Back Up Seal Gas To DGS 105-K-501", "source": "not_014", "group": "Output Proses — Recycle Gas Compressor (UC-012)" },
-
-    "out_TOF_1_HMI":  { "type": "OUTPUT", "label": "TOF_1_105UC032_011_012_027", "desc": "12518 — Internal HMI (keluaran timer TOF#016)", "source": "tof_016", "group": "Internal HMI (monitor saja)" },
-    "out_f105UY021":  { "type": "OUTPUT", "label": "f105UY021", "desc": "12236 — Recycle Gas To 105-K-501", "source": "rs_017", "group": "Output Proses — Recycle Gas (UC-027)" },
-    "out_f105UY022":  { "type": "OUTPUT", "label": "f105UY022", "desc": "12237 — Recycle Gas Outlet 105-K-501", "source": "rs_017", "group": "Output Proses — Recycle Gas (UC-027)" },
-
-    "out_f105XA616":     { "type": "OUTPUT", "label": "f105XA616",     "desc": "12177 — 105-K-501M-L-Motor Trip (4POLE)", "source": "mv_b001", "group": "Motor Trip 105-K-501M (blok 00008)" },
-    "out_f105XA616_DCS": { "type": "OUTPUT", "label": "f105XA616_DCS", "desc": "13355 — 105-K-501M-L-Motor Trip (4POLE) — hasil NOT", "source": "not_b002", "group": "Motor Trip 105-K-501M (blok 00008)" }
+    "in_f105HS006A": {
+      "type": "INPUT",
+      "label": "f105HS006A",
+      "group": "ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)"
+    },
+    "in_f105HS006B": {
+      "type": "INPUT",
+      "label": "f105HS006B",
+      "group": "ESD Pushbutton — HDS Section Depressurization (blok 00007 → RS#002)"
+    },
+    "in_f105HS011UCR": {
+      "type": "INPUT",
+      "label": "f105HS011UCR",
+      "desc": "12253 — Reset 105-UY-015/018 (105-UC-011/013)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_m105LSHH030": {
+      "type": "INPUT",
+      "label": "m105LSHH030",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505"
+    },
+    "in_f105HS030LM": {
+      "type": "INPUT",
+      "label": "f105HS030LM",
+      "group": "Level / MOS — Recycle Gas Comp K.O Drum 105-V-505"
+    },
+    "in_f105XS012": {
+      "type": "INPUT",
+      "label": "f105XS012",
+      "group": "Shutdown & ESD Compressor 105-K-501"
+    },
+    "in_f105HS010A": {
+      "type": "INPUT",
+      "label": "f105HS010A",
+      "group": "Shutdown & ESD Compressor 105-K-501"
+    },
+    "in_f105HS010B": {
+      "type": "INPUT",
+      "label": "f105HS010B",
+      "group": "Shutdown & ESD Compressor 105-K-501"
+    },
+    "in_f105HS019AE": {
+      "type": "INPUT",
+      "label": "f105HS019AE",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501"
+    },
+    "in_f105HS019B": {
+      "type": "INPUT",
+      "label": "f105HS019B",
+      "group": "ESD Pushbutton — Fire/Leak 105-K-501"
+    },
+    "in_f105ZSO021": {
+      "type": "INPUT",
+      "label": "f105ZSO021",
+      "desc": "12203 — Open Signal Of 105-UV-022 To Compressor Start Permissive",
+      "group": "Posisi Valve — Open (start permissive)"
+    },
+    "in_f105ZSO022": {
+      "type": "INPUT",
+      "label": "f105ZSO022",
+      "desc": "12765 — Open Signal Of 105-UV-022 To Compressor Start Permissive",
+      "group": "Posisi Valve — Open (start permissive)"
+    },
+    "in_f105ZSC021": {
+      "type": "INPUT",
+      "label": "f105ZSC021",
+      "desc": "12766 — Close Signal Of 105-UV-021To Compressor Shutdown",
+      "group": "Posisi Valve — Close (shutdown)"
+    },
+    "in_f105ZSC022": {
+      "type": "INPUT",
+      "label": "f105ZSC022",
+      "desc": "12764 — Close Signal Of 105-UV-022 To Compressor Shutdown",
+      "group": "Posisi Valve — Close (shutdown)"
+    },
+    "in_f105HS012UCR": {
+      "type": "INPUT",
+      "label": "f105HS012UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS027UCR": {
+      "type": "INPUT",
+      "label": "f105HS027UCR",
+      "desc": "12256 — Reset 105-UY-021/022 (105-UC-027)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105XS616": {
+      "type": "INPUT",
+      "label": "f105XS616",
+      "desc": "12593 — Input for 105-XA-616",
+      "group": "Motor Trip 105-K-501M (blok 00008)"
+    },
+    "and_001": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS006A",
+        "in_f105HS006B"
+      ]
+    },
+    "rs_002": {
+      "type": "RS",
+      "gateId": "002",
+      "label": "RS #002",
+      "s": "and_001",
+      "r": "in_f105HS011UCR"
+    },
+    "not_003": {
+      "type": "NOT",
+      "gateId": "003",
+      "input": "in_m105LSHH030"
+    },
+    "or_006": {
+      "type": "OR",
+      "gateId": "006",
+      "inputs": [
+        "in_m105LSHH030",
+        "in_f105HS030LM"
+      ]
+    },
+    "and_007": {
+      "type": "AND",
+      "gateId": "007",
+      "inputs": [
+        "in_f105HS010A",
+        "in_f105HS010B"
+      ]
+    },
+    "not_015": {
+      "type": "NOT",
+      "gateId": "015",
+      "input": "and_007"
+    },
+    "and_008": {
+      "type": "AND",
+      "gateId": "008",
+      "inputs": [
+        "in_f105HS019AE",
+        "in_f105HS019B"
+      ]
+    },
+    "and_010": {
+      "type": "AND",
+      "gateId": "010",
+      "inputs": [
+        "in_f105ZSO021",
+        "in_f105ZSO022"
+      ]
+    },
+    "and_009": {
+      "type": "AND",
+      "gateId": "009",
+      "inputs": [
+        "rs_002",
+        "or_006",
+        "in_f105XS012",
+        "and_007",
+        "and_008"
+      ]
+    },
+    "and_004": {
+      "type": "AND",
+      "gateId": "004",
+      "inputs": [
+        "in_f105ZSC022",
+        "in_f105ZSC021"
+      ],
+      "invertInputs": [
+        true,
+        true
+      ]
+    },
+    "fb_bfeed": {
+      "type": "FEEDBACK",
+      "input": "out_RST_B_FEED"
+    },
+    "and_005": {
+      "type": "AND",
+      "gateId": "005",
+      "inputs": [
+        "in_f105ZSC021",
+        "in_f105ZSC022",
+        "in_f105HS012UCR",
+        "fb_bfeed"
+      ],
+      "invertInputs": [
+        true,
+        true,
+        false,
+        true
+      ]
+    },
+    "or_011": {
+      "type": "OR",
+      "gateId": "011",
+      "inputs": [
+        "and_009",
+        "and_010"
+      ],
+      "invertInputs": [
+        true,
+        true
+      ]
+    },
+    "rs_012": {
+      "type": "RS",
+      "gateId": "012",
+      "label": "RS #012",
+      "s": "or_011",
+      "r": "and_005"
+    },
+    "mv_013": {
+      "type": "MOVE",
+      "gateId": "013",
+      "input": "out_RST_B_FEED"
+    },
+    "not_014": {
+      "type": "NOT",
+      "gateId": "014",
+      "input": "mv_013"
+    },
+    "tof_016": {
+      "type": "TOF",
+      "gateId": "016",
+      "input": "and_010",
+      "setpointSec": 30
+    },
+    "rs_017": {
+      "type": "RS",
+      "gateId": "017",
+      "label": "RS #017",
+      "s": "tof_016",
+      "r": "in_f105HS027UCR"
+    },
+    "mv_b001": {
+      "type": "MOVE",
+      "gateId": "001",
+      "input": "in_f105XS616"
+    },
+    "not_b002": {
+      "type": "NOT",
+      "gateId": "002",
+      "input": "mv_b001"
+    },
+    "out_f105UY015A": {
+      "type": "OUTPUT",
+      "label": "f105UY015A",
+      "desc": "12229 — HDS Depressurization To Flare",
+      "source": "rs_002",
+      "group": "Output Proses — Depressurization & Amine (UC-011/013)"
+    },
+    "out_f105UY015B": {
+      "type": "OUTPUT",
+      "label": "f105UY015B",
+      "desc": "12230 — HDS Depressurization To Flare",
+      "source": "rs_002",
+      "group": "Output Proses — Depressurization & Amine (UC-011/013)"
+    },
+    "out_f105UY018": {
+      "type": "OUTPUT",
+      "label": "f105UY018",
+      "desc": "12233 — Lean Amine Supply To 105-C-502",
+      "source": "rs_002",
+      "group": "Output Proses — Depressurization & Amine (UC-011/013)"
+    },
+    "out_f105LAHH030": {
+      "type": "OUTPUT",
+      "label": "f105LAHH030",
+      "desc": "12883 — Level in Almlitter Bottom LL Alm",
+      "source": "not_003",
+      "group": "Effect — dipakai sheet lain (bukan output lapangan)",
+      "internalOnly": true
+    },
+    "out_f105HA010": {
+      "type": "OUTPUT",
+      "label": "f105HA010",
+      "desc": "12276 — Level in Alm Splitter Bottom LL Alm",
+      "source": "not_015",
+      "group": "Effect — dipakai sheet lain (bukan output lapangan)",
+      "internalOnly": true
+    },
+    "out_AND_1_HMI": {
+      "type": "OUTPUT",
+      "label": "AND_1_105UC032_011_012_027",
+      "desc": "12849 — Internal HMI (status AND#009)",
+      "source": "and_009",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105UY019_P": {
+      "type": "OUTPUT",
+      "label": "f105UY019_P",
+      "desc": "12286 — Permisive from 105-ZSO-021 & 105-ZSO-022",
+      "source": "and_004",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_RST_B_FEED": {
+      "type": "OUTPUT",
+      "label": "RST_105UC032_011_012_027_B_FEED",
+      "desc": "Sinyal internal — Q1 RS#012, dipakai ulang sebagai input MOVE#013 dan (lewat umpan balik) AND#005",
+      "source": "rs_012",
+      "group": "Internal HMI (monitor saja)",
+      "internalOnly": true
+    },
+    "out_RS_1_HMI": {
+      "type": "OUTPUT",
+      "label": "RS_1_105UC032_011_012_027",
+      "desc": "12277 — Internal HMI (status latch RS#012)",
+      "source": "rs_012",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105HS010AE": {
+      "type": "OUTPUT",
+      "label": "f105HS010AE",
+      "desc": "12249 — Motor Stop 105-K-501 (DCS)",
+      "source": "mv_013",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_f105UY019": {
+      "type": "OUTPUT",
+      "label": "f105UY019",
+      "desc": "12234 — H2 Make-Up To HDS System",
+      "source": "mv_013",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_f105FY029": {
+      "type": "OUTPUT",
+      "label": "f105FY029",
+      "desc": "12069 — HDS Reaction Section Purge Gas",
+      "source": "mv_013",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_f105XA010": {
+      "type": "OUTPUT",
+      "label": "f105XA010",
+      "desc": "12767 — 105-XS-010 Recycle Gas Compressor 105-K-501 Shutdown",
+      "source": "mv_013",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_f105UY045": {
+      "type": "OUTPUT",
+      "label": "f105UY045",
+      "desc": "12164 — Back Up Seal Gas To DGS 105-K-501",
+      "source": "not_014",
+      "group": "Output Proses — Recycle Gas Compressor (UC-012)"
+    },
+    "out_TOF_1_HMI": {
+      "type": "OUTPUT",
+      "label": "TOF_1_105UC032_011_012_027",
+      "desc": "12518 — Internal HMI (keluaran timer TOF#016)",
+      "source": "tof_016",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105UY021": {
+      "type": "OUTPUT",
+      "label": "f105UY021",
+      "desc": "12236 — Recycle Gas To 105-K-501",
+      "source": "rs_017",
+      "group": "Output Proses — Recycle Gas (UC-027)"
+    },
+    "out_f105UY022": {
+      "type": "OUTPUT",
+      "label": "f105UY022",
+      "desc": "12237 — Recycle Gas Outlet 105-K-501",
+      "source": "rs_017",
+      "group": "Output Proses — Recycle Gas (UC-027)"
+    },
+    "out_f105XA616": {
+      "type": "OUTPUT",
+      "label": "f105XA616",
+      "desc": "12177 — 105-K-501M-L-Motor Trip (4POLE)",
+      "source": "mv_b001",
+      "group": "Motor Trip 105-K-501M (blok 00008)"
+    },
+    "out_f105XA616_DCS": {
+      "type": "OUTPUT",
+      "label": "f105XA616_DCS",
+      "desc": "13255 — 105-K-501M-L-Motor Trip (4POLE)",
+      "source": "not_b002",
+      "group": "Motor Trip 105-K-501M (blok 00008)"
+    }
   },
   "summary": [
     "Ini sheet paling kompleks sejauh ini: tiga latch RS, satu timer off-delay 30 detik, gerbang dengan pin yang dibalik, dan satu jalur umpan balik. Isinya empat urusan yang berbagi satu halaman: UC-032, UC-011/013, UC-012, dan UC-027.",

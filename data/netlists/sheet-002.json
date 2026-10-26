@@ -13,26 +13,111 @@
     "Effect — dipakai sheet lain (bukan output lapangan)"
   ],
   "nodes": {
-    "in_m105LSHH003": { "type": "INPUT", "label": "m105LSHH003", "desc": "SHU Feed Surge Drum 105-V501 HH Alm", "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
-    "in_f105HS003M":  { "type": "INPUT", "label": "f105HS003M",  "desc": "MOS 105-LSHH/LLSLL-003", "isMOS": true, "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)" },
-
-    "in_f105HS001AE": { "type": "INPUT", "label": "f105HS001AE", "desc": "ESD Button Fire/Leak 105-V501 (DCS) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE", "healthyWhenTrue": true, "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
-    "in_f105HS001B":  { "type": "INPUT", "label": "f105HS001B",  "desc": "ESD Button Fire/Leak 105-V501 (Local) — NC, fail-safe: sirkit utuh/belum ditekan=TRUE", "healthyWhenTrue": true, "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)" },
-
-    "in_f105HS003UCR": { "type": "INPUT", "label": "f105HS003UCR", "desc": "Reset 105-UY-001 (105-UC-001/002)", "isReset": true, "group": "Reset (manual, per latch)" },
-    "in_f105HS024UCR": { "type": "INPUT", "label": "f105HS024UCR", "desc": "Reset 105-UY-003 (105-UC-024)",     "isReset": true, "group": "Reset (manual, per latch)" },
-
-    "not_001": { "type": "NOT", "gateId": "001", "input": "in_m105LSHH003" },
-    "or_002":  { "type": "OR",  "gateId": "002", "inputs": ["in_m105LSHH003", "in_f105HS003M"] },
-    "rs_003":  { "type": "RS",  "gateId": "003", "label": "ST_105HS003UC", "s": "or_002", "r": "in_f105HS003UCR" },
-
-    "and_001b": { "type": "AND", "gateId": "001", "inputs": ["in_f105HS001AE", "in_f105HS001B"] },
-    "rs_002b":  { "type": "RS",  "gateId": "002", "label": "ST_105HS024UC", "s": "and_001b", "r": "in_f105HS024UCR" },
-
-    "out_f105UY001":    { "type": "OUTPUT", "label": "f105UY001",    "desc": "RFCC Gasoline From 102-E-509",      "source": "rs_003",  "group": "Output Proses (ke lapangan)" },
-    "out_f105UY003":    { "type": "OUTPUT", "label": "f105UY003",    "desc": "SHU Feed Surge Drum 105-V501 Outlet","source": "rs_002b", "group": "Output Proses (ke lapangan)" },
-    "out_f105UY003_IL": { "type": "OUTPUT", "label": "f105UY003_IL", "desc": "105-UY-003 Interlock Signal",        "source": "rs_002b", "group": "Internal HMI (monitor saja)" },
-    "out_f105LAHH003":  { "type": "OUTPUT", "label": "f105LAHH003",  "desc": "SHU Feed Surge Drum 105-V501 HH Alm — hasil NOT dari m105LSHH003, dipakai sebagai input di sheet lain (sehat=TRUE)", "source": "not_001", "group": "Effect — dipakai sheet lain (bukan output lapangan)", "internalOnly": true }
+    "in_m105LSHH003": {
+      "type": "INPUT",
+      "label": "m105LSHH003",
+      "desc": "12377 — SHU Feed Surge Drum 105-V-501 HH Alm",
+      "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"
+    },
+    "in_f105HS003M": {
+      "type": "INPUT",
+      "label": "f105HS003M",
+      "desc": "12288 — MOS 105-LSHH/LLSLL-003",
+      "isMOS": true,
+      "group": "Alarm/MOS — SHU Feed Surge Drum 105-V501 HH (blok 00002, → UC-001/002)"
+    },
+    "in_f105HS001AE": {
+      "type": "INPUT",
+      "label": "f105HS001AE",
+      "desc": "12034 — ESD Button In Case Fire Or Any Leak At 105-V-501 (Dcs)",
+      "healthyWhenTrue": true,
+      "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"
+    },
+    "in_f105HS001B": {
+      "type": "INPUT",
+      "label": "f105HS001B",
+      "desc": "12035 — Esd Button In Case Fire Or Any Leak At 105-V-501 (Local)",
+      "healthyWhenTrue": true,
+      "group": "ESD Pushbutton — Fire/Leak 105-V501 (blok 00003, → UC-024)"
+    },
+    "in_f105HS003UCR": {
+      "type": "INPUT",
+      "label": "f105HS003UCR",
+      "desc": "12043 — Reset 105-UY-001 (105-UC-001/002)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS024UCR": {
+      "type": "INPUT",
+      "label": "f105HS024UCR",
+      "desc": "12096 — Reset 105-UY-003 (105-UC-024)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "not_001": {
+      "type": "NOT",
+      "gateId": "001",
+      "input": "in_m105LSHH003"
+    },
+    "or_002": {
+      "type": "OR",
+      "gateId": "002",
+      "inputs": [
+        "in_m105LSHH003",
+        "in_f105HS003M"
+      ]
+    },
+    "rs_003": {
+      "type": "RS",
+      "gateId": "003",
+      "label": "ST_105HS003UC",
+      "s": "or_002",
+      "r": "in_f105HS003UCR"
+    },
+    "and_001b": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS001AE",
+        "in_f105HS001B"
+      ]
+    },
+    "rs_002b": {
+      "type": "RS",
+      "gateId": "002",
+      "label": "ST_105HS024UC",
+      "s": "and_001b",
+      "r": "in_f105HS024UCR"
+    },
+    "out_f105UY001": {
+      "type": "OUTPUT",
+      "label": "f105UY001",
+      "desc": "12213 — RFCC Gasoline From 102-E-509",
+      "source": "rs_003",
+      "group": "Output Proses (ke lapangan)"
+    },
+    "out_f105UY003": {
+      "type": "OUTPUT",
+      "label": "f105UY003",
+      "desc": "12215 — SHU Feed Surge Drum 105-V-501 Outlet",
+      "source": "rs_002b",
+      "group": "Output Proses (ke lapangan)"
+    },
+    "out_f105UY003_IL": {
+      "type": "OUTPUT",
+      "label": "f105UY003_IL",
+      "desc": "12786 — 105-UY-003 INTERLOCK SIGNAL",
+      "source": "rs_002b",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105LAHH003": {
+      "type": "OUTPUT",
+      "label": "f105LAHH003",
+      "desc": "12874 — SHU FEED SURGE DRUM 105-V-501 HH Alm",
+      "source": "not_001",
+      "group": "Effect — dipakai sheet lain (bukan output lapangan)",
+      "internalOnly": true
+    }
   },
   "summary": [
     "Halaman ini sebenarnya menggabungkan 2 jalur trip yang independen satu sama lain, walau sama-sama berasal dari drum 105-V501.",
