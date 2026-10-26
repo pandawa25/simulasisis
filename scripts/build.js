@@ -222,7 +222,7 @@ function main() {
   portalHtml = portalHtml.replace('<!--ENGINE_JS-->', engineJs);
   portalHtml = portalHtml.replace('<!--CROSSLINK_JS-->', crossLinkJs);
   portalHtml = portalHtml.replace('<!--NETLISTS_JSON-->', JSON.stringify(portalNetlists));
-  portalHtml = portalHtml.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Portal Simulator SIS — 105-UC (34 Sheet)</title>');
+  portalHtml = portalHtml.replace('<!--TITLE_BLOCK-->', '<meta charset="utf-8">\n<title>Portal Simulator Logic Safety Instrumented System (SIS)</title>');
   portalHtml = portalHtml.replace('<!--TITLE_TAG-->', '');
   portalHtml = portalHtml.replace('<!--SHEETS_JSON-->', JSON.stringify(sheetsData, null, 2));
   writeFile(path.join(OUT_DIR, 'index.html'), portalHtml);
