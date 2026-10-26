@@ -163,8 +163,6 @@
     "in_f105HS604UCR": {
       "type": "INPUT",
       "label": "f105HS604UCR",
-      "desc": "12139 — Reset 105-UY-604A,B,C/605A,B,C (105-UC-030)",
-      "isReset": true,
       "group": "Reset (manual, latch RS#011)"
     },
     "rs_011": {

@@ -445,6 +445,11 @@
     },
     "AND_105UC030_2_b_FEED_1": {
       "desc": "Sinyal internal — keluaran AND#021 sheet 26 (105-UC-017_030_2_b), dipakai sebagai cause di sheet 25 (AND#014)"
+    },
+    "f105HS604UCR": {
+      "tagNo": "12139",
+      "desc": "Reset 105-UY-604A,B,C/605A,B,C (105-UC-030)",
+      "isReset": true
     }
   }
 }

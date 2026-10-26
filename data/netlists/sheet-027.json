@@ -1,0 +1,278 @@
+{
+  "id": "105-UC-017_030_2_c",
+  "title": "105-UC-017_030_2_c",
+  "sheetRef": "Sheet 27 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)",
+    "Bypass / MOS — Start Up (→ OR#003, #005, #009)",
+    "Flow LL Combustion Air 105-F-501 (→ TOF#004)",
+    "Flow LL Combustion Air 105-F-502 (→ TOF#008)",
+    "Reset (manual, per latch)"
+  ],
+  "effectGroups": [
+    "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)",
+    "Internal HMI (monitor saja)"
+  ],
+  "nodes": {
+    "in_m105PSLL300A": {
+      "type": "INPUT",
+      "label": "m105PSLL300A",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_m105PI300A": {
+      "type": "INPUT",
+      "label": "m105PI300A",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_m105PSLL300B": {
+      "type": "INPUT",
+      "label": "m105PSLL300B",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_m105PI300B": {
+      "type": "INPUT",
+      "label": "m105PI300B",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_m105PSLL300C": {
+      "type": "INPUT",
+      "label": "m105PSLL300C",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_m105PI300C": {
+      "type": "INPUT",
+      "label": "m105PI300C",
+      "group": "Combustion Air LL 105-F-501 — Voting 2oo3 (blok #001)"
+    },
+    "in_f105HS010SB": {
+      "type": "INPUT",
+      "label": "f105HS010SB",
+      "group": "Bypass / MOS — Start Up (→ OR#003, #005, #009)"
+    },
+    "in_f105HS030SB": {
+      "type": "INPUT",
+      "label": "f105HS030SB",
+      "group": "Bypass / MOS — Start Up (→ OR#003, #005, #009)"
+    },
+    "in_m105FSLL045B": {
+      "type": "INPUT",
+      "label": "m105FSLL045B",
+      "group": "Flow LL Combustion Air 105-F-501 (→ TOF#004)"
+    },
+    "in_f105HS045BM": {
+      "type": "INPUT",
+      "label": "f105HS045BM",
+      "group": "Flow LL Combustion Air 105-F-501 (→ TOF#004)"
+    },
+    "in_m105FSLL645B": {
+      "type": "INPUT",
+      "label": "m105FSLL645B",
+      "group": "Flow LL Combustion Air 105-F-502 (→ TOF#008)"
+    },
+    "in_f105HS645BM": {
+      "type": "INPUT",
+      "label": "f105HS645BM",
+      "group": "Flow LL Combustion Air 105-F-502 (→ TOF#008)"
+    },
+    "in_f105HS605UCR": {
+      "type": "INPUT",
+      "label": "f105HS605UCR",
+      "desc": "12140 — Reset 105-UY-605 (105-UC-030)",
+      "isReset": true,
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS604UCR": {
+      "type": "INPUT",
+      "label": "f105HS604UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "vot_001": {
+      "type": "VOTING",
+      "gateId": "001",
+      "label": "VOT_105UC030_2_c_1",
+      "k": 2,
+      "inputs": [
+        "in_m105PSLL300A",
+        "in_m105PSLL300B",
+        "in_m105PSLL300C"
+      ],
+      "fltInputs": [
+        "in_m105PI300A",
+        "in_m105PI300B",
+        "in_m105PI300C"
+      ]
+    },
+    "tof_002": {
+      "type": "TOF",
+      "gateId": "002",
+      "input": "vot_001",
+      "setpointSec": 1
+    },
+    "or_003": {
+      "type": "OR",
+      "gateId": "003",
+      "inputs": [
+        "tof_002",
+        "in_f105HS010SB",
+        "in_f105HS030SB"
+      ]
+    },
+    "tof_004": {
+      "type": "TOF",
+      "gateId": "004",
+      "input": "in_m105FSLL045B",
+      "setpointSec": 1
+    },
+    "or_005": {
+      "type": "OR",
+      "gateId": "005",
+      "inputs": [
+        "tof_004",
+        "in_f105HS030SB",
+        "in_f105HS045BM"
+      ]
+    },
+    "and_006": {
+      "type": "AND",
+      "gateId": "006",
+      "inputs": [
+        "or_003",
+        "or_005"
+      ]
+    },
+    "rs_007": {
+      "type": "RS",
+      "gateId": "007",
+      "label": "RS_105UC030_2_c_1",
+      "s": "and_006",
+      "r": "in_f105HS605UCR"
+    },
+    "tof_008": {
+      "type": "TOF",
+      "gateId": "008",
+      "input": "in_m105FSLL645B",
+      "setpointSec": 1
+    },
+    "or_009": {
+      "type": "OR",
+      "gateId": "009",
+      "inputs": [
+        "tof_008",
+        "in_f105HS645BM",
+        "in_f105HS010SB"
+      ]
+    },
+    "rs_010": {
+      "type": "RS",
+      "gateId": "010",
+      "label": "RS_105UC030_2_c_2",
+      "s": "or_009",
+      "r": "in_f105HS604UCR"
+    },
+    "and_011": {
+      "type": "AND",
+      "gateId": "011",
+      "inputs": [
+        "rs_007",
+        "rs_010"
+      ]
+    },
+    "out_f105UY605A": {
+      "type": "OUTPUT",
+      "label": "f105UY605A",
+      "desc": "12169 — 105-F-501 Natural Draft Air Door",
+      "source": "and_011",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605B": {
+      "type": "OUTPUT",
+      "label": "f105UY605B",
+      "desc": "12170 — 105-F-501 Natural Draft Air Door",
+      "source": "and_011",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605C": {
+      "type": "OUTPUT",
+      "label": "f105UY605C",
+      "desc": "12171 — 105-F-501 Natural Draft Air Door",
+      "source": "and_011",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605D": {
+      "type": "OUTPUT",
+      "label": "f105UY605D",
+      "desc": "12172 — 105-F-501 Natural Draft Air Door",
+      "source": "rs_007",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605E": {
+      "type": "OUTPUT",
+      "label": "f105UY605E",
+      "desc": "12173 — 105-F-501 Natural Draft Air Door",
+      "source": "rs_007",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605F": {
+      "type": "OUTPUT",
+      "label": "f105UY605F",
+      "desc": "12174 — 105-F-501 Natural Draft Air Door",
+      "source": "rs_007",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605G": {
+      "type": "OUTPUT",
+      "label": "f105UY605G",
+      "desc": "12175 — 105-F-501 Natural Draft Air Door",
+      "source": "rs_007",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_f105UY605H": {
+      "type": "OUTPUT",
+      "label": "f105UY605H",
+      "desc": "12176 — 105-F-501 Natural Draft Air Door",
+      "source": "rs_007",
+      "group": "Output Proses — Natural Draft Air Door 105-F-501 (UY-605A–H)"
+    },
+    "out_TOF_2_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "TOF_2_105UC017_030_2",
+      "desc": "12818 — Internal HMI (timer TOF#002)",
+      "source": "tof_002",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_TOF_1_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "TOF_1_105UC017_030_2",
+      "desc": "12817 — Internal HMI (timer TOF#004)",
+      "source": "tof_004",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_RS_2_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "RS_2_105UC017_030_2",
+      "desc": "12824 — Internal HMI (status latch RS#007)",
+      "source": "rs_007",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_RS_3_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "RS_3_105UC017_030_2",
+      "desc": "12870 — Internal HMI (status latch RS#010; CSV: 105-F-501 Natural Draft Air Door)",
+      "source": "rs_010",
+      "group": "Internal HMI (monitor saja)"
+    }
+  },
+  "summary": [
+    "Halaman ini menggerakkan damper udara natural draft 105-F-501: f105UY605A/B/C lewat AND#011 dan f105UY605D–H langsung dari latch RS#007.",
+    "RS#007: kondisi (R1) = AND#006 (OR#003 DAN OR#005), reset f105HS605UCR. OR#003 = TOF#002 (1 s dari voting 2oo3 udara pembakaran m105PSLL300A/B/C + FLT) ATAU f105HS010SB ATAU f105HS030SB. OR#005 = TOF#004 (1 s dari m105FSLL045B) ATAU f105HS030SB ATAU MOS f105HS045BM.",
+    "RS#010: kondisi (R1) = OR#009 (TOF#008 1 s dari m105FSLL645B ATAU MOS f105HS645BM ATAU f105HS010SB), reset f105HS604UCR. AND#011 = Q1 RS#007 DAN Q1 RS#010 -> f105UY605A/B/C."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 27 of 34 '105-UC-017_030_2_c' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 3x. Nomor/desc dari 'Tagnames Complete Listing.csv'.",
+    "Pemetaan RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. Label RS_105UC030_2_c_1/_2 adalah HIPOTESIS (header terpotong). Label VOT_105UC030_2_c_1 terbaca utuh.",
+    "VOTING #001 memakai pin FLT (Koreksi #33). Tag m105PSLL300A/B/C dan m105PI300A/B/C bersama sheet 7/8/11/12/25 (sudah terdaftar). f105HS604UCR baru didaftarkan (dipakai sheet 11).",
+    "RS#007 Q1 bercabang T ke RS_2 HMI, f105UY605D–H (lima valve) dan pin pertama AND#011; Q1 RS#010 ke RS_3 HMI dan pin kedua AND#011. Urutan pin AND#011 dicocokkan dari posisi kabel vertikal.",
+    "f105HS030SB digambar dua kali (OR#003, OR#005) dan f105HS010SB dua kali (OR#003, OR#009): satu node INPUT masing-masing dengan fan-out. Setpoint iTOF_105UC030_2_c_1..3 (40284-40286: 1 s) disimpan sebagai setpointSec.",
+    "BUKTI SILANG nilai live: semua input FALSE -> semua OUTPUT FALSE (cocok gambar). Polaritas NC/NO tidak ditafsirkan."
+  ]
+}
