@@ -146,6 +146,20 @@ function main() {
   });
   applyTagRegistry(netlistsBySlug, sheetNoBySlug);
 
+  // Polaritas alarm (Koreksi #57): output ALARM normal = FALSE (0, hijau),
+  // alarm aktif = TRUE (1, merah) — kebalikan output shutdown/valve (TRUE = normal).
+  // Ditandai otomatis dari penamaan tag instrumen (fungsi 'A' + L/H: AHH, ALL, AH, AL,
+  // IA, DALL ...; XA = shutdown TIDAK termasuk). Netlist boleh menimpa dgn isAlarm true/false.
+  const ALARM_RE = /^[fF]\d{3}[A-Z]*(?:A[LH]{1,2}|IA)\d+[A-Z]?(?:_DCS)?$/;
+  Object.keys(netlistsBySlug).forEach(function (slug) {
+    const ns = netlistsBySlug[slug].nodes;
+    Object.keys(ns).forEach(function (id) {
+      const n = ns[id];
+      if (n.type !== 'OUTPUT' || n.internalOnly || typeof n.isAlarm === 'boolean') return;
+      if (ALARM_RE.test(n.label || '')) n.isAlarm = true;
+    });
+  });
+
   let builtCount = 0;
   sheetsData.sheets.forEach(function (entry) {
     if (!entry.slug) return;

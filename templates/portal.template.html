@@ -356,7 +356,7 @@ function syncStatusHint(){
   const nTrip = ks.filter(function(k){ return liveStatus[k].state === 'trip'; }).length;
   const nOk = ks.length - nTrip;
   document.getElementById('statusHint').textContent =
-    'Status dihitung ulang di halaman ini dari simulasi yang tersimpan di browser — ' +
+    'Status dihitung ulang di halaman ini dari simulasi yang tersimpan di browser (output alarm: 0 = normal, 1 = trip) — ' +
     (nTrip ? nTrip + ' sheet sedang trip, ' + nOk + ' normal.' : 'semua sheet selesai dalam kondisi normal.');
 }
 function refreshStatus(){ computeStatus(); syncStatusHint(); render(); }

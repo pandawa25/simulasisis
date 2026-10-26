@@ -236,6 +236,7 @@ a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
     <div class="legend">
       <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> Normal
       <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> Triggered / Trip
+      <span style="margin-left:8px" title="Output ALARM: 0 = normal (hijau), 1 = alarm (merah). Output shutdown/valve: 1 = normal (hijau), 0 = trip (merah).">· Alarm: 0 = hijau, 1 = merah</span>
     </div>
     <div class="spacer"></div>
     <button class="btn" id="themeBtn" type="button">Tema</button>
@@ -687,8 +688,11 @@ var CrossLink = (function(){
    (warna shape blok logic di kolom tengah). Konvensi SAMA dgn kolom EFFECT
    halaman CE (Koreksi #7): nilai TRUE = normal = hijau, FALSE = trip = merah,
    seragam utk semua OUTPUT tanpa pengecualian per tipe node.
-   Satu sheet disebut NORMAL kalau SEMUA output-nya TRUE; kalau ada satu saja
-   yang FALSE -> TRIP (fail-safe: tampilkan kondisi terburuk). */
+   PENGECUALIAN SAH (Koreksi #57, atas permintaan user): output ALARM
+   (node.isAlarm, mis. LAHH/LALL/PAHH/FALL) berpolaritas terbalik —
+   normal = FALSE (0, tidak ada alarm), alarm aktif = TRUE (1) = trip.
+   Satu sheet disebut NORMAL kalau SEMUA output shutdown TRUE DAN SEMUA
+   output alarm FALSE; kalau ada satu saja yang menyimpang -> TRIP (fail-safe: tampilkan kondisi terburuk). */
 var SheetStatus = (function(){
   return {
     /* values = hasil sim.step(); nodes = netlist.nodes */
@@ -697,7 +701,8 @@ var SheetStatus = (function(){
       Object.keys(nodes).forEach(function(id){
         if(nodes[id].type !== 'OUTPUT') return;
         total++;
-        if(!values[id]) tripped++;
+        /* Koreksi #57: output ALARM (isAlarm) normal = FALSE; aktif (TRUE) = trip */
+        if(nodes[id].isAlarm ? values[id] : !values[id]) tripped++;
       });
       if(!total) return { state: 'none', total: 0, tripped: 0 };
       return { state: tripped ? 'trip' : 'normal', total: total, tripped: tripped };
@@ -851,7 +856,8 @@ effectSorted.forEach(function(id){
   }
   const tr = document.createElement('tr');
   tr.className = 'ce-row' + (n.internalOnly ? ' internal' : '');
-  const badge = n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '';
+  const badge = (n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '') +
+    (n.isAlarm ? ' <span class="internal-badge" title="Output ALARM: normal = 0 (hijau, tidak ada alarm), alarm aktif = 1 (merah). Kebalikan output shutdown/valve.">ALARM 0=normal</span>' : '');
   tr.innerHTML =
     '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
     '<td class="svc">' + (n.desc || n.label) + badge + crossLinkHtml(n) + '</td>' +
@@ -961,7 +967,9 @@ if(NAV && NAV.next){
    CE (nilainya sendiri yg sudah di-NOT di level netlist, bukan
    tampilannya, yang perlu diperhatikan). */
 function isNormal(id, val){
-  return val;
+  /* Koreksi #57: satu-satunya pengecualian yang diminta user — output ALARM
+     (isAlarm) normal = FALSE (0, hijau), alarm aktif = TRUE (1, merah). */
+  return nodes[id].isAlarm ? !val : val;
 }
 
 /* ======================= simulate + repaint ======================= */
@@ -985,7 +993,7 @@ function simulate(){
   ucBox.classList.toggle('st-trip', st.state === 'trip');
   document.getElementById('ucState').textContent = st.state === 'normal' ? 'NORMAL' : 'TRIP';
   document.getElementById('ucSubState').textContent = st.state === 'normal'
-    ? 'Semua ' + st.total + ' output energized'
+    ? 'Semua ' + st.total + ' output normal (shutdown TRUE, alarm FALSE)'
     : st.tripped + ' dari ' + st.total + ' output trip';
   /* timer waktu nyata: halaman CE ikut men-tick supaya status EFFECT &
      shape blok logic berubah sendiri saat hitungan TOF habis */
