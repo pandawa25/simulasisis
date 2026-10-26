@@ -36,7 +36,6 @@
     "in_f105PSHH024E": {
       "type": "INPUT",
       "label": "f105PSHH024E",
-      "desc": "12141 — Very High Pressure At Splitter Overhead 105 -C-501",
       "group": "ESD / Level-Pressure — Splitter 105-C-501 & Heater 105-F-501 (→ AND#014)"
     },
     "in_AND_10UC030_1_FEED_2": {
@@ -127,14 +126,11 @@
     "in_f105TSHH046": {
       "type": "INPUT",
       "label": "f105TSHH046",
-      "desc": "12596 — High High Temperature At Splitter Heater Outlet 105-F-501",
       "group": "Temperatur HH Splitter Heater 105-F-501 (→ TOF#009, NOT#019)"
     },
     "in_f105HS046M": {
       "type": "INPUT",
       "label": "f105HS046M",
-      "desc": "12113 — MOS 105-TSHH-046",
-      "isMOS": true,
       "group": "Temperatur HH Splitter Heater 105-F-501 (→ TOF#009, NOT#019)"
     },
     "in_m105LSHH040A": {

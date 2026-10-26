@@ -450,6 +450,19 @@
       "tagNo": "12139",
       "desc": "Reset 105-UY-604A,B,C/605A,B,C (105-UC-030)",
       "isReset": true
+    },
+    "f105PSHH024E": {
+      "tagNo": "12141",
+      "desc": "Very High Pressure At Splitter Overhead 105-C-501"
+    },
+    "f105TSHH046": {
+      "tagNo": "12596",
+      "desc": "High High Temperature At Splitter Heater Outlet 105-F-501"
+    },
+    "f105HS046M": {
+      "tagNo": "12113",
+      "desc": "MOS 105-TSHH-046",
+      "isMOS": true
     }
   }
 }
