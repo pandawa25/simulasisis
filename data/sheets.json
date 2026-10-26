@@ -133,9 +133,9 @@
       "slug": "sheet-015",
       "tag": "105-UC-004",
       "note": "bagian b",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-015.html",
+      "ceUrl": "sheets/sheet-015-ce.html"
     },
     {
       "sheet": 16,

@@ -365,6 +365,9 @@
       "tagNo": "12044",
       "desc": "Reset 105-HS-501AE/BE, UY-004 (105-UC-003)",
       "isReset": true
+    },
+    "RS_105UC004_FEED_1": {
+      "desc": "Sinyal internal — keluaran RS#016 sheet 15 (105-UC-004_b), dipakai sebagai cause di sheet 14 (AND#011 bawah)"
     }
   }
 }

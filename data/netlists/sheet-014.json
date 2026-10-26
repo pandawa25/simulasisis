@@ -213,7 +213,6 @@
     "in_RS_105UC004_FEED_1": {
       "type": "INPUT",
       "label": "RS_105UC004_FEED_1",
-      "desc": "n/a — memori BOOL RS_105UC004_FEED_1 (MBN.0069), penulisnya tidak digambar di sheet ini",
       "group": "Memori — RS_105UC004_FEED_1 (→ AND#011 bawah)"
     },
     "vot_001t": {
@@ -482,10 +481,10 @@
     "VOTING_2OO13 #001 atas: k=2 (output FALSE bila minimal dua input FALSE), 13 input tanpa pin FLT. HIPOTESIS: fungsi dalam blok 2oo13 dianggap sama seperti 2oo9 sheet 9 (jumlah FALSE < k), belum dibuktikan dari gambar isi blok. Pin digambar urut IN1, IN2, IN3, IN5, IN6, IN7, IN8, IN9, IN4, IN10..IN13 dari atas, dengan sensor 015, 031, 032, 033, 034, 035, 036, 037, 038, 039, 040, 041, 042; dimodelkan sesuai posisi di gambar (label pin render berurutan IN1..IN13), seperti sheet 9.",
     "VOTING_2OO3 #001 bawah: pin FLT ikut menentukan output (Koreksi #33). Nilai live gambar bawah (FSLL007B/C dan FI007B/C TRUE, A FALSE) menghasilkan output TRUE, cocok dengan aturan IN>1 dan FLT>1.",
     "AND#011 bawah (5 pin dari atas): OR#003, AND#006, Q1 RS#008, Q1 RS#010, RS_105UC004_FEED_1. Urutan pin diputuskan dari nesting kabel dari bawah (vertikal terkiri = pin teratas).",
-    "RS_105UC004_FEED_1 (memori BOOL, MBN.0069, tanpa deskripsi di CSV) digambar sbg INPUT tanpa sumber di sheet ini; dimodelkan INPUT biasa seperti AND_FEED_1 sheet 8. Penulisnya (mungkin sheet lain) belum diketahui, HIPOTESIS.",
     "L1G16A_L1G16A: digambar sbg sumber (kiri atas, blok atas) dan sbg keluaran AND#013 (blok bawah). HIPOTESIS: satu tag, OUTPUT dari AND#013 yang dibaca langsung AND#002 (tanpa loop). f105XA015 digambar sbg keluaran voting #001 atas dan sekaligus sumber NOT#006; dimodelkan OUTPUT yang dibaca NOT.",
     "VOT_1_105UC004 (12805) dan RS_1_105UC004 (12804) = internal HMI, digambar di tengah kabel; dimodelkan OUTPUT internalOnly (HIPOTESIS), tetap dihitung di status sheet.",
     "BUKTI SILANG nilai live: kondisi gambar (input atas semua FALSE; bawah FSLL007B/C dan FI007B/C TRUE) menghasilkan semua OUTPUT FALSE kecuali f105XA015_DCS TRUE; sama dengan gambar (f105FALL007 FALSE karena voting bawah TRUE).",
-    "Polaritas NC/NO tombol ESD dan sensor tidak ditafsirkan; logic mengikuti kabel apa adanya. Tag lintas sheet (dengan sheet 13: m105FSLL007A/B/C, m105FI007A/B/C, f105HS007SB, m105LSLL003, f105ZSO003, f105HS003UCRA; dengan sheet 2: f105HS003M, f105HS001AE/B; dst) didaftarkan di data/tags.json."
+    "Polaritas NC/NO tombol ESD dan sensor tidak ditafsirkan; logic mengikuti kabel apa adanya. Tag lintas sheet (dengan sheet 13: m105FSLL007A/B/C, m105FI007A/B/C, f105HS007SB, m105LSLL003, f105ZSO003, f105HS003UCRA; dengan sheet 2: f105HS003M, f105HS001AE/B; dst) didaftarkan di data/tags.json.",
+    "RS_105UC004_FEED_1: digambar sbg INPUT di sheet ini; sumbernya terbukti = keluaran RS#016 sheet 15 (105-UC-004_b), jadi tag lintas sheet (registry), bukan INPUT bebas."
   ]
 }
