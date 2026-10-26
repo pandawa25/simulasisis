@@ -1,0 +1,480 @@
+{
+  "id": "XA009",
+  "title": "105XA009",
+  "sheetRef": "Sheet 34 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "ESD Pushbutton — Stabilizer Heater 105-F-503 (→ AND#023)",
+    "Tekanan HH 108 + Bypass/MOS (→ TOF#001, OR#004)",
+    "Fuel Gas LL 114 — Voting 2oo3 (blok #002)",
+    "Pilot Burner Flame Off — NUMBITS/GT (→ OR#008)",
+    "Temperatur HH 118 + MOS (→ TOF#010, OR#011)",
+    "Fuel Gas 112 LL/HH + Bypass/MOS (→ AND#012, OR#014)",
+    "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)",
+    "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)",
+    "Reset (manual)",
+    "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)",
+    "Posisi Valve (→ AND#023)"
+  ],
+  "effectGroups": [
+    "Shutdown XA009 — Stabilizer Heater 105-F-503",
+    "Alarm Combustion Air / Stabilizer Heater 105-F-503",
+    "Internal HMI (monitor saja)"
+  ],
+  "nodes": {
+    "in_f105HS009A": {
+      "type": "INPUT",
+      "label": "f105HS009A",
+      "group": "ESD Pushbutton — Stabilizer Heater 105-F-503 (→ AND#023)"
+    },
+    "in_f105HS009B": {
+      "type": "INPUT",
+      "label": "f105HS009B",
+      "group": "ESD Pushbutton — Stabilizer Heater 105-F-503 (→ AND#023)"
+    },
+    "in_m105PSHH108": {
+      "type": "INPUT",
+      "label": "m105PSHH108",
+      "group": "Tekanan HH 108 + Bypass/MOS (→ TOF#001, OR#004)"
+    },
+    "in_f105HS108M": {
+      "type": "INPUT",
+      "label": "f105HS108M",
+      "group": "Tekanan HH 108 + Bypass/MOS (→ TOF#001, OR#004)"
+    },
+    "in_f105HS031SB": {
+      "type": "INPUT",
+      "label": "f105HS031SB",
+      "group": "Tekanan HH 108 + Bypass/MOS (→ TOF#001, OR#004)"
+    },
+    "in_m105PSLL114A": {
+      "type": "INPUT",
+      "label": "m105PSLL114A",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_m105PI114A": {
+      "type": "INPUT",
+      "label": "m105PI114A",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_m105PSLL114B": {
+      "type": "INPUT",
+      "label": "m105PSLL114B",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_m105PI114B": {
+      "type": "INPUT",
+      "label": "m105PI114B",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_m105PSLL114C": {
+      "type": "INPUT",
+      "label": "m105PSLL114C",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_m105PI114C": {
+      "type": "INPUT",
+      "label": "m105PI114C",
+      "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #002)"
+    },
+    "in_f105BS630A": {
+      "type": "INPUT",
+      "label": "f105BS630A",
+      "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#008)"
+    },
+    "in_f105BS630B": {
+      "type": "INPUT",
+      "label": "f105BS630B",
+      "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#008)"
+    },
+    "in_f105BS630C": {
+      "type": "INPUT",
+      "label": "f105BS630C",
+      "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#008)"
+    },
+    "in_f105HS630_ACM": {
+      "type": "INPUT",
+      "label": "f105HS630_ACM",
+      "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#008)"
+    },
+    "in_f105TSHH118": {
+      "type": "INPUT",
+      "label": "f105TSHH118",
+      "group": "Temperatur HH 118 + MOS (→ TOF#010, OR#011)"
+    },
+    "in_f105HS118M": {
+      "type": "INPUT",
+      "label": "f105HS118M",
+      "group": "Temperatur HH 118 + MOS (→ TOF#010, OR#011)"
+    },
+    "in_m105PSLL112": {
+      "type": "INPUT",
+      "label": "m105PSLL112",
+      "group": "Fuel Gas 112 LL/HH + Bypass/MOS (→ AND#012, OR#014)"
+    },
+    "in_m105PSHH112": {
+      "type": "INPUT",
+      "label": "m105PSHH112",
+      "group": "Fuel Gas 112 LL/HH + Bypass/MOS (→ AND#012, OR#014)"
+    },
+    "in_f105HS112M": {
+      "type": "INPUT",
+      "label": "f105HS112M",
+      "group": "Fuel Gas 112 LL/HH + Bypass/MOS (→ AND#012, OR#014)"
+    },
+    "in_m105FSLL036A": {
+      "type": "INPUT",
+      "label": "m105FSLL036A",
+      "group": "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)"
+    },
+    "in_m105FSLL036B": {
+      "type": "INPUT",
+      "label": "m105FSLL036B",
+      "group": "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)"
+    },
+    "in_m105FSLL036C": {
+      "type": "INPUT",
+      "label": "m105FSLL036C",
+      "group": "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)"
+    },
+    "in_m105FSLL036D": {
+      "type": "INPUT",
+      "label": "m105FSLL036D",
+      "group": "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)"
+    },
+    "in_f105HS036FLM": {
+      "type": "INPUT",
+      "label": "f105HS036FLM",
+      "group": "Flow LL Stabilizer Heater Inlet (→ AND#015, NOT#025/#026)"
+    },
+    "in_f105PSHH069E": {
+      "type": "INPUT",
+      "label": "f105PSHH069E",
+      "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)"
+    },
+    "in_m105LSLL033": {
+      "type": "INPUT",
+      "label": "m105LSLL033",
+      "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)"
+    },
+    "in_f105HS033M": {
+      "type": "INPUT",
+      "label": "f105HS033M",
+      "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)"
+    },
+    "in_f105HS008AE": {
+      "type": "INPUT",
+      "label": "f105HS008AE",
+      "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)"
+    },
+    "in_f105HS008B": {
+      "type": "INPUT",
+      "label": "f105HS008B",
+      "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#021, #023)"
+    },
+    "in_f105HS015UCR": {
+      "type": "INPUT",
+      "label": "f105HS015UCR",
+      "group": "Reset (manual)"
+    },
+    "in_m105LSHH040A": {
+      "type": "INPUT",
+      "label": "m105LSHH040A",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_m105LI040A": {
+      "type": "INPUT",
+      "label": "m105LI040A",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_m105LSHH040B": {
+      "type": "INPUT",
+      "label": "m105LSHH040B",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_m105LI040B": {
+      "type": "INPUT",
+      "label": "m105LI040B",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_m105LSHH040C": {
+      "type": "INPUT",
+      "label": "m105LSHH040C",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_m105LI040C": {
+      "type": "INPUT",
+      "label": "m105LI040C",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #018)"
+    },
+    "in_f105ZSO023": {
+      "type": "INPUT",
+      "label": "f105ZSO023",
+      "group": "Posisi Valve (→ AND#023)"
+    },
+    "tof_001": {
+      "type": "TOF",
+      "gateId": "001",
+      "input": "in_m105PSHH108",
+      "setpointSec": 20
+    },
+    "vot_002": {
+      "type": "VOTING",
+      "gateId": "002",
+      "label": "VOT_XA009_1",
+      "k": 2,
+      "inputs": [
+        "in_m105PSLL114A",
+        "in_m105PSLL114B",
+        "in_m105PSLL114C"
+      ],
+      "fltInputs": [
+        "in_m105PI114A",
+        "in_m105PI114B",
+        "in_m105PI114C"
+      ]
+    },
+    "tof_003": {
+      "type": "TOF",
+      "gateId": "003",
+      "input": "vot_002",
+      "setpointSec": 2
+    },
+    "or_004": {
+      "type": "OR",
+      "gateId": "004",
+      "inputs": [
+        "tof_001",
+        "in_f105HS108M",
+        "in_f105HS031SB"
+      ]
+    },
+    "or_005": {
+      "type": "OR",
+      "gateId": "005",
+      "inputs": [
+        "tof_003",
+        "in_f105HS031SB"
+      ]
+    },
+    "numbits_006": {
+      "type": "NUMBITS",
+      "gateId": "006",
+      "inputs": [
+        "in_f105BS630A",
+        "in_f105BS630B",
+        "in_f105BS630C"
+      ]
+    },
+    "gt_007": {
+      "type": "GT",
+      "gateId": "007",
+      "input": "numbits_006",
+      "constant": 1
+    },
+    "or_008": {
+      "type": "OR",
+      "gateId": "008",
+      "inputs": [
+        "gt_007",
+        "in_f105HS630_ACM"
+      ]
+    },
+    "tof_009": {
+      "type": "TOF",
+      "gateId": "009",
+      "input": "or_008",
+      "setpointSec": 1
+    },
+    "tof_010": {
+      "type": "TOF",
+      "gateId": "010",
+      "input": "in_f105TSHH118",
+      "setpointSec": 10
+    },
+    "or_011": {
+      "type": "OR",
+      "gateId": "011",
+      "inputs": [
+        "tof_010",
+        "in_f105HS118M"
+      ]
+    },
+    "and_012": {
+      "type": "AND",
+      "gateId": "012",
+      "inputs": [
+        "in_m105PSLL112",
+        "in_m105PSHH112"
+      ]
+    },
+    "tof_013": {
+      "type": "TOF",
+      "gateId": "013",
+      "input": "and_012",
+      "setpointSec": 2
+    },
+    "or_014": {
+      "type": "OR",
+      "gateId": "014",
+      "inputs": [
+        "tof_013",
+        "in_f105HS031SB",
+        "in_f105HS112M"
+      ]
+    },
+    "and_015": {
+      "type": "AND",
+      "gateId": "015",
+      "inputs": [
+        "in_m105FSLL036A",
+        "in_m105FSLL036B",
+        "in_m105FSLL036C",
+        "in_m105FSLL036D"
+      ]
+    },
+    "tof_016": {
+      "type": "TOF",
+      "gateId": "016",
+      "input": "and_015",
+      "setpointSec": 10
+    },
+    "or_017": {
+      "type": "OR",
+      "gateId": "017",
+      "inputs": [
+        "tof_016",
+        "in_f105HS036FLM"
+      ]
+    },
+    "vot_018": {
+      "type": "VOTING",
+      "gateId": "018",
+      "label": "VOT_XA009_2",
+      "k": 2,
+      "inputs": [
+        "in_m105LSHH040A",
+        "in_m105LSHH040B",
+        "in_m105LSHH040C"
+      ],
+      "fltInputs": [
+        "in_m105LI040A",
+        "in_m105LI040B",
+        "in_m105LI040C"
+      ]
+    },
+    "or_019": {
+      "type": "OR",
+      "gateId": "019",
+      "inputs": [
+        "in_m105LSLL033",
+        "in_f105HS033M"
+      ]
+    },
+    "and_020": {
+      "type": "AND",
+      "gateId": "020",
+      "inputs": [
+        "in_f105HS008AE",
+        "in_f105HS008B"
+      ]
+    },
+    "and_021": {
+      "type": "AND",
+      "gateId": "021",
+      "inputs": [
+        "in_f105PSHH069E",
+        "or_019",
+        "and_020"
+      ]
+    },
+    "rs_022": {
+      "type": "RS",
+      "gateId": "022",
+      "label": "RS_XA009_1",
+      "s": "and_021",
+      "r": "in_f105HS015UCR"
+    },
+    "and_023": {
+      "type": "AND",
+      "gateId": "023",
+      "inputs": [
+        "in_f105HS009A",
+        "in_f105HS009B",
+        "or_004",
+        "or_005",
+        "tof_009",
+        "or_011",
+        "or_014",
+        "or_017",
+        "in_f105ZSO023",
+        "in_f105PSHH069E",
+        "vot_018",
+        "rs_022"
+      ]
+    },
+    "not_024": {
+      "type": "NOT",
+      "gateId": "024",
+      "input": "and_023"
+    },
+    "not_025": {
+      "type": "NOT",
+      "gateId": "025",
+      "input": "in_m105FSLL036A"
+    },
+    "not_026": {
+      "type": "NOT",
+      "gateId": "026",
+      "input": "in_m105FSLL036B"
+    },
+    "out_f105XA009": {
+      "type": "OUTPUT",
+      "label": "f105XA009",
+      "desc": "12785 — Stabilizer Heater 105-F-503 Shutdown",
+      "source": "and_023",
+      "group": "Shutdown XA009 — Stabilizer Heater 105-F-503"
+    },
+    "out_f105XA009_DCS": {
+      "type": "OUTPUT",
+      "label": "f105XA009_DCS",
+      "desc": "13253 — Stabilizer Heater 105-F-503 Shutdown",
+      "source": "not_024",
+      "group": "Shutdown XA009 — Stabilizer Heater 105-F-503"
+    },
+    "out_f105FALL036A": {
+      "type": "OUTPUT",
+      "label": "f105FALL036A",
+      "desc": "13143 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_025",
+      "group": "Alarm Combustion Air / Stabilizer Heater 105-F-503"
+    },
+    "out_f105FALL036B": {
+      "type": "OUTPUT",
+      "label": "f105FALL036B",
+      "desc": "13144 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_026",
+      "group": "Alarm Combustion Air / Stabilizer Heater 105-F-503"
+    },
+    "out_TOF_5_105UC031_2": {
+      "type": "OUTPUT",
+      "label": "TOF_5_105UC031_2",
+      "desc": "12836 — Internal HMI",
+      "source": "tof_016",
+      "group": "Internal HMI (monitor saja)"
+    }
+  },
+  "summary": [
+    "Halaman 105XA009: shutdown Stabilizer Heater 105-F-503. f105XA009 = AND#023 (12 masukan); f105XA009_DCS = NOT#024 dari keluaran itu (versi DCS, TRUE saat shutdown).",
+    "AND#023: ESD f105HS009A/B, OR#004 (TOF#001 20 s PSHH108 / MOS HS108M / bypass HS031SB), OR#005 (TOF#003 2 s dari voting#002 LL 114 / HS031SB), TOF#009 (1 s dari OR#008: pilot burner flame-off >1 dari 3 / MOS), OR#011 (TOF#010 10 s TSHH118 / MOS), OR#014 (TOF#013 2 s AND#012 PSLL112+PSHH112 / HS031SB / MOS HS112M), OR#017 (TOF#016 10 s AND#015 flow LL 036A-D / MOS), f105ZSO023, f105PSHH069E, voting#018 (level HH KO Drum) dan Q1 RS#022 (R1 = AND#021: PSHH069E, OR#019 level LL 033/MOS, AND#020 ESD HS008).",
+    "Alarm f105FALL036A/B = NOT langsung dari m105FSLL036A/B."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 34 of 34 '105XA009' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 1.3-4.5x. Struktur permissive mirip sheet 30/31 (105-F-503).",
+    "Urutan pin AND#023: pin 1-2 (HS009A/B), 9-12 (ZSO023, PSHH069E, VOT#018, RS#022) pasti dari posisi tag/vertikal; urutan pin 3-8 (OR#004, OR#005, TOF#009, OR#011, OR#014, OR#017) dibaca dari posisi vertikal kabel di overview, tidak diperiksa piksel-per-piksel (tidak mempengaruhi logika AND, hanya urutan tampilan).",
+    "RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. Header RS_XA009_1 dan VOT_XA009_1/_2 terbaca utuh.",
+    "KETIDAKPASTIAN setpoint: TOF#001 berlabel \"TOF = 3 SEC\" tetapi iTOF_XA009_1_OUT bernilai 20 (\"SETPOINT 20 SECOND\", 31060); TOF#003 berlabel 3 s tetapi iTOF_XA009_2 = 2 s. Dipakai nilai live (20 s, 2 s) = HIPOTESIS (pola sheet 33); perlu dicek ke program.",
+    "f105PSHH069E digambar dua kali (AND#021 dan AND#023) = satu node. NOT#025/#026 membaca masukan lapangan lewat T-junction di kabel f105FSLL036A/B (zoom 4.5x; vertikal ke NOT#026 melewati kabel FSLL036C/D tanpa junction). f105XA009 digambar in-line antara AND#023 dan NOT#024, dimodelkan OUTPUT = AND#023 (HIPOTESIS).",
+    "Setpoint iTOF_XA009_1..6 (20, 2, 1, 10, 2, 10 s; 31060-31065) disimpan sebagai setpointSec. Tag bersama dengan sheet 20/30/31 didaftarkan otomatis.",
+    "BUKTI SILANG nilai live: semua input FALSE -> f105XA009 FALSE (hijau), f105XA009_DCS TRUE, f105FALL036A/B TRUE (merah). Polaritas NC/NO tidak ditafsirkan."
+  ]
+}

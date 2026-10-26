@@ -102,70 +102,56 @@
     "in_f105TSHH118": {
       "type": "INPUT",
       "label": "f105TSHH118",
-      "desc": "12556 — Stabilizer Heater 105-F-503 Outlet",
       "group": "Temperatur HH Stabilizer Heater (→ TOF#011, OR#012)"
     },
     "in_f105HS118M": {
       "type": "INPUT",
       "label": "f105HS118M",
-      "desc": "12122 — MOS 105-TSHH-108",
-      "isMOS": true,
       "group": "Temperatur HH Stabilizer Heater (→ TOF#011, OR#012)"
     },
     "in_m105PSLL112": {
       "type": "INPUT",
       "label": "m105PSLL112",
-      "desc": "12473 — Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm",
       "group": "Fuel Gas 112 LL/HH (→ AND#013, NOT#032/#033, OR#015)"
     },
     "in_m105PSHH112": {
       "type": "INPUT",
       "label": "m105PSHH112",
-      "desc": "12447 — Fuel Gas From 105-E-512 To 105-F-503 Inlet HH Alm",
       "group": "Fuel Gas 112 LL/HH (→ AND#013, NOT#032/#033, OR#015)"
     },
     "in_f105HS112M": {
       "type": "INPUT",
       "label": "f105HS112M",
-      "desc": "12121 — MOS 105-PSHH/PSLL-112",
-      "isMOS": true,
       "group": "Fuel Gas 112 LL/HH (→ AND#013, NOT#032/#033, OR#015)"
     },
     "in_m105FSLL036A": {
       "type": "INPUT",
       "label": "m105FSLL036A",
-      "desc": "12348 — Stabilizer Heater 105-F-503 Inlet LL Alm",
       "group": "Flow LL Stabilizer Heater 105-F-503 Inlet (→ AND#016, NOT#034/#035)"
     },
     "in_m105FSLL036B": {
       "type": "INPUT",
       "label": "m105FSLL036B",
-      "desc": "12349 — Stabilizer Heater 105-F-503 Inlet LL Alm",
       "group": "Flow LL Stabilizer Heater 105-F-503 Inlet (→ AND#016, NOT#034/#035)"
     },
     "in_m105FSLL036C": {
       "type": "INPUT",
       "label": "m105FSLL036C",
-      "desc": "12350 — Stabilizer Heater 105-F-503 Inlet LL Alm",
       "group": "Flow LL Stabilizer Heater 105-F-503 Inlet (→ AND#016, NOT#034/#035)"
     },
     "in_m105FSLL036D": {
       "type": "INPUT",
       "label": "m105FSLL036D",
-      "desc": "12351 — Stabilizer Heater 105-F-503 Inlet LL Alm",
       "group": "Flow LL Stabilizer Heater 105-F-503 Inlet (→ AND#016, NOT#034/#035)"
     },
     "in_f105HS036FLM": {
       "type": "INPUT",
       "label": "f105HS036FLM",
-      "desc": "12110 — MOS 105-FSLL-036A/B/C/D",
-      "isMOS": true,
       "group": "Flow LL Stabilizer Heater 105-F-503 Inlet (→ AND#016, NOT#034/#035)"
     },
     "in_f105PSHH069E": {
       "type": "INPUT",
       "label": "f105PSHH069E",
-      "desc": "12142 — Very High Pressure At Stabilizer Overhead 105 -C-503",
       "group": "Tekanan/Level/ESD Stabilizer 105-C-503 (→ AND#022)"
     },
     "in_m105LSLL033": {

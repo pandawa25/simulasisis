@@ -136,7 +136,7 @@ Sumber-of-truth status & URL ada di `data/sheets.json` (field `status`/`url`, ot
 | 031 | 105-UC-031_2 | Izin fuel gas pilot 105-F-503 (UY-042/043): AND#013 6 masukan → RS#014 → AND#016 (seal-in OR#015) → MOVE#018; TOF 30 menit dari tombol HS021 | **Selesai** |
 | 032 | CPRS | Permissive Recycle Gas Compressor 105-K-501: AND#004 (5 masukan) → RS#005 → f105F502_CPRS; alarm f105LAHH019 = NOT LSHH019 | **Selesai** |
 | 033 | 105XA003 | Shutdown Splitter Heater 105-F-501: AND#025 (13 masukan) → f105XA003; 5 RS (latch bertingkat), 4 TOF, 2 voting 2oo3 | **Selesai** |
-| 034 | XA009 | | Belum |
+| 034 | 105XA009 | Shutdown Stabilizer Heater 105-F-503: AND#023 (12 masukan) → f105XA009 (+ NOT → f105XA009_DCS); mirip sheet 30/31 | **Selesai** |
 
 ## Catatan verifikasi dari sheet 006 / 105-UC-009 (dicek via crop/zoom junction, bukan tebak posisi)
 - RST_105UC009_E.S = RST_105UC009_F.Q1 (bukan dari AND018 seperti dugaan awal) — dikonfirmasi lewat T-junction eksplisit.
@@ -193,6 +193,7 @@ Sumber-of-truth status & URL ada di `data/sheets.json` (field `status`/`url`, ot
 - **Koreksi (2026-10-26, #51 — sheet 31 105-UC-031_2)**: Sheet 31: f105HS021 dipakai dua kali (S RS#014 dan TMR_IN TOF#010 30 menit); OR#011 = TOF#009 ATAU TOF#010. Deskripsi vendor f105HS020/HS021 tertukar terhadap pemakaian (UY-040/041 vs 042/043) — dimodelkan mengikuti kabel, perlu dicek P&ID. Tag bersama sheet 30 (HS009A/B, PSHH108, HS108M, HS031SB, ZSO503, PSLL114A-C/PI114A-C, BS630A-C, HS630_ACM) didaftarkan.
 - **Koreksi (2026-10-26, #52 — sheet 32 CPRS)**: Sheet 32 (CPRS): semua tag masukan sudah di registry. Deskripsi vendor f105LAHH019 tidak cocok dengan pemakaian (Splitter Heater 105-F-501 vs level HH 105-V-503) — dipakai dari CSV, perlu dicek.
 - **Koreksi (2026-10-26, #53 — sheet 33 105XA003)**: Sheet 33 (XA003): setpoint TOF#005 ambigu (live 1 s vs label 2 s) → dipakai 1 s; f105UC030_105XA003 INPUT dari logika tambahan; tag bersama didaftarkan otomatis (autoreg.py). Latch bertingkat RS#017/#019 → RS#021.
+- **Koreksi (2026-10-26, #54 — sheet 34 105XA009)**: Sheet 34 (XA009, sheet terakhir): setpoint TOF#001 ambigu (label 3 s vs live 20 s) dan TOF#003 (3 s vs 2 s) → dipakai nilai live. Urutan pin 3-8 AND#023 dibaca dari overview. Tag bersama sheet 30 didaftarkan otomatis.
 - **Koreksi (2026-10-26, #33 — isi blok VOTING_2OO3 dengan pin FLT, engine + template)**: gambar vendor isi blok (dikirim user) menunjukkan VOTING dengan FLT bukan voting biasa: NUMBITS#001 (IN1, IN3, IN2) -> GT#002 (>1), NUMBITS#003 (FLT1..3) -> GT#004 (>1), AND#005 -> OUT. Output = (IN TRUE > 1) DAN (FLT TRUE > 1), jadi FLT TRUE = sehat dan ikut menentukan hasil (tidak lagi "input biasa tanpa pengaruh" seperti arahan sheet 7, Koreksi #25 dibatalkan untuk bagian itu). Engine: VOTING dengan fltInputs menambah syarat fltTrue > n-k (konstanta 1 untuk 2oo3); VOTING tanpa FLT (2oo9 sheet 9/13) tidak berubah. Berlaku untuk semua sheet ber-FLT: 7, 8, 10, 11, 12, 13. Label voting di Logic Detail jadi "IN>1 & FLT>1 TRUE". Tes s7-s13 diperbarui: set sehat wajib menyertakan FLT TRUE.
 
 ## Riwayat
