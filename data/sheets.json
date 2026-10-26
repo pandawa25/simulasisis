@@ -286,9 +286,9 @@
       "slug": "sheet-032",
       "tag": "CPRS",
       "note": "",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-032.html",
+      "ceUrl": "sheets/sheet-032-ce.html"
     },
     {
       "sheet": 33,

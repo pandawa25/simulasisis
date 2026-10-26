@@ -1,0 +1,134 @@
+{
+  "id": "CPRS",
+  "title": "CPRS",
+  "sheetRef": "Sheet 32 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "ESD Pushbutton — HDS Depressurization (→ AND#001)",
+    "Level HH Recycle Gas KO Drum 105-V-505 + MOS (→ OR#002)",
+    "ESD Stop Recycle Gas Compressor 105-K-501 (→ AND#004)",
+    "Level HH HDS Separator 105-V-503 + MOS (→ OR#003, NOT#006)",
+    "Reset (manual)"
+  ],
+  "effectGroups": [
+    "Permissive CPRS (Recycle Gas Compressor 105-K-501)",
+    "Alarm HDS Separator 105-V-503"
+  ],
+  "nodes": {
+    "in_f105HS006A": {
+      "type": "INPUT",
+      "label": "f105HS006A",
+      "group": "ESD Pushbutton — HDS Depressurization (→ AND#001)"
+    },
+    "in_f105HS006B": {
+      "type": "INPUT",
+      "label": "f105HS006B",
+      "group": "ESD Pushbutton — HDS Depressurization (→ AND#001)"
+    },
+    "in_m105LSHH030": {
+      "type": "INPUT",
+      "label": "m105LSHH030",
+      "group": "Level HH Recycle Gas KO Drum 105-V-505 + MOS (→ OR#002)"
+    },
+    "in_f105HS030LM": {
+      "type": "INPUT",
+      "label": "f105HS030LM",
+      "group": "Level HH Recycle Gas KO Drum 105-V-505 + MOS (→ OR#002)"
+    },
+    "in_f105HS010A": {
+      "type": "INPUT",
+      "label": "f105HS010A",
+      "group": "ESD Stop Recycle Gas Compressor 105-K-501 (→ AND#004)"
+    },
+    "in_f105HS010B": {
+      "type": "INPUT",
+      "label": "f105HS010B",
+      "group": "ESD Stop Recycle Gas Compressor 105-K-501 (→ AND#004)"
+    },
+    "in_m105LSHH019": {
+      "type": "INPUT",
+      "label": "m105LSHH019",
+      "group": "Level HH HDS Separator 105-V-503 + MOS (→ OR#003, NOT#006)"
+    },
+    "in_f105HS019M": {
+      "type": "INPUT",
+      "label": "f105HS019M",
+      "group": "Level HH HDS Separator 105-V-503 + MOS (→ OR#003, NOT#006)"
+    },
+    "in_f105HS012UCR": {
+      "type": "INPUT",
+      "label": "f105HS012UCR",
+      "group": "Reset (manual)"
+    },
+    "and_001": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS006A",
+        "in_f105HS006B"
+      ]
+    },
+    "or_002": {
+      "type": "OR",
+      "gateId": "002",
+      "inputs": [
+        "in_m105LSHH030",
+        "in_f105HS030LM"
+      ]
+    },
+    "or_003": {
+      "type": "OR",
+      "gateId": "003",
+      "inputs": [
+        "in_m105LSHH019",
+        "in_f105HS019M"
+      ]
+    },
+    "and_004": {
+      "type": "AND",
+      "gateId": "004",
+      "inputs": [
+        "and_001",
+        "or_002",
+        "in_f105HS010A",
+        "in_f105HS010B",
+        "or_003"
+      ]
+    },
+    "rs_005": {
+      "type": "RS",
+      "gateId": "005",
+      "label": "RS_CPRS_1",
+      "s": "and_004",
+      "r": "in_f105HS012UCR"
+    },
+    "not_006": {
+      "type": "NOT",
+      "gateId": "006",
+      "input": "in_m105LSHH019"
+    },
+    "out_f105LAHH019": {
+      "type": "OUTPUT",
+      "label": "f105LAHH019",
+      "desc": "12042 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "source": "not_006",
+      "group": "Alarm HDS Separator 105-V-503"
+    },
+    "out_f105F502_CPRS": {
+      "type": "OUTPUT",
+      "label": "f105F502_CPRS",
+      "desc": "12070 — Reset 105-UC-012",
+      "source": "rs_005",
+      "group": "Permissive CPRS (Recycle Gas Compressor 105-K-501)"
+    }
+  },
+  "summary": [
+    "Halaman CPRS (Recycle Gas Compressor 105-K-501): AND#004 (5 masukan) -> RS#005 -> f105F502_CPRS. Satu alarm terpisah f105LAHH019 = NOT m105LSHH019.",
+    "AND#004: AND#001 (ESD f105HS006A/B), OR#002 (m105LSHH030 / MOS f105HS030LM), f105HS010A, f105HS010B, OR#003 (m105LSHH019 / MOS f105HS019M). RS#005: R1 dari AND#004, reset f105HS012UCR."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 32 of 34 'CPRS' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 1.6-2.4x. Urutan pin AND#004: pin 1-2 dari kiri (AND#001, OR#002), pin 3-5 dari bawah (vertikal paling kiri = pin teratas): f105HS010A, f105HS010B, OR#003.",
+    "RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. Header RS_CPRS_1 terbaca utuh. NOT#006 membaca m105LSHH019 langsung (T-junction) = HIPOTESIS minimal; nilai live TRUE konsisten.",
+    "Semua tag masukan sudah terdaftar di registry (dipakai sheet lain). Deskripsi vendor f105LAHH019 (\"Splitter Heater 105-F-501 Inlet LL Alm\") tidak cocok dengan nama/pemakaian (level HH separator 105-V-503) — dipakai apa adanya dari CSV; kemungkinan salah ketik database tag, perlu dicek.",
+    "BUKTI SILANG nilai live: semua input FALSE -> f105F502_CPRS FALSE (hijau), f105LAHH019 TRUE (merah). Polaritas NC/NO tidak ditafsirkan."
+  ]
+}
