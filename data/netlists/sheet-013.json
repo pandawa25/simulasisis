@@ -30,49 +30,41 @@
     "in_m105FSLL007A": {
       "type": "INPUT",
       "label": "m105FSLL007A",
-      "desc": "12336 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_m105FI007A": {
       "type": "INPUT",
       "label": "m105FI007A",
-      "desc": "12300 — 105-FT-007A Fault Status",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_m105FSLL007B": {
       "type": "INPUT",
       "label": "m105FSLL007B",
-      "desc": "12337 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_m105FI007B": {
       "type": "INPUT",
       "label": "m105FI007B",
-      "desc": "12301 — 105FT007B Fault Status",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_m105FSLL007C": {
       "type": "INPUT",
       "label": "m105FSLL007C",
-      "desc": "12338 — From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_m105FI007C": {
       "type": "INPUT",
       "label": "m105FI007C",
-      "desc": "12302 — 105FT007C Fault Status",
       "group": "Flow LL — Pompa SHU Reactor Feed (voting 2oo3 #001 atas)"
     },
     "in_f105HS007SB": {
       "type": "INPUT",
       "label": "f105HS007SB",
-      "desc": "12058 — Switch Start Up Bypass Permissive 105-UV-004 (AUX)",
       "group": "Bypass Start Up (→ OR#002)"
     },
     "in_m105LSLL003": {
       "type": "INPUT",
       "label": "m105LSLL003",
-      "desc": "12398 — SHU Feed Surge Drum 105-V-501 LL Alm",
       "group": "Level / MOS — SHU Feed Surge Drum 105-V-501 LL (→ OR#003)"
     },
     "in_f105HS003M": {
@@ -123,14 +115,11 @@
     "in_f105HS003UCRA": {
       "type": "INPUT",
       "label": "f105HS003UCRA",
-      "desc": "12044 — Reset 105-HS-501AE/BE, UY-004 (105-UC-003)",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105ZSO003": {
       "type": "INPUT",
       "label": "f105ZSO003",
-      "desc": "12200 — Open Signal to Pump Run Permissive",
       "group": "Posisi Valve — Pump Run Permissive (→ AND#013 atas, AND#015 bawah)"
     },
     "in_m105LSLL009": {

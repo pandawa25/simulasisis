@@ -324,6 +324,47 @@
       "tagNo": "12253",
       "desc": "Reset 105-UY-015/018 (105-UC-011/013)",
       "isReset": true
+    },
+    "m105FSLL007A": {
+      "tagNo": "12336",
+      "desc": "From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm"
+    },
+    "m105FSLL007B": {
+      "tagNo": "12337",
+      "desc": "From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm"
+    },
+    "m105FSLL007C": {
+      "tagNo": "12338",
+      "desc": "From 105-P-501A/B To SHU Reactor 105-E-501 LL Alm"
+    },
+    "m105FI007A": {
+      "tagNo": "12300",
+      "desc": "105-FT-007A Fault Status"
+    },
+    "m105FI007B": {
+      "tagNo": "12301",
+      "desc": "105FT007B Fault Status"
+    },
+    "m105FI007C": {
+      "tagNo": "12302",
+      "desc": "105FT007C Fault Status"
+    },
+    "f105HS007SB": {
+      "tagNo": "12058",
+      "desc": "Switch Start Up Bypass Permissive 105-UV-004 (AUX)"
+    },
+    "m105LSLL003": {
+      "tagNo": "12398",
+      "desc": "SHU Feed Surge Drum 105-V-501 LL Alm"
+    },
+    "f105ZSO003": {
+      "tagNo": "12200",
+      "desc": "Open Signal to Pump Run Permissive"
+    },
+    "f105HS003UCRA": {
+      "tagNo": "12044",
+      "desc": "Reset 105-HS-501AE/BE, UY-004 (105-UC-003)",
+      "isReset": true
     }
   }
 }
