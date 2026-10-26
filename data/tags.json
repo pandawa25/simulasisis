@@ -442,6 +442,9 @@
     },
     "AND_10UC030_1_FEED_2": {
       "desc": "Sinyal internal — keluaran OR#013 (blok bawah) sheet 24 (105-UC-030(1)), dipakai sebagai cause di sheet 25 (AND#014)"
+    },
+    "AND_105UC030_2_b_FEED_1": {
+      "desc": "Sinyal internal — keluaran AND#021 sheet 26 (105-UC-017_030_2_b), dipakai sebagai cause di sheet 25 (AND#014)"
     }
   }
 }

@@ -1,0 +1,431 @@
+{
+  "id": "105-UC-017_030_2_b",
+  "title": "105-UC-017_030_2_b",
+  "sheetRef": "Sheet 26 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)",
+    "MOS Flow LL 018 (→ OR#009)",
+    "Level LL Splitter Bottom (→ OR#010)",
+    "ESD Pushbutton (→ AND#011, AND#013)",
+    "Pressure Fuel Gas 105-E-512 LL/HH (→ TOF#017, TOF#019)",
+    "Bypass / MOS Fuel Gas (→ OR#018, OR#020)",
+    "Reset (manual, per latch)"
+  ],
+  "effectGroups": [
+    "Alarm Combustion Air / Splitter Heater",
+    "Alarm Fuel Gas 105-E-512",
+    "Internal HMI (monitor saja)",
+    "Sinyal internal (bukan output lapangan)"
+  ],
+  "nodes": {
+    "in_m105FSLL018A": {
+      "type": "INPUT",
+      "label": "m105FSLL018A",
+      "desc": "12339 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018B": {
+      "type": "INPUT",
+      "label": "m105FSLL018B",
+      "desc": "12340 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018C": {
+      "type": "INPUT",
+      "label": "m105FSLL018C",
+      "desc": "12341 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018D": {
+      "type": "INPUT",
+      "label": "m105FSLL018D",
+      "desc": "12342 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018E": {
+      "type": "INPUT",
+      "label": "m105FSLL018E",
+      "desc": "12343 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018F": {
+      "type": "INPUT",
+      "label": "m105FSLL018F",
+      "desc": "12344 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018G": {
+      "type": "INPUT",
+      "label": "m105FSLL018G",
+      "desc": "12345 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_m105FSLL018H": {
+      "type": "INPUT",
+      "label": "m105FSLL018H",
+      "desc": "12346 — Splitter Heater 105-F-501 Inlet LL Alm",
+      "group": "Flow LL Splitter Heater 105-F-501 Inlet (→ AND#003, NOT#001-008)"
+    },
+    "in_f105HS018M": {
+      "type": "INPUT",
+      "label": "f105HS018M",
+      "desc": "12085 — MOS 105-FSLL-018",
+      "isMOS": true,
+      "group": "MOS Flow LL 018 (→ OR#009)"
+    },
+    "in_m105LSLL009": {
+      "type": "INPUT",
+      "label": "m105LSLL009",
+      "group": "Level LL Splitter Bottom (→ OR#010)"
+    },
+    "in_f105HS009M": {
+      "type": "INPUT",
+      "label": "f105HS009M",
+      "group": "Level LL Splitter Bottom (→ OR#010)"
+    },
+    "in_f105HS007A": {
+      "type": "INPUT",
+      "label": "f105HS007A",
+      "group": "ESD Pushbutton (→ AND#011, AND#013)"
+    },
+    "in_f105HS007B": {
+      "type": "INPUT",
+      "label": "f105HS007B",
+      "group": "ESD Pushbutton (→ AND#011, AND#013)"
+    },
+    "in_f105HS002AE": {
+      "type": "INPUT",
+      "label": "f105HS002AE",
+      "group": "ESD Pushbutton (→ AND#011, AND#013)"
+    },
+    "in_f105HS002B": {
+      "type": "INPUT",
+      "label": "f105HS002B",
+      "group": "ESD Pushbutton (→ AND#011, AND#013)"
+    },
+    "in_m105PSLL099": {
+      "type": "INPUT",
+      "label": "m105PSLL099",
+      "desc": "12465 — Fuel Gas From 105-E-512 LL Alm",
+      "group": "Pressure Fuel Gas 105-E-512 LL/HH (→ TOF#017, TOF#019)"
+    },
+    "in_m105PSHH099": {
+      "type": "INPUT",
+      "label": "m105PSHH099",
+      "desc": "12443 — Fuel Gas From 105-E-512 HH Alm",
+      "group": "Pressure Fuel Gas 105-E-512 LL/HH (→ TOF#017, TOF#019)"
+    },
+    "in_f105HS030SB": {
+      "type": "INPUT",
+      "label": "f105HS030SB",
+      "group": "Bypass / MOS Fuel Gas (→ OR#018, OR#020)"
+    },
+    "in_f105HS099M": {
+      "type": "INPUT",
+      "label": "f105HS099M",
+      "desc": "12119 — MOS 105-PSHH/PSLL-099",
+      "isMOS": true,
+      "group": "Bypass / MOS Fuel Gas (→ OR#018, OR#020)"
+    },
+    "in_f105HS005UCR": {
+      "type": "INPUT",
+      "label": "f105HS005UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS025UCR": {
+      "type": "INPUT",
+      "label": "f105HS025UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "in_f105HS007UCR": {
+      "type": "INPUT",
+      "label": "f105HS007UCR",
+      "group": "Reset (manual, per latch)"
+    },
+    "not_001": {
+      "type": "NOT",
+      "gateId": "001",
+      "input": "in_m105FSLL018A"
+    },
+    "not_004": {
+      "type": "NOT",
+      "gateId": "004",
+      "input": "in_m105FSLL018B"
+    },
+    "not_007": {
+      "type": "NOT",
+      "gateId": "007",
+      "input": "in_m105FSLL018C"
+    },
+    "not_002": {
+      "type": "NOT",
+      "gateId": "002",
+      "input": "in_m105FSLL018D"
+    },
+    "not_005": {
+      "type": "NOT",
+      "gateId": "005",
+      "input": "in_m105FSLL018E"
+    },
+    "not_008": {
+      "type": "NOT",
+      "gateId": "008",
+      "input": "in_m105FSLL018F"
+    },
+    "and_003": {
+      "type": "AND",
+      "gateId": "003",
+      "inputs": [
+        "in_m105FSLL018A",
+        "in_m105FSLL018B",
+        "in_m105FSLL018C",
+        "in_m105FSLL018D",
+        "in_m105FSLL018E",
+        "in_m105FSLL018F",
+        "in_m105FSLL018G",
+        "in_m105FSLL018H"
+      ]
+    },
+    "tof_006": {
+      "type": "TOF",
+      "gateId": "006",
+      "input": "and_003",
+      "setpointSec": 10
+    },
+    "or_009": {
+      "type": "OR",
+      "gateId": "009",
+      "inputs": [
+        "tof_006",
+        "in_f105HS018M"
+      ]
+    },
+    "or_010": {
+      "type": "OR",
+      "gateId": "010",
+      "inputs": [
+        "in_m105LSLL009",
+        "in_f105HS009M"
+      ]
+    },
+    "and_011": {
+      "type": "AND",
+      "gateId": "011",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_012": {
+      "type": "RS",
+      "gateId": "012",
+      "label": "RS_105UC030_2_b_1",
+      "s": "and_011",
+      "r": "in_f105HS005UCR"
+    },
+    "and_013": {
+      "type": "AND",
+      "gateId": "013",
+      "inputs": [
+        "in_f105HS002AE",
+        "in_f105HS002B"
+      ]
+    },
+    "rs_014": {
+      "type": "RS",
+      "gateId": "014",
+      "label": "RS_105UC030_2_b_2",
+      "s": "and_013",
+      "r": "in_f105HS025UCR"
+    },
+    "and_015": {
+      "type": "AND",
+      "gateId": "015",
+      "inputs": [
+        "or_010",
+        "rs_012",
+        "rs_014"
+      ]
+    },
+    "rs_016": {
+      "type": "RS",
+      "gateId": "016",
+      "label": "RS_105UC030_2_b_3",
+      "s": "and_015",
+      "r": "in_f105HS007UCR"
+    },
+    "tof_017": {
+      "type": "TOF",
+      "gateId": "017",
+      "input": "in_m105PSLL099",
+      "setpointSec": 2
+    },
+    "or_018": {
+      "type": "OR",
+      "gateId": "018",
+      "inputs": [
+        "tof_017",
+        "in_f105HS030SB",
+        "in_f105HS099M"
+      ]
+    },
+    "not_022": {
+      "type": "NOT",
+      "gateId": "022",
+      "input": "tof_017"
+    },
+    "tof_019": {
+      "type": "TOF",
+      "gateId": "019",
+      "input": "in_m105PSHH099",
+      "setpointSec": 2
+    },
+    "or_020": {
+      "type": "OR",
+      "gateId": "020",
+      "inputs": [
+        "tof_019",
+        "in_f105HS030SB",
+        "in_f105HS099M"
+      ]
+    },
+    "not_023": {
+      "type": "NOT",
+      "gateId": "023",
+      "input": "tof_019"
+    },
+    "and_021": {
+      "type": "AND",
+      "gateId": "021",
+      "inputs": [
+        "or_009",
+        "rs_016",
+        "or_018",
+        "or_020"
+      ]
+    },
+    "out_f105FALL018A": {
+      "type": "OUTPUT",
+      "label": "f105FALL018A",
+      "desc": "13135 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_001",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105FALL018B": {
+      "type": "OUTPUT",
+      "label": "f105FALL018B",
+      "desc": "13136 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_004",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105FALL018C": {
+      "type": "OUTPUT",
+      "label": "f105FALL018C",
+      "desc": "13137 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_007",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105FALL018D": {
+      "type": "OUTPUT",
+      "label": "f105FALL018D",
+      "desc": "13138 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_002",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105FALL018E": {
+      "type": "OUTPUT",
+      "label": "f105FALL018E",
+      "desc": "13139 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_005",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105FALL018F": {
+      "type": "OUTPUT",
+      "label": "f105FALL018F",
+      "desc": "13140 — Combustion Air From 105-F-501-K1 Ll Alarm",
+      "source": "not_008",
+      "group": "Alarm Combustion Air / Splitter Heater"
+    },
+    "out_f105PALL099": {
+      "type": "OUTPUT",
+      "label": "f105PALL099",
+      "desc": "12939 — FUEL GAS FROM 105-E-512 LL Alm",
+      "source": "not_022",
+      "group": "Alarm Fuel Gas 105-E-512"
+    },
+    "out_f105PAHH099": {
+      "type": "OUTPUT",
+      "label": "f105PAHH099",
+      "desc": "12938 — FUEL GAS FROM 105-E-512 HH Alm",
+      "source": "not_023",
+      "group": "Alarm Fuel Gas 105-E-512"
+    },
+    "out_AND_1_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "AND_1_105UC017_030_2",
+      "desc": "12822 — Internal HMI (AND#003)",
+      "source": "and_003",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_TOF_4_105UC017_030_2": {
+      "type": "OUTPUT",
+      "label": "TOF_4_105UC017_030_2",
+      "desc": "12820 — Internal HMI (timer TOF#006, 10 detik)",
+      "source": "tof_006",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_TOF_1_105UC017_030_3": {
+      "type": "OUTPUT",
+      "label": "TOF_1_105UC017_030_3",
+      "desc": "12825 — Internal HMI (timer TOF#019)",
+      "source": "tof_019",
+      "group": "Internal HMI (monitor saja)"
+    },
+    "out_f105FSLL018_TOF": {
+      "type": "OUTPUT",
+      "label": "f105FSLL018_TOF",
+      "desc": "Sinyal internal — keluaran timer TOF#006",
+      "source": "tof_006",
+      "internalOnly": true,
+      "group": "Sinyal internal (bukan output lapangan)"
+    },
+    "out_f105PDSLL099_TOF": {
+      "type": "OUTPUT",
+      "label": "f105PDSLL099_TOF",
+      "desc": "12862 — Sinyal internal — keluaran timer TOF#017",
+      "source": "tof_017",
+      "internalOnly": true,
+      "group": "Sinyal internal (bukan output lapangan)"
+    },
+    "out_f105PSHH099_TOF": {
+      "type": "OUTPUT",
+      "label": "f105PSHH099_TOF",
+      "desc": "12868 — Sinyal internal — keluaran timer TOF#019",
+      "source": "tof_019",
+      "internalOnly": true,
+      "group": "Sinyal internal (bukan output lapangan)"
+    },
+    "out_AND_105UC030_2_b_FEED_1": {
+      "type": "OUTPUT",
+      "label": "AND_105UC030_2_b_FEED_1",
+      "source": "and_021",
+      "internalOnly": true,
+      "group": "Sinyal internal (bukan output lapangan)"
+    }
+  },
+  "summary": [
+    "Halaman ini menghasilkan AND_105UC030_2_b_FEED_1 (AND#021), yang dipakai sheet 25 (AND#014). AND#021 = OR#009 DAN Q1 RS#016 DAN OR#018 DAN OR#020.",
+    "OR#009 = TOF#006 (10 detik, dari AND#003 = kedelapan m105FSLL018A-H TRUE) ATAU MOS f105HS018M. Enam NOT (#001/#002/#004/#005/#007/#008) memberi alarm f105FALL018A-F dari m105FSLL018A-F.",
+    "RS#016: R1 dari AND#015 (OR#010 [m105LSLL009 / MOS f105HS009M], Q1 RS#012, Q1 RS#014), reset f105HS007UCR. RS#012: kondisi AND#011 (ESD f105HS007A/B), reset f105HS005UCR. RS#014: kondisi AND#013 (ESD f105HS002AE/B), reset f105HS025UCR.",
+    "OR#018 = TOF#017 (2 s dari m105PSLL099) ATAU bypass f105HS030SB ATAU MOS f105HS099M; OR#020 = TOF#019 (2 s dari m105PSHH099) ATAU f105HS030SB ATAU f105HS099M. NOT#022 / NOT#023 dari output TOF -> alarm f105PALL099 / f105PAHH099."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 26 of 34 '105-UC-017_030_2_b' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 3x. Gate ID dibaca dari kotak kecil (ID tidak berurutan; AND#003, TOF#006). Nomor/desc dari 'Tagnames Complete Listing.csv'.",
+    "Pemetaan RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. Label RS_105UC030_2_b_1/_2/_3 adalah HIPOTESIS (header terpotong di gambar).",
+    "Urutan pin AND#021 dari atas: OR#009, Q1 RS#016, OR#018, OR#020 (penentu: kabel vertikal paling kiri = pin teratas, dicocokkan ke sumbernya via posisi x). AND#015: OR#010, RS#012, RS#014.",
+    "NOT#001/#004/#007 membaca m105FSLL018A/B/C dan NOT#002/#005/#008 membaca D/E/F langsung (vertikal dari tag); m105FSLL018G dan H hanya masuk AND#003 (tidak ada alarm). NOT#022/#023 membaca keluaran TOF#017/#019 (T-junction dari kabel TMR_OUT; tag level hanya ke TMR_IN) — HIPOTESIS.",
+    "f105HS030SB digambar dua kali dan f105HS099M dua kali (ke OR#018 dan OR#020): masing-masing satu node INPUT dengan fan-out. Setpoint numerik iTOF_105UC030_2_b_1..3 (10, 2, 2 detik; 31031-31033) disimpan sebagai setpointSec.",
+    "AND_105UC030_2_b_FEED_1 = OUTPUT internal sheet ini; sheet 25 memakainya sebagai INPUT (didaftarkan di registry, link navigasi dua arah). Gambar juga menandai \"Go To UC030_2_a\".",
+    "BUKTI SILANG nilai live: semua input FALSE -> f105FALL018A-F TRUE, f105PALL099 TRUE, f105PAHH099 TRUE, semua OUTPUT lain FALSE (cocok gambar). Polaritas NC/NO tidak ditafsirkan."
+  ]
+}

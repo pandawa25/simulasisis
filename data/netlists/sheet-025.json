@@ -180,7 +180,6 @@
     "in_AND_105UC030_2_b_FEED_1": {
       "type": "INPUT",
       "label": "AND_105UC030_2_b_FEED_1",
-      "desc": "Sinyal internal — keluaran blok 105-UC-030_2_b (sheet berikutnya, belum di-trace)",
       "group": "Link dari sheet lain (→ AND#014)"
     },
     "in_f105HS008UCR": {
