@@ -191,13 +191,11 @@
     "in_f105HS003A": {
       "type": "INPUT",
       "label": "f105HS003A",
-      "desc": "12039 — ESD Button To Emergency Stop Spliter Heater 105-F-501 (AUX)",
       "group": "ESD Pushbutton — Splitter Heater 105-F-501 (→ AND#011)"
     },
     "in_f105HS003B": {
       "type": "INPUT",
       "label": "f105HS003B",
-      "desc": "12040 — Esd Button To Emergency Stop Spliter Heater 105-F-501 (Local)",
       "group": "ESD Pushbutton — Splitter Heater 105-F-501 (→ AND#011)"
     },
     "and_011": {
@@ -211,14 +209,11 @@
     "in_m105PSHH088": {
       "type": "INPUT",
       "label": "m105PSHH088",
-      "desc": "12441 — 105-F-501 Combustion Chamber Press HH Alm",
       "group": "Tekanan Combustion Chamber 105-F-501 HH (→ TOF#012, OR#013)"
     },
     "in_f105HS088M": {
       "type": "INPUT",
       "label": "f105HS088M",
-      "desc": "12774 — MOS 105-PSHH-088",
-      "isMOS": true,
       "group": "Bypass / MOS (→ OR#004, #005, #007, #009, #013)"
     },
     "tof_012": {

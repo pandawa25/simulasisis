@@ -377,6 +377,23 @@
       "tagNo": "12291",
       "desc": "MOS 105-LSHH/LSLL-019",
       "isMOS": true
+    },
+    "f105HS003A": {
+      "tagNo": "12039",
+      "desc": "ESD Button To Emergency Stop Spliter Heater 105-F-501 (AUX)"
+    },
+    "f105HS003B": {
+      "tagNo": "12040",
+      "desc": "Esd Button To Emergency Stop Spliter Heater 105-F-501 (Local)"
+    },
+    "m105PSHH088": {
+      "tagNo": "12441",
+      "desc": "105-F-501 Combustion Chamber Press HH Alm"
+    },
+    "f105HS088M": {
+      "tagNo": "12774",
+      "desc": "MOS 105-PSHH-088",
+      "isMOS": true
     }
   }
 }
