@@ -394,6 +394,54 @@
       "tagNo": "12774",
       "desc": "MOS 105-PSHH-088",
       "isMOS": true
+    },
+    "m105PSLL100A": {
+      "tagNo": "12466",
+      "desc": "105-F-501 Inlet LL Alm"
+    },
+    "m105PI100A": {
+      "tagNo": "12418",
+      "desc": "105PT100A Fault Status"
+    },
+    "m105PSLL100B": {
+      "tagNo": "12467",
+      "desc": "105-F-501 Inlet LL Alm"
+    },
+    "m105PI100B": {
+      "tagNo": "12419",
+      "desc": "105PT100B Fault Status"
+    },
+    "m105PSLL100C": {
+      "tagNo": "12468",
+      "desc": "105-F-501 Inlet LL Alm"
+    },
+    "m105PI100C": {
+      "tagNo": "12420",
+      "desc": "105PT100C Fault Status"
+    },
+    "f105ZSO501": {
+      "tagNo": "12205",
+      "desc": "Open Signal To Heater (105-PV-501)"
+    },
+    "f105HS004AE": {
+      "tagNo": "12046",
+      "desc": "ESD Button In Case Fire Or Any Leak At 105-V-502 (Dcs)"
+    },
+    "f105HS004B": {
+      "tagNo": "12047",
+      "desc": "Esd Button In Case Fire Or Any Leak At 105-V-502 (Local)"
+    },
+    "f105HS008UCR": {
+      "tagNo": "12062",
+      "desc": "Reset 105-HS-502AE/BE (105-UC-008)",
+      "isReset": true
+    },
+    "f105ZSO012": {
+      "tagNo": "12202",
+      "desc": "Open / Not Open Signal To Pump Stop"
+    },
+    "AND_10UC030_1_FEED_2": {
+      "desc": "Sinyal internal — keluaran OR#013 (blok bawah) sheet 24 (105-UC-030(1)), dipakai sebagai cause di sheet 25 (AND#014)"
     }
   }
 }

@@ -48,37 +48,31 @@
     "in_m105PSLL100A": {
       "type": "INPUT",
       "label": "m105PSLL100A",
-      "desc": "12466 — 105-F-501 Inlet LL Alm",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105PI100A": {
       "type": "INPUT",
       "label": "m105PI100A",
-      "desc": "12418 — 105PT100A Fault Status",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105PSLL100B": {
       "type": "INPUT",
       "label": "m105PSLL100B",
-      "desc": "12467 — 105-F-501 Inlet LL Alm",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105PI100B": {
       "type": "INPUT",
       "label": "m105PI100B",
-      "desc": "12419 — 105PT100B Fault Status",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105PSLL100C": {
       "type": "INPUT",
       "label": "m105PSLL100C",
-      "desc": "12468 — 105-F-501 Inlet LL Alm",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105PI100C": {
       "type": "INPUT",
       "label": "m105PI100C",
-      "desc": "12420 — 105PT100C Fault Status",
       "group": "Pressure LL Inlet 105-F-501 — Voting 2oo3 (blok #005)"
     },
     "in_m105LSHH040A": {
@@ -286,7 +280,6 @@
     "in_f105ZSO501": {
       "type": "INPUT",
       "label": "f105ZSO501",
-      "desc": "12205 — Open Signal To Heater (105-PV-501)",
       "group": "Reset & Posisi Valve (RS#011, OR#012, TOF#012)"
     },
     "tof_001t": {
@@ -699,7 +692,6 @@
     "out_AND_FEED_2": {
       "type": "OUTPUT",
       "label": "AND_10UC030_1_FEED_2",
-      "desc": "Sinyal internal — keluaran OR#013 (blok bawah), dibaca AND#008 (blok atas)",
       "source": "or_013b",
       "internalOnly": true,
       "group": "Sinyal internal (bukan output lapangan)"

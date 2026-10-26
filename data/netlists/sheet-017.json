@@ -31,20 +31,16 @@
     "in_f105HS004AE": {
       "type": "INPUT",
       "label": "f105HS004AE",
-      "desc": "12046 — ESD Button In Case Fire Or Any Leak At 105-V-502 (Dcs)",
       "group": "ESD Pushbutton — Fire/Leak 105-V-502 (→ AND#003)"
     },
     "in_f105HS004B": {
       "type": "INPUT",
       "label": "f105HS004B",
-      "desc": "12047 — Esd Button In Case Fire Or Any Leak At 105-V-502 (Local)",
       "group": "ESD Pushbutton — Fire/Leak 105-V-502 (→ AND#003)"
     },
     "in_f105HS008UCR": {
       "type": "INPUT",
       "label": "f105HS008UCR",
-      "desc": "12062 — Reset 105-HS-502AE/BE (105-UC-008)",
-      "isReset": true,
       "group": "Reset (manual, per latch)"
     },
     "in_f105HS026UCR": {
@@ -57,7 +53,6 @@
     "in_f105ZSO012": {
       "type": "INPUT",
       "label": "f105ZSO012",
-      "desc": "12202 — Open / Not Open Signal To Pump Stop",
       "group": "Posisi Valve — Pump Stop (→ AND#006)"
     },
     "not_001": {
