@@ -1,0 +1,1011 @@
+<meta charset="utf-8">
+<title>Cause & Effect 105-UC-015/018/028</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ===========================================================
+   Shared design tokens — Portal, Logic Detail, Cause & Effect
+   SUMBER TUNGGAL. Sebelumnya tiap template (portal/sheet/CE)
+   punya :root sendiri yg di-copy-paste terpisah -> gampang
+   melenceng diam-diam (contoh nyata: --accent-text yg sempat
+   cuma ditambah ke 2 dari 3 template, portal ketinggalan;
+   portal juga pakai nama var beda --done/--pending padahal
+   secara makna sama dgn --false/--true di 2 template lain).
+   Diinjeksikan oleh scripts/build.js lewat placeholder
+   <!--SHARED_TOKENS--> ke semua template -- edit warna cukup
+   SEKALI DI SINI, jangan edit :root di masing-masing template.
+   =========================================================== */
+:root{
+  --bg:#eef1f5;
+  --panel:#ffffff;
+  --panel-2:#f6f8fb;
+  --fg:#101826;
+  --fg-dim:#5b6676;
+  --border:#d7dde6;
+  --wire:#9aa5b4;
+
+  --accent:#b9770e;       /* dipakai utk border/background/stroke (tombol primary, fokus outline, dll) */
+  --accent-fg:#5c3a07;    /* teks DI ATAS background --accent (mis. tombol primary) */
+  --accent-text:#935a08;  /* teks aksen DI ATAS background terang (header grup, dsb) -- lebih gelap drpd --accent, supaya kontras >=4.5:1 (WCAG AA) thd bg terang */
+
+  /* status "sehat/normal/selesai" vs "trip/alarm/aktif" -- SATU
+     pasangan token dipakai konsisten di semua halaman (sebelumnya
+     portal py nama sendiri --done/--pending yg representasi warna
+     sama tapi vocab beda dari --false/--true di sheet/CE). */
+  --false:#1f8a4c;
+  --false-bg:#e4f6ec;
+  --true:#c23b2e;
+  --true-bg:#fbe6e3;
+  --neutral-fg:#8793a6;   /* status netral: "belum dikerjakan" (portal), bukan alarm/trip */
+  --neutral-bg:#eef1f5;
+
+  --zone-cause:#eaf1fb;
+  --zone-logic:#f3f1ea;
+  --zone-effect:#eef7ee;
+
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --disp: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+    --border:#263046; --wire:#3c485f;
+    --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+    --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+    --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+    --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f16; --panel:#121826; --panel-2:#171f2e; --fg:#e7ecf3; --fg-dim:#8793a6;
+  --border:#263046; --wire:#3c485f;
+  --accent:#e3a13a; --accent-fg:#1c1406; --accent-text:#e3a13a;
+  --false:#36c17a; --false-bg:#0f2a1b; --true:#f16a5a; --true-bg:#351512;
+  --neutral-fg:#5b6676; --neutral-bg:#171f2e;
+  --zone-cause:#131c2c; --zone-logic:#1a1710; --zone-effect:#101d14;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--disp); margin:0;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+body::before{ content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:20; background:var(--panel); }
+h1,h2,h3{font-family:var(--disp); text-wrap:balance; margin:0}
+.app{max-width:1500px; margin:0 auto; padding-bottom:40px}
+
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:14px 4px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.topbar h1{font-size:1.05rem; font-weight:650; letter-spacing:.01em}
+.topbar .sheetref{font-family:var(--mono); font-size:.72rem; color:var(--fg-dim)}
+.topbar .spacer{flex:1}
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}
+.btn{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel-2); color:var(--fg);
+  padding:8px 14px; border-radius:7px; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+a.btn{text-decoration:none; display:inline-flex; align-items:center}
+
+.subnav{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 4px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.subnav .spacer{flex:1}
+.subnav .navhint{font-size:.72rem; color:var(--fg-dim); max-width:260px; text-align:right}
+
+/* Koreksi UI/UX (2026-10-25): sama persis dgn sheet.template.html --
+   lihat komentar di sana. Dipakai utk pemisah klaster subnav & segmented
+   tab Logic Detail <-> Cause & Effect. */
+.subnav-divider{width:1px; height:20px; background:var(--border); flex:0 0 auto}
+.view-tabs{
+  display:flex; align-items:center; gap:2px; background:var(--panel);
+  border:1px solid var(--border); border-radius:8px; padding:3px;
+}
+.view-tab{
+  font-family:var(--disp); font-size:.8rem; font-weight:600; padding:6px 12px;
+  border-radius:6px; text-decoration:none; color:var(--fg-dim); white-space:nowrap;
+  cursor:default;
+}
+a.view-tab{cursor:pointer}
+.view-tab.active{background:var(--panel-2); color:var(--fg)}
+a.view-tab:not(.active):hover{color:var(--fg); background:var(--panel-2)}
+.view-tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.layout{padding:20px 4px; display:grid; grid-template-columns:1fr 240px 1fr; gap:18px; align-items:start}
+@media (max-width:860px){ .layout{grid-template-columns:1fr} }
+
+.panel-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.panel-head{
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+  padding:10px 14px; font-weight:700; font-size:.82rem; letter-spacing:.04em; text-transform:uppercase;
+}
+.ce-table{width:100%; border-collapse:collapse}
+.ce-table thead th{
+  text-align:left; font-size:.65rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim);
+  padding:8px 10px; border-bottom:1px solid var(--border); background:var(--panel-2);
+}
+.ce-row{border-bottom:1px solid var(--border); cursor:default}
+.ce-row.clickable{cursor:pointer}
+.ce-row.clickable:hover{background:var(--panel-2)}
+.ce-row td{padding:8px 10px; vertical-align:middle}
+.ce-group-row td{
+  padding:8px 10px 4px; font-size:.68rem; font-weight:700; color:var(--accent-text);
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+}
+.stat-dot{width:16px; height:16px; border-radius:4px; display:inline-block; border:1px solid var(--border)}
+.stat-dot.off{background:var(--false-bg); border-color:var(--false)}
+.stat-dot.on{background:var(--true-bg); border-color:var(--true)}
+.svc{font-size:.8rem; line-height:1.35}
+.tagno{font-family:var(--mono); font-size:.74rem; color:var(--fg-dim); white-space:nowrap}
+.valword{font-family:var(--mono); font-size:.68rem; font-weight:700; white-space:nowrap}
+.valword.off{color:var(--false)}
+.valword.on{color:var(--true)}
+
+/* Koreksi UI/UX (2026-10-25): pembeda visual utk EFFECT yang "internal"
+   (dipakai sheet lain, BUKAN output fisik ke lapangan) -- sebelumnya
+   stylingnya identik dgn output lapangan sungguhan (mis. f105UY001),
+   jadi tidak kebeda saat scan cepat meski teks desc-nya sudah bilang
+   "bukan output lapangan". SENGAJA TIDAK mengubah warna
+   hijau/merah (--false/--true) sesuai permintaan -- pembeda dibuat lewat
+   border kiri putus-putus + badge ikon kecil saja. */
+.xlinks{display:flex; flex-wrap:wrap; gap:6px; margin-top:3px}
+.xlink{
+  font-size:.68rem; font-weight:650; text-decoration:none; color:var(--accent-text);
+  background:var(--panel-2); border:1px solid var(--border); border-radius:6px; padding:1px 6px;
+}
+.xlink:hover{border-color:var(--accent); color:var(--accent)}
+/* Shape blok logic di kolom tengah ikut konvensi warna halaman ini:
+   semua output TRUE = normal = hijau, ada yang FALSE = trip = merah. */
+.uc-box.st-normal{border-color:var(--false); background:var(--false-bg)}
+.uc-box.st-trip{border-color:var(--true); background:var(--true-bg)}
+.uc-state{
+  margin-top:8px; display:inline-block; font-family:var(--mono); font-size:.66rem; font-weight:700;
+  letter-spacing:.06em; padding:3px 10px; border-radius:20px; border:1px solid transparent;
+}
+.uc-box.st-normal .uc-state{background:var(--false); color:var(--panel)}
+.uc-box.st-trip .uc-state{background:var(--true); color:var(--panel)}
+.uc-substate{margin-top:5px; font-size:.68rem; color:var(--fg-dim)}
+.ce-row.internal{border-left:3px dashed var(--accent-text)}
+.ce-row.internal .svc{position:relative; padding-left:0}
+.internal-badge{
+  display:inline-flex; align-items:center; gap:3px; font-size:.64rem; font-weight:700;
+  color:var(--accent-text); background:var(--panel-2); border:1px solid var(--border);
+  border-radius:20px; padding:1px 7px; margin-left:6px; white-space:nowrap; vertical-align:middle;
+}
+
+.center-col{display:flex; flex-direction:column; gap:14px; position:sticky; top:84px}
+.uc-box{
+  background:var(--panel); border:2px solid var(--accent); border-radius:12px;
+  padding:16px; text-align:center;
+}
+.uc-box .ucid{font-family:var(--mono); font-size:.8rem; color:var(--accent-text); font-weight:700}
+.uc-box .uctitle{font-size:.92rem; font-weight:700; margin-top:4px}
+.arrow-row{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--fg-dim); font-size:1.1rem}
+.summary-mini{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:.78rem; line-height:1.55; color:var(--fg-dim)}
+.summary-mini p{margin:0 0 8px}
+.summary-mini p:last-child{margin-bottom:0}
+/* Koreksi UI/UX (2026-10-25): paragraf ke-2 dst disembunyikan default
+   supaya kolom EFFECT (yang paling sering dicek cepat) tidak terdorong
+   jauh ke bawah oleh dinding teks historis -- terutama fatal di mobile
+   dgn layout 1 kolom. Paragraf pertama (ringkasan inti) tetap selalu
+   terlihat. Lihat critique "Critical #1". */
+.summary-mini .summary-rest{display:none}
+.summary-mini.expanded .summary-rest{display:block}
+.summary-toggle{
+  background:none; border:none; padding:0; margin-top:6px;
+  font-family:var(--disp); font-size:.74rem; font-weight:700; color:var(--accent-text);
+  cursor:pointer; display:flex; align-items:center; gap:4px;
+}
+.summary-toggle:hover{text-decoration:underline}
+.summary-toggle .chev{display:inline-block; transition:transform .15s}
+.summary-mini.expanded .summary-toggle .chev{transform:rotate(90deg)}
+
+/* status strip MOS/Reset — ditaruh di bawah kolom CAUSE, bukan baris
+   biasa di tabel, sesuai permintaan: cukup status aktif/tidak saja */
+.status-strip{margin-top:12px; display:flex; flex-direction:column; gap:8px}
+.status-chip-card{
+  background:var(--panel-2); border:1px solid var(--border); border-radius:10px;
+  padding:8px 12px; display:flex; align-items:center; gap:10px; cursor:pointer;
+}
+.status-chip-card:hover{border-color:var(--accent)}
+.status-chip-card .label{flex:1; font-size:.76rem}
+.status-chip-card .label b{font-family:var(--mono); display:block; font-size:.72rem; color:var(--fg-dim); font-weight:600}
+.chip{font-family:var(--mono); font-size:.68rem; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap}
+.chip.off{background:var(--false-bg); color:var(--false)}
+.chip.on{background:var(--true-bg); color:var(--true)}
+.status-strip-title{font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-dim); margin:4px 0 2px}
+</style>
+
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Cause &amp; Effect — 105-UC-009</h1>
+      <div class="sheetref" id="sheetRef"></div>
+    </div>
+    <div class="legend">
+      <span class="swatch" style="background:var(--false-bg); border-color:var(--false)"></span> Normal
+      <span class="swatch" style="background:var(--true-bg); border-color:var(--true)"></span> Triggered / Trip
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button">Tema</button>
+    <button class="btn primary" id="resetBtn" type="button">Reset Simulasi</button>
+  </div>
+
+  <div class="subnav">
+    <a class="btn" id="portalLink" href="../index.html">← Semua Sheet</a>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <div class="view-tabs" role="tablist" aria-label="Tampilan sheet">
+      <a class="view-tab" id="detailLink" href="#" role="tab" aria-selected="false">Logic Detail</a>
+      <span class="view-tab active" role="tab" aria-selected="true" aria-current="page">Cause &amp; Effect</span>
+    </div>
+    <span class="subnav-divider" aria-hidden="true"></span>
+    <a class="btn" id="prevLink" href="#" style="display:none">← Sebelumnya</a>
+    <a class="btn" id="nextLink" href="#" style="display:none">Berikutnya →</a>
+    <div class="spacer"></div>
+    <span class="navhint">Versi sederhana (Cause &amp; Effect) — klik baris CAUSE/MOS/Reset untuk uji skenario, atau buka versi logic detail untuk lihat jalur gate lengkap.</span>
+  </div>
+
+  <div class="layout">
+    <div class="panel-card">
+      <div class="panel-head">Cause</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="causeBody"></tbody>
+      </table>
+      <div class="status-strip" id="statusStrip" style="padding:0 14px 14px"></div>
+    </div>
+
+    <div class="center-col">
+      <div class="uc-box">
+        <div class="ucid" id="ucId"></div>
+        <div class="uctitle" id="ucTitle"></div>
+        <div class="uc-state" id="ucState">—</div>
+        <div class="uc-substate" id="ucSubState"></div>
+      </div>
+      <div class="arrow-row">CAUSE ▶ &nbsp;●&nbsp; ▶ EFFECT</div>
+      <div class="summary-mini" id="summaryMini"></div>
+    </div>
+
+    <div class="panel-card">
+      <div class="panel-head">Effect</div>
+      <table class="ce-table">
+        <thead><tr><th style="width:36px">Stat</th><th>Service</th><th>Tag No</th></tr></thead>
+        <tbody id="effectBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= sim-engine.js (inline) ======================= */
+/*
+  SIS Logic Sim Engine — generic, reusable untuk semua halaman (105-UC-009, dst).
+  Tidak ada dependency eksternal. Dipakai di browser maupun Node.
+
+  Netlist schema:
+  {
+    id, title, sheetRef,
+    nodes: {
+      "<nodeId>": {
+        type: "INPUT" | "AND" | "OR" | "NOT" | "BUFFER" | "MOVE" | "RS" | "VOTING"
+              | "TOF" | "FEEDBACK" | "NUMBITS" | "GT" | "R_TRIG" | "OUTPUT",
+        label, desc, gateId,
+        // AND/OR/VOTING:
+        inputs: ["<nodeId>", ...],
+        invertInputs: [true, false, ...]  // opsional, HANYA AND/OR: lingkaran
+                      // inversi yang digambar MELEKAT di pin input tertentu
+                      // (lihat Koreksi #24). Indeks sejajar `inputs`; pin yang
+                      // tidak disebut dianggap tidak di-invert.
+        k: <number>  // hanya VOTING, threshold jumlah input FALSE sebelum
+                      // output ikut jatuh ke FALSE (lihat case "VOTING" di
+                      // step() — bukan threshold "k dari n TRUE")
+        // RS:
+        s: "<nodeId>", r: "<nodeId>"
+        // NOT/BUFFER/MOVE ("MOVE" dipakai saat gambar asli literal memberi
+        // nama block itu "MOVE", bukan "BUFFER" — behaviornya identik
+        // (passthrough nilai apa adanya), bedanya cuma label yang tampil
+        // di kanvas supaya cocok dengan gambar sumber):
+        input: "<nodeId>"
+        // TOF (block vendor "T_OFF_SP") — off-delay timer waktu NYATA:
+        input: "<nodeId>", setpointSec: <number>
+        // FEEDBACK — nilai node lain dari SCAN SEBELUMNYA, dipakai memutus
+        // loop umpan-balik yang di PLC asli sah krn semantik scan cycle:
+        input: "<nodeId>"
+        // OUTPUT:
+        source: "<nodeId>"
+      }
+    },
+    notes: [...]
+  }
+*/
+(function (global) {
+  function topoOrder(nodes) {
+    const deps = {};
+    for (const id in nodes) {
+      const n = nodes[id];
+      let refs = [];
+      switch (n.type) {
+        case "AND": case "OR": refs = n.inputs || []; break;
+        case "NUMBITS": refs = n.inputs || []; break;
+        /* VOTING: pin FLT ikut menentukan output (Koreksi #33, isi blok
+           VOTING_2OO3 vendor: NUMBITS+GT+AND), jadi juga dependensi */
+        case "VOTING": refs = (n.inputs || []).concat(n.fltInputs || []); break;
+        case "RS": refs = [n.s, n.r]; break;
+        case "NOT": case "BUFFER": case "MOVE": case "TOF": case "GT": case "R_TRIG": refs = [n.input]; break;
+        case "OUTPUT": refs = [n.source]; break;
+        /* FEEDBACK sengaja TIDAK punya dependensi: dia membaca nilai scan
+           SEBELUMNYA, jadi justru dialah yang memutus loop umpan-balik
+           supaya urutan topological tetap bisa dihitung. */
+        case "FEEDBACK": refs = []; break;
+        case "INPUT": refs = []; break;
+      }
+      deps[id] = refs;
+    }
+    const visited = {}, temp = {}, order = [];
+    function visit(id) {
+      if (visited[id]) return;
+      if (temp[id]) throw new Error("Algebraic loop terdeteksi melibatkan node: " + id);
+      temp[id] = true;
+      (deps[id] || []).forEach(visit);
+      temp[id] = false;
+      visited[id] = true;
+      order.push(id);
+    }
+    Object.keys(nodes).forEach(visit);
+    return order;
+  }
+
+  function createSim(netlist) {
+    const nodes = netlist.nodes;
+    const order = topoOrder(nodes);
+    // state: nilai boolean saat ini per node, plus memory khusus utk RS
+    // (Q_prev, satu-satunya memory yg dibutuhkan formula IEC 61131-3 RS.ST)
+    /* tofSince[id] = timestamp (ms) saat input TOF mulai FALSE, null kalau
+       input masih TRUE. prevValues = snapshot nilai scan sebelumnya, dibaca
+       node FEEDBACK. */
+    const state = { values: {}, rsPrev: {}, tofSince: {}, tofArmed: {}, prevValues: {}, rtPrev: {}, rtUntil: {}, rtSeen: {} };
+    for (const id in nodes) {
+      state.values[id] = false;
+      state.prevValues[id] = false;
+      if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+      /* tofArmed = timer pernah aktif (input pernah TRUE) -> hanya setelah itu
+         dia menahan output saat input jatuh. Tanpa penanda ini, timer akan
+         seolah menahan sejak halaman dibuka padahal inputnya belum pernah
+         TRUE (bug yang sempat terjadi saat TOF pertama dipasang). */
+      if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+      if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
+    }
+
+    /* sisa hitung mundur tiap TOF (detik, 0 kalau tidak sedang menghitung) —
+       dipakai halaman utk menampilkan angka & memutuskan perlu tick lagi */
+    function tofRemaining(id, now) {
+      const n = nodes[id];
+      if (!n || n.type !== "TOF") return 0;
+      if (!state.tofArmed[id]) return 0;
+      const since = state.tofSince[id];
+      if (since == null) return 0;
+      const left = (n.setpointSec || 0) - (now - since) / 1000;
+      return left > 0 ? left : 0;
+    }
+    function anyTimerRunning(now) {
+      const t = now == null ? Date.now() : now;
+      return Object.keys(state.tofSince).some(function (id) { return tofRemaining(id, t) > 0; }) ||
+             Object.keys(state.rtUntil).some(function (id) { return state.rtUntil[id] > t; });
+    }
+    /* Percepat timer (alat uji): semua TOF yang sedang menghitung dianggap
+       sudah habis. Dipakai tombol "Lewati timer" utk setelan panjang (30 mnt). */
+    function skipTimers(now) {
+      const t = now == null ? Date.now() : now;
+      Object.keys(state.tofSince).forEach(function (id) {
+        if (state.tofSince[id] != null) state.tofSince[id] = t - ((nodes[id].setpointSec || 0) * 1000) - 1;
+      });
+    }
+
+    function step(inputOverrides, nowMs) {
+      const now = nowMs == null ? Date.now() : nowMs;
+      // inputOverrides: { nodeId: boolean, ... } untuk semua node bertipe INPUT
+      const v = state.values;
+      const prev = state.prevValues;
+      for (const id of order) {
+        const n = nodes[id];
+        switch (n.type) {
+          case "INPUT":
+            v[id] = !!inputOverrides[id];
+            break;
+          /* `invertInputs` = lingkaran inversi yang MELEKAT di pin input
+             tertentu pada gambar vendor (Koreksi #24). Dibaca inline di sini,
+             BUKAN lewat node NOT perantara, supaya struktur netlist & render
+             cocok persis dgn gambar — pola yang sama dipakai utk bulatan di
+             pin R1 block RS. */
+          case "AND":
+            v[id] = n.inputs.every((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "OR":
+            v[id] = n.inputs.some((i, k) => (n.invertInputs && n.invertInputs[k]) ? !v[i] : !!v[i]);
+            break;
+          case "NOT":
+            v[id] = !v[n.input];
+            break;
+          case "BUFFER": case "MOVE":
+            v[id] = v[n.input];
+            break;
+          case "NUMBITS":
+            /* NUMBITS: jumlah input yang TRUE (nilai numerik, truthy kalau >0) */
+            v[id] = n.inputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+            break;
+          case "GT":
+            /* GT: IN1 > IN2, IN2 = konstanta yang digambar di pin bawah */
+            v[id] = (Number(v[n.input]) || 0) > (n.constant || 0);
+            break;
+          case "R_TRIG": {
+            /* Deteksi tepi naik. IEC: Q TRUE hanya satu scan. Atas pilihan user
+               (Koreksi #25) pulsa ditahan `pulseMs` (default 1000 ms) waktu
+               nyata supaya terlihat. Scan pertama hanya merekam nilai awal
+               (tidak ada pulsa palsu saat halaman dibuka dgn CLK sudah TRUE). */
+            const clk = !!v[n.input];
+            if (!state.rtSeen[id]) { state.rtSeen[id] = true; }
+            else if (clk && !state.rtPrev[id]) { state.rtUntil[id] = now + (n.pulseMs || 1000); }
+            state.rtPrev[id] = clk;
+            v[id] = now < state.rtUntil[id];
+            break;
+          }
+          case "VOTING": {
+            // Voting k-of-n bertipe "sehat jika kompak" (dikonfirmasi user,
+            // BUKAN "trip jika k dari n TRUE" seperti versi awal):
+            // input normal/sehat = TRUE; output jadi FALSE begitu jumlah
+            // input yang FALSE mencapai k (mis. 2oo9 -> output FALSE kalau
+            // >=2 dari 9 input FALSE). Jadi output = (jumlah FALSE < k).
+            const countFalse = n.inputs.reduce((acc, i) => acc + (v[i] ? 0 : 1), 0);
+            let healthy = countFalse < n.k;
+            // Koreksi #33: blok VOTING dgn pin FLT di gambar vendor berisi
+            // NUMBITS#001(IN)->GT#002(>1), NUMBITS#003(FLT)->GT#004(>1),
+            // AND#005. Jadi output = (IN TRUE > n-k) DAN (FLT TRUE > n-k);
+            // utk 2oo3 konstanta GT = 1. Pin FLT TRUE = sehat.
+            if ((n.fltInputs || []).length) {
+              const fltTrue = n.fltInputs.reduce((acc, i) => acc + (v[i] ? 1 : 0), 0);
+              healthy = healthy && fltTrue > n.fltInputs.length - n.k;
+            }
+            v[id] = healthy;
+            break;
+          }
+          case "RS": {
+            // Bistable Reset Dominant, PERSIS formula resmi IEC 61131-3
+            // "RS.ST" (dikonfirmasi user lewat source function block asli):
+            //   Q1 := (Q1 OR S) AND NOT R1
+            // Murni kombinasional per step dgn feedback Q1 sebelumnya — TIDAK
+            // ada deteksi rising-edge/pulsa khusus (versi lama keliru menambah
+            // ini, lihat ARSITEKTUR.md Koreksi #9).
+            // Pemetaan field netlist (lihat Koreksi #6): 's' = sinyal
+            // sehat/health (dominant-clear) SETELAH inversi; 'r' = S_vendor
+            // mentah (tag reset manual, vendor menyebutnya "Set" krn
+            // menyetel Q1 TRUE, meski secara SIS itu tombol reset).
+            // Koreksi (2026-10-24, #10): inversi R1 SEKARANG dibaca inline
+            // lewat flag `sInvert` (bukan node NOT eksplisit terpisah lagi)
+            // supaya netlist & render cocok dgn gambar sumber — di gambar,
+            // lingkaran inversi itu MELEKAT di pin R1 block RS itu sendiri,
+            // bukan gerbang NOT berdiri sendiri sebelum RS. Kalau gerbang
+            // kondisi yg masuk `s` sudah "pre-corrected" jadi polaritas
+            // sehat=TRUE (kasus and009_corrected/and018_corrected, lihat
+            // Koreksi #6 bagian (b)), `sInvert` dibiarkan false/absen.
+            const sRaw = v[n.s];
+            const s = n.sInvert ? !sRaw : sRaw;
+            const r = v[n.r];
+            const qPrev = state.rsPrev[id];
+            const next = s && (qPrev || r);
+            v[id] = next;
+            state.rsPrev[id] = next;
+            break;
+          }
+          case "TOF": {
+            /* Off-delay timer waktu NYATA (block vendor "T_OFF_SP"):
+               input TRUE  -> output langsung TRUE & hitungan direset;
+               input FALSE -> output TETAP TRUE selama `setpointSec` detik,
+               baru kemudian jatuh FALSE. Karena berbasis jam dinding, halaman
+               harus memanggil step() lagi secara berkala selama hitungan
+               berjalan (lihat anyTimerRunning / tofRemaining). */
+            const inVal = !!v[n.input];
+            if (inVal) {
+              state.tofSince[id] = null;
+              state.tofArmed[id] = true;
+              v[id] = true;
+            } else if (!state.tofArmed[id]) {
+              v[id] = false; // input belum pernah TRUE -> tidak ada yang ditahan
+            } else {
+              if (state.tofSince[id] == null) state.tofSince[id] = now;
+              v[id] = ((now - state.tofSince[id]) / 1000) < (n.setpointSec || 0);
+              if (!v[id]) state.tofArmed[id] = false; // hitungan habis
+            }
+            break;
+          }
+          case "FEEDBACK":
+            v[id] = !!prev[n.input];
+            break;
+          case "OUTPUT":
+            v[id] = v[n.source];
+            break;
+          default:
+            throw new Error("Tipe node tidak dikenal: " + n.type + " (" + id + ")");
+        }
+      }
+      /* snapshot utk node FEEDBACK di scan berikutnya (semantik scan cycle
+         PLC: umpan-balik selalu memakai nilai scan sebelumnya) */
+      for (const id in v) prev[id] = v[id];
+      return v;
+    }
+
+    function reset() {
+      for (const id in nodes) {
+        state.values[id] = false;
+        state.prevValues[id] = false;
+        if (nodes[id].type === "RS") { state.rsPrev[id] = false; }
+        if (nodes[id].type === "TOF") { state.tofSince[id] = null; state.tofArmed[id] = false; }
+        if (nodes[id].type === "R_TRIG") { state.rtPrev[id] = false; state.rtUntil[id] = 0; state.rtSeen[id] = false; }
+      }
+    }
+
+    return { nodes, order, state, step, reset, tofRemaining, anyTimerRunning, skipTimers };
+  }
+
+  global.SimEngine = { createSim, topoOrder };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* ======================= sinkronisasi tag lintas sheet (inline) ======================= */
+/* ======================= sinkronisasi status tag LINTAS SHEET =======================
+   Tag dengan label yang sama di beberapa sheet adalah satu tag fisik yang
+   sama (mis. tombol ESD f105HS007A dipakai di sheet 3 & sheet 6), jadi
+   statusnya harus sama di semua sheet: diubah di satu sheet = ikut berubah
+   di sheet lain. Disimpan di localStorage global (KEY di bawah, per label
+   tag -- BUKAN per sheet), dipakai halaman Logic Detail & Cause & Effect.
+   - INPUT: nilai dari store dipakai saat halaman dibuka; tiap kali
+     operator mengubah INPUT, nilainya ditulis ke store.
+   - OUTPUT: nilai hasil hitung ditulis ke store, supaya sheet lain yang
+     memakai tag itu sebagai INPUT (ditandai `linkedFrom` oleh build) ikut.
+   - Tab lain yang sedang terbuka menerima event 'storage' -> terapkan
+     nilai baru -> simulasi ulang. Penulisan hanya dilakukan kalau nilai
+     benar-benar berubah, jadi tidak ada loop antar tab.
+   Memori latch RS tetap per sheet (blok RS milik sheet masing-masing).
+   Disuntikkan ke kedua template oleh scripts/build.js (<!--TAGSYNC_JS-->). */
+var TagSync = (function(){
+  var KEY = 'sis-sim-tags';
+  var netlist = null, inputs = null, sheetId = '';
+  function readStore(){
+    try{ return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function writeStore(store){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+  }
+  function applyStore(store){
+    var changed = false;
+    Object.keys(netlist.nodes).forEach(function(id){
+      var n = netlist.nodes[id];
+      if(n.type !== 'INPUT' || !n.label) return;
+      var entry = store[n.label];
+      if(entry && typeof entry.v === 'boolean' && inputs[id] !== entry.v){
+        inputs[id] = entry.v;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+  return {
+    KEY: KEY,
+    /* panggil sekali setelah state per-sheet dimuat: nilai global menang */
+    init: function(nl, inputState){
+      netlist = nl; inputs = inputState; sheetId = nl.slug || nl.id || '';
+      applyStore(readStore());
+    },
+    /* panggil di akhir tiap simulate(values) */
+    publish: function(values){
+      if(!netlist) return;
+      var store = readStore(), dirty = false;
+      Object.keys(netlist.nodes).forEach(function(id){
+        var n = netlist.nodes[id];
+        if(!n.label) return;
+        var v;
+        if(n.type === 'INPUT') v = !!inputs[id];
+        else if(n.type === 'OUTPUT') v = !!values[id];
+        else return;
+        var cur = store[n.label];
+        if(!cur || cur.v !== v){
+          store[n.label] = { v: v, src: n.type === 'INPUT' ? 'input' : sheetId };
+          dirty = true;
+        }
+      });
+      if(dirty) writeStore(store);
+    },
+    /* cb dipanggil kalau tab lain mengubah tag yang dipakai sheet ini */
+    onChange: function(cb){
+      window.addEventListener('storage', function(e){
+        if(e.key !== KEY || !netlist) return;
+        if(applyStore(readStore())) cb();
+      });
+    }
+  };
+})();
+
+/* ======================= hubungan & status antar sheet (inline) ======================= */
+/* ======================= hubungan antar sheet (effect <-> cause) =======================
+   Tag yang sama memayungi beberapa sheet (lihat _tagsync.js & data/tags.json).
+   Build (`scripts/build.js`, applyTagRegistry) menandai tiap node dengan:
+     - INPUT  .linkedFrom : sheet yang MENGHASILKAN tag ini (di sana dia effect)
+     - INPUT  .alsoIn     : sheet lain yang memakai tag ini sbg cause juga
+     - OUTPUT .linkedTo   : sheet yang MEMAKAI tag ini sbg cause/initiator
+   Modul ini mengubah penanda itu jadi daftar keterangan + link navigasi,
+   dipakai halaman Logic Detail (dirender sbg <a> di dalam SVG) maupun
+   Cause & Effect (dirender sbg <a> di sel tabel). `useCe` menentukan link
+   menuju versi Cause & Effect atau versi Logic Detail sheet tujuan —
+   supaya operator tetap berada di mode tampilan yang sama saat berpindah. */
+var CrossLink = (function(){
+  function resolve(slugs, idx, useCe){
+    return (slugs || []).map(function(s){
+      var m = idx && idx[s];
+      if(!m) return null;
+      return {
+        label: 'Sheet ' + String(m.no).padStart(3, '0'),
+        tag: m.tag,
+        href: useCe ? m.ceUrl : m.url
+      };
+    }).filter(Boolean);
+  }
+  return {
+    /* -> [{ kind, prefix, label, title, href }] (kosong kalau tag ini tidak
+       punya hubungan lintas sheet) */
+    linksFor: function(node, nav, useCe){
+      if(!node) return [];
+      var idx = nav && nav.sheetIndex;
+      var out = [];
+      resolve(node.linkedFrom, idx, useCe).forEach(function(x){
+        out.push({ kind: 'from', prefix: '← Sumber ', label: x.label, href: x.href,
+                   title: 'Nilai tag ini dihasilkan di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.linkedTo, idx, useCe).forEach(function(x){
+        out.push({ kind: 'to', prefix: '→ Menuju ', label: x.label, href: x.href,
+                   title: 'Tag ini jadi cause/initiator di ' + x.label + ' (' + x.tag + ') — klik untuk membukanya' });
+      });
+      resolve(node.alsoIn, idx, useCe).forEach(function(x){
+        out.push({ kind: 'also', prefix: '↔ Juga di ', label: x.label, href: x.href,
+                   title: 'Tag yang sama juga dipakai sbg cause di ' + x.label + ' (' + x.tag + ') — status keduanya selalu sama' });
+      });
+      return out;
+    }
+  };
+})();
+
+/* ======================= status normal/trip satu sheet =======================
+   Dipakai halaman portal (warna kartu tiap sheet) & halaman Cause & Effect
+   (warna shape blok logic di kolom tengah). Konvensi SAMA dgn kolom EFFECT
+   halaman CE (Koreksi #7): nilai TRUE = normal = hijau, FALSE = trip = merah,
+   seragam utk semua OUTPUT tanpa pengecualian per tipe node.
+   Satu sheet disebut NORMAL kalau SEMUA output-nya TRUE; kalau ada satu saja
+   yang FALSE -> TRIP (fail-safe: tampilkan kondisi terburuk). */
+var SheetStatus = (function(){
+  return {
+    /* values = hasil sim.step(); nodes = netlist.nodes */
+    of: function(nodes, values){
+      var total = 0, tripped = 0;
+      Object.keys(nodes).forEach(function(id){
+        if(nodes[id].type !== 'OUTPUT') return;
+        total++;
+        if(!values[id]) tripped++;
+      });
+      if(!total) return { state: 'none', total: 0, tripped: 0 };
+      return { state: tripped ? 'trip' : 'normal', total: total, tripped: tripped };
+    }
+  };
+})();
+
+/* ======================= netlist data (inline) ======================= */
+const NETLIST = {"id":"105-UC-015/018/028","title":"105-UC-015/018/028","sheetRef":"Sheet 20 of 34 — P02_UNIT_105 v1.175","causeGroups":["Level / MOS — Stabilizer 105-C-503 LL (→ NOT#001, OR#002)","ESD Pushbutton — Fire/Leak 105-C-503 (→ AND#003)","Reset (manual, per latch)","Posisi Valve — Pump Run Permissive (→ AND#006)"],"effectGroups":["Alarm Stabilizer 105-C-503 LL (NOT dari m105LSLL033)","Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B","Output Proses — Stabilizer Bottoms Outlet Valve (UY-023)","Internal HMI (monitor saja)"],"nodes":{"in_m105LSLL033":{"type":"INPUT","label":"m105LSLL033","desc":"12407 — Stabilizer 105-C-503 LL Alm","group":"Level / MOS — Stabilizer 105-C-503 LL (→ NOT#001, OR#002)"},"in_f105HS033M":{"type":"INPUT","label":"f105HS033M","desc":"12851 — MOS 105-LSLL-033","isMOS":true,"group":"Level / MOS — Stabilizer 105-C-503 LL (→ NOT#001, OR#002)"},"in_f105HS008AE":{"type":"INPUT","label":"f105HS008AE","desc":"12060 — ESD Button In Case Fire Or Any Leak At 105-C-503 (Dcs)","group":"ESD Pushbutton — Fire/Leak 105-C-503 (→ AND#003)"},"in_f105HS008B":{"type":"INPUT","label":"f105HS008B","desc":"12061 — Esd Button In Case Fire Or Any Leak At 105-C-503 (Local)","group":"ESD Pushbutton — Fire/Leak 105-C-503 (→ AND#003)"},"in_f105HS015UCR":{"type":"INPUT","label":"f105HS015UCR","desc":"12079 — Reset 105-HS-506AE/BE, 508-AE/BE, UY-025 (105-UC-015)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105HS028UCR":{"type":"INPUT","label":"f105HS028UCR","desc":"12257 — Reset 105-UY-023 (105-UC-028)","isReset":true,"group":"Reset (manual, per latch)"},"in_f105ZSO023":{"type":"INPUT","label":"f105ZSO023","desc":"12204 — Open Signal To Pump Run Permissive","group":"Posisi Valve — Pump Run Permissive (→ AND#006)"},"not_001":{"type":"NOT","gateId":"001","input":"in_m105LSLL033"},"or_002":{"type":"OR","gateId":"002","inputs":["in_m105LSLL033","in_f105HS033M"]},"and_003":{"type":"AND","gateId":"003","inputs":["in_f105HS008AE","in_f105HS008B"]},"and_004":{"type":"AND","gateId":"004","inputs":["or_002","and_003"]},"rs_005":{"type":"RS","gateId":"005","label":"RS_105UC015_018_028_1","s":"and_004","r":"in_f105HS015UCR"},"and_006":{"type":"AND","gateId":"006","inputs":["rs_005","in_f105ZSO023"]},"rs_007":{"type":"RS","gateId":"007","label":"RS_105UC015_018_028_2","s":"and_003","r":"in_f105HS028UCR"},"out_f105LALL033":{"type":"OUTPUT","label":"f105LALL033","desc":"12885 — STABILIZER 105-C-503 LL Alm","source":"not_001","group":"Alarm Stabilizer 105-C-503 LL (NOT dari m105LSLL033)"},"out_RS_1_105UC015_018_028":{"type":"OUTPUT","label":"RS_1_105UC015_018_028","desc":"12807 — Internal HMI","source":"rs_005","group":"Internal HMI (monitor saja)","internalOnly":true},"out_f105UY025":{"type":"OUTPUT","label":"f105UY025","desc":"12240 — HCN Product From 105-E-508A/B","source":"and_006","group":"Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B"},"out_f105HS506AE":{"type":"OUTPUT","label":"f105HS506AE","desc":"12132 — HCN Products Pump 105-P-506A","source":"and_006","group":"Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B"},"out_f105HS506BE":{"type":"OUTPUT","label":"f105HS506BE","desc":"12133 — HCN Products Pump 105-P-506B","source":"and_006","group":"Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B"},"out_f105HS508AE":{"type":"OUTPUT","label":"f105HS508AE","desc":"12136 — Stabilizer Heater Pumps 105-P-508A","source":"and_006","group":"Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B"},"out_f105HS508BE":{"type":"OUTPUT","label":"f105HS508BE","desc":"12137 — Stabilizer Heater Pumps 105-P-508B","source":"and_006","group":"Output Proses — HCN Product / Pompa HCN 105-P-506A/B dan Stabilizer Heater 105-P-508A/B"},"out_f105UY023":{"type":"OUTPUT","label":"f105UY023","desc":"12238 — Stabilizer Bottoms Outlet Valve","source":"rs_007","group":"Output Proses — Stabilizer Bottoms Outlet Valve (UY-023)"}},"summary":["Satu blok. m105LSLL033 (level LL Stabilizer 105-C-503) langsung ke NOT#001 (alarm f105LALL033) dan ke OR#002 bersama MOS f105HS033M.","AND#003 (ESD f105HS008AE/B) menjadi kondisi RS#007 (reset f105HS028UCR) yang mengeluarkan f105UY023, dan juga masuk AND#004 bersama OR#002. AND#004 menjadi kondisi RS#005 (reset f105HS015UCR). Q1 RS#005 bersama f105ZSO023 lewat AND#006 mengeluarkan f105UY025, f105HS506AE/BE dan f105HS508AE/BE."],"notes":["Sumber: gambar vendor sheet 20 of 34 '105-UC-015/018/028' (P02_UNIT_105 v1.175), satu tampilan penuh plus crop zoom, di-trace 2026-10-26. Nomor/desc tag dari 'Tagnames Complete Listing.csv'.","Pemetaan RS mengikuti Koreksi #12/#14: field r = tag reset (pin S), field s = gerbang kondisi apa adanya (pin R1 berlingkaran).","Struktur sama dgn sheet 17: NOT#001 menerima m105LSLL033 langsung (kabel bercabang T), bukan keluaran OR#002; MOS tidak menahan alarm. Nilai live: LSLL033 FALSE -> f105LALL033 TRUE (merah di gambar).","AND#003 keluar ke R1 RS#007 dan bercabang ke AND#004 pin 2 (kabel vertikal); AND#004 pin 1 = OR#002. RS#005 Q1 bercabang ke AND#006 pin 1 dan tag internal RS_1_105UC015_018_028 (internalOnly, HIPOTESIS). Lima OUTPUT berbagi satu kabel keluaran AND#006.","Header kotak RS terpotong di gambar (\"05UC015_018_0\"). Label RS_105UC015_018_028_1 (RS#005) dan _2 (RS#007) adalah HIPOTESIS; tidak mempengaruhi logic.","BUKTI SILANG nilai live: semua input FALSE menghasilkan f105LALL033 TRUE dan semua OUTPUT lain FALSE; cocok dgn gambar.","Semua tag hanya dipakai di sheet ini (tidak ada tag lintas sheet baru). Polaritas NC/NO tidak ditafsirkan."],"slug":"sheet-020"};
+/* ======================= navigasi antar sheet (inline) ======================= */
+const NAV = {"portalUrl":"../index.html","prev":{"sheet":19,"tag":"105-UC-014","url":"sheet-019-ce.html"},"next":null,"detailUrl":"sheet-020.html","sheetIndex":{"sheet-002":{"no":2,"tag":"105-UC-001 / 002 / 024","url":"sheet-002.html","ceUrl":"sheet-002-ce.html"},"sheet-003":{"no":3,"tag":"105-UC-005 / 025","url":"sheet-003.html","ceUrl":"sheet-003-ce.html"},"sheet-004":{"no":4,"tag":"105-UC-007","url":"sheet-004.html","ceUrl":"sheet-004-ce.html"},"sheet-005":{"no":5,"tag":"105-UC-032 / 011 / 012 / 027","url":"sheet-005.html","ceUrl":"sheet-005-ce.html"},"sheet-006":{"no":6,"tag":"105-UC-009","url":"sheet-006.html","ceUrl":"sheet-006-ce.html"},"sheet-007":{"no":7,"tag":"105-UC-010","url":"sheet-007.html","ceUrl":"sheet-007-ce.html"},"sheet-008":{"no":8,"tag":"105-UC-010","url":"sheet-008.html","ceUrl":"sheet-008-ce.html"},"sheet-009":{"no":9,"tag":"105-UC-010","url":"sheet-009.html","ceUrl":"sheet-009-ce.html"},"sheet-010":{"no":10,"tag":"105-UC-010","url":"sheet-010.html","ceUrl":"sheet-010-ce.html"},"sheet-011":{"no":11,"tag":"105-UC-010","url":"sheet-011.html","ceUrl":"sheet-011-ce.html"},"sheet-012":{"no":12,"tag":"105-UC-010","url":"sheet-012.html","ceUrl":"sheet-012-ce.html"},"sheet-013":{"no":13,"tag":"105-UC-003","url":"sheet-013.html","ceUrl":"sheet-013-ce.html"},"sheet-014":{"no":14,"tag":"105-UC-004","url":"sheet-014.html","ceUrl":"sheet-014-ce.html"},"sheet-015":{"no":15,"tag":"105-UC-004","url":"sheet-015.html","ceUrl":"sheet-015-ce.html"},"sheet-016":{"no":16,"tag":"105-UC-006","url":"sheet-016.html","ceUrl":"sheet-016-ce.html"},"sheet-017":{"no":17,"tag":"105-UC-008","url":"sheet-017.html","ceUrl":"sheet-017-ce.html"},"sheet-018":{"no":18,"tag":"105-UC-013","url":"sheet-018.html","ceUrl":"sheet-018-ce.html"},"sheet-019":{"no":19,"tag":"105-UC-014","url":"sheet-019.html","ceUrl":"sheet-019-ce.html"},"sheet-020":{"no":20,"tag":"105-UC-015","url":"sheet-020.html","ceUrl":"sheet-020-ce.html"}}};
+
+/* ======================= theme toggle ======================= */
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  function apply(mode){
+    if(mode) root.setAttribute('data-theme', mode); else root.removeAttribute('data-theme');
+    try{ localStorage.setItem('sis-sim-theme', mode || ''); }catch(e){}
+  }
+  let saved = '';
+  try{ saved = localStorage.getItem('sis-sim-theme') || ''; }catch(e){}
+  if(saved) apply(saved);
+  btn.addEventListener('click', function(){
+    const cur = root.getAttribute('data-theme') || 'system';
+    const next = cur === 'system' ? 'dark' : (cur === 'dark' ? 'light' : 'system');
+    apply(next === 'system' ? '' : next);
+  });
+})();
+
+/* ======================= data prep ======================= */
+const nodes = NETLIST.nodes;
+const ids = Object.keys(nodes);
+const INPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'INPUT'; });
+const OUTPUT_IDS = ids.filter(function(id){ return nodes[id].type === 'OUTPUT'; });
+
+/* CAUSE utama = INPUT biasa (bukan Reset, bukan MOS — keduanya cukup
+   ditampilkan statusnya saja di strip bawah, sesuai permintaan: "untuk
+   logic MOS, Reset tuliskan statusnya dibawah saja, sedang di MOS/Reset
+   atau tidak" */
+const CAUSE_MAIN_IDS = INPUT_IDS.filter(function(id){ return !nodes[id].isReset && !nodes[id].isMOS; });
+const RESET_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isReset; });
+const MOS_IDS = INPUT_IDS.filter(function(id){ return !!nodes[id].isMOS; });
+
+function groupSort(idList, groupOrder){
+  const rank = {};
+  (groupOrder || []).forEach(function(g, i){ rank[g] = i; });
+  return idList.slice().sort(function(a, b){
+    const ga = nodes[a].group, gb = nodes[b].group;
+    const ra = ga in rank ? rank[ga] : 999, rb = gb in rank ? rank[gb] : 999;
+    if(ra !== rb) return ra - rb;
+    return idList.indexOf(a) - idList.indexOf(b);
+  });
+}
+const causeSorted = groupSort(CAUSE_MAIN_IDS, NETLIST.causeGroups);
+const effectSorted = groupSort(OUTPUT_IDS, NETLIST.effectGroups);
+
+/* ======================= sim instance ======================= */
+const sim = SimEngine.createSim(NETLIST);
+const inputState = {};
+INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+
+/* ======================= sinkronisasi state dgn halaman Logic Detail =======================
+   Lihat komentar yang sama di sheet.template.html — halaman ini & versi
+   Logic Detail sheet yang sama berbagi netlist (NETLIST.id sama), jadi
+   state disinkronkan lewat localStorage (key dari NETLIST.id) supaya
+   toggle CAUSE/MOS/Reset di satu halaman kebawa kalau pindah ke halaman
+   satunya, termasuk memory internal RS latch (rsPrev) supaya
+   status trip/reset-nya ikut kebawa, bukan cuma posisi tombol. */
+const SYNC_KEY = 'sis-sim-state-' + (NETLIST.id || NETLIST.title || 'sheet');
+function loadSyncedState(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved.inputState){
+      Object.keys(saved.inputState).forEach(function(id){
+        if(id in inputState) inputState[id] = !!saved.inputState[id];
+      });
+    }
+    if(saved.rsPrev) Object.keys(saved.rsPrev).forEach(function(id){ if(id in sim.state.rsPrev) sim.state.rsPrev[id] = !!saved.rsPrev[id]; });
+    /* 'rPrev' tidak ada lagi di engine sejak Koreksi #9 (RS bukan
+       edge-triggered lagi) -- baris pemulihannya sengaja dihapus. */
+  }catch(e){}
+}
+function saveSyncedState(){
+  try{
+    localStorage.setItem(SYNC_KEY, JSON.stringify({ inputState: inputState, rsPrev: sim.state.rsPrev }));
+  }catch(e){}
+}
+loadSyncedState();
+/* status tag yang sama di sheet lain menang atas state per-sheet (lihat _tagsync.js) */
+TagSync.init(NETLIST, inputState);
+
+/* ======================= render: CAUSE table (per grup) ======================= */
+const causeBody = document.getElementById('causeBody');
+const rowEls = {}; // id -> { dot, val }
+let lastGroup = null;
+/* keterangan + link navigasi ke sheet lain utk tag yang effect/cause-nya
+   nyambung antar sheet (lihat _crosslink.js). Link dibuat <a> sungguhan,
+   dan klik-nya TIDAK ikut men-toggle baris (stopPropagation). */
+function crossLinkHtml(n){
+  const links = CrossLink.linksFor(n, NAV, true);
+  if(!links.length) return '';
+  return '<div class="xlinks">' + links.map(function(lk){
+    return '<a class="xlink xlink-' + lk.kind + '" href="' + lk.href + '" title="' +
+           String(lk.title).replace(/"/g, '&quot;') + '">' + lk.prefix + lk.label + '</a>';
+  }).join('') + '</div>';
+}
+function wireCrossLinks(tr){
+  Array.prototype.forEach.call(tr.querySelectorAll('a.xlink'), function(a){
+    a.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  });
+}
+
+causeSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    causeBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row clickable';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + crossLinkHtml(n) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  tr.addEventListener('click', function(){
+    inputState[id] = !inputState[id];
+    simulate();
+  });
+  wireCrossLinks(tr);
+  causeBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: EFFECT table (per grup) ======================= */
+const effectBody = document.getElementById('effectBody');
+lastGroup = null;
+effectSorted.forEach(function(id){
+  const n = nodes[id];
+  if(n.group && n.group !== lastGroup){
+    const gtr = document.createElement('tr');
+    gtr.className = 'ce-group-row';
+    gtr.innerHTML = '<td colspan="3">' + n.group + '</td>';
+    effectBody.appendChild(gtr);
+    lastGroup = n.group;
+  }
+  const tr = document.createElement('tr');
+  tr.className = 'ce-row' + (n.internalOnly ? ' internal' : '');
+  const badge = n.internalOnly ? '<span class="internal-badge" title="Bukan output lapangan -- dipakai sebagai input di sheet lain">&#8618; internal</span>' : '';
+  tr.innerHTML =
+    '<td><span class="stat-dot off" id="dot_' + id + '"></span></td>' +
+    '<td class="svc">' + (n.desc || n.label) + badge + crossLinkHtml(n) + '</td>' +
+    '<td class="tagno">' + n.label + '</td>';
+  wireCrossLinks(tr);
+  effectBody.appendChild(tr);
+  rowEls[id] = { dot: tr.querySelector('.stat-dot') };
+});
+
+/* ======================= render: status strip (MOS / Reset) ======================= */
+const statusStrip = document.getElementById('statusStrip');
+function buildStatusGroup(title, idList){
+  if(!idList.length) return;
+  const h = document.createElement('div');
+  h.className = 'status-strip-title';
+  h.textContent = title;
+  statusStrip.appendChild(h);
+  idList.forEach(function(id){
+    const n = nodes[id];
+    const card = document.createElement('div');
+    card.className = 'status-chip-card';
+    card.innerHTML =
+      '<span class="label">' + (n.desc || n.label) + '<b>' + n.label + '</b></span>' +
+      '<span class="chip off" id="chip_' + id + '">TIDAK AKTIF</span>';
+    card.addEventListener('click', function(){
+      inputState[id] = !inputState[id];
+      simulate();
+    });
+    statusStrip.appendChild(card);
+    rowEls[id] = { chip: card.querySelector('.chip') };
+  });
+}
+buildStatusGroup('Status MOS', MOS_IDS);
+buildStatusGroup('Status Reset', RESET_IDS);
+
+/* ======================= header / center / nav ======================= */
+document.getElementById('pageTitle').textContent = 'Cause & Effect — ' + (NETLIST.title || NETLIST.id);
+document.getElementById('sheetRef').textContent = NETLIST.sheetRef || '';
+document.getElementById('ucId').textContent = NETLIST.id || '';
+document.getElementById('ucTitle').textContent = NETLIST.title || '';
+
+const summaryMini = document.getElementById('summaryMini');
+const summaryParas = Array.isArray(NETLIST.summary) ? NETLIST.summary : (NETLIST.summary ? [NETLIST.summary] : []);
+if(summaryParas.length){
+  /* Koreksi UI/UX (2026-10-25, Critical #1): paragraf pertama = ringkasan
+     inti, selalu tampil. Paragraf ke-2 dst (riwayat koreksi teknis,
+     biasanya panjang) disembunyikan di balik toggle "Baca detail teknis"
+     -- sebelumnya semua paragraf tampil sekaligus & mendorong tabel
+     EFFECT jauh ke bawah (parah terutama di layout 1-kolom/mobile). */
+  const firstP = document.createElement('p');
+  firstP.textContent = summaryParas[0];
+  summaryMini.appendChild(firstP);
+  if(summaryParas.length > 1){
+    const rest = document.createElement('div');
+    rest.className = 'summary-rest';
+    summaryParas.slice(1).forEach(function(para){
+      const p = document.createElement('p');
+      p.textContent = para;
+      rest.appendChild(p);
+    });
+    summaryMini.appendChild(rest);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'summary-toggle';
+    toggle.innerHTML = '<span class="chev">&#9656;</span><span class="label">Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)</span>';
+    toggle.addEventListener('click', function(){
+      const expanded = summaryMini.classList.toggle('expanded');
+      toggle.querySelector('.label').textContent = expanded
+        ? 'Sembunyikan detail teknis'
+        : 'Baca detail teknis (' + (summaryParas.length - 1) + ' paragraf)';
+    });
+    summaryMini.appendChild(toggle);
+  }
+} else {
+  summaryMini.style.display = 'none';
+}
+
+document.getElementById('portalLink').href = (NAV && NAV.portalUrl) || '../index.html';
+document.getElementById('detailLink').href = (NAV && NAV.detailUrl) || '#';
+const prevLink = document.getElementById('prevLink');
+if(NAV && NAV.prev){
+  prevLink.href = NAV.prev.url;
+  prevLink.textContent = '← Sheet ' + String(NAV.prev.sheet).padStart(3, '0') + ': ' + NAV.prev.tag;
+  prevLink.style.display = '';
+}
+const nextLink = document.getElementById('nextLink');
+if(NAV && NAV.next){
+  nextLink.href = NAV.next.url;
+  nextLink.textContent = 'Sheet ' + String(NAV.next.sheet).padStart(3, '0') + ': ' + NAV.next.tag + ' →';
+  nextLink.style.display = '';
+}
+
+/* ======================= konvensi warna Cause & Effect =======================
+   PENTING: beda dengan halaman Logic Detail (yang warnanya ngikut nilai
+   mentah sinyal: TRUE=merah, FALSE=hijau, dipakai utk nelusurin jalur
+   wire apa adanya), halaman Cause & Effect ini warnanya SELALU
+   KEBALIKAN dari itu, berlaku SERAGAM ke semua indikator di halaman ini
+   (CAUSE, EFFECT, status MOS, status Reset) — TANPA pengecualian per
+   tipe node: TRUE = hijau (normal), FALSE = merah (trip/aktif).
+   Koreksi (2026-10-24, #7): versi sebelumnya keliru menambahkan
+   pengecualian per-tipe (OUTPUT pakai TRUE=hijau, tapi INPUT malah
+   dibalik jadi FALSE=hijau) — akibatnya baris CAUSE/MOS/Reset berakhir
+   dgn warna PERSIS SAMA dgn halaman Logic Detail (TRUE tetap tampil
+   merah di kedua halaman), bukan kebalikannya seperti diminta user.
+   Flag `healthyWhenTrue` SUDAH TIDAK DIPAKAI LAGI di sini — dengan
+   aturan seragam TRUE=hijau, flag itu jadi tidak relevan utk pewarnaan
+   CE (nilainya sendiri yg sudah di-NOT di level netlist, bukan
+   tampilannya, yang perlu diperhatikan). */
+function isNormal(id, val){
+  return val;
+}
+
+/* ======================= simulate + repaint ======================= */
+function simulate(){
+  const v = sim.step(inputState);
+  ids.forEach(function(id){
+    const re = rowEls[id];
+    if(!re) return;
+    const normal = isNormal(id, !!v[id]);
+    if(re.dot){ re.dot.classList.toggle('on', !normal); re.dot.classList.toggle('off', normal); }
+    if(re.chip){
+      const active = !!v[id];
+      re.chip.textContent = active ? 'AKTIF' : 'TIDAK AKTIF';
+      re.chip.className = 'chip ' + (active ? 'off' : 'on');
+    }
+  });
+  /* shape blok logic (kolom tengah) ikut status keseluruhan sheet ini */
+  const st = SheetStatus.of(nodes, v);
+  const ucBox = document.querySelector('.uc-box');
+  ucBox.classList.toggle('st-normal', st.state === 'normal');
+  ucBox.classList.toggle('st-trip', st.state === 'trip');
+  document.getElementById('ucState').textContent = st.state === 'normal' ? 'NORMAL' : 'TRIP';
+  document.getElementById('ucSubState').textContent = st.state === 'normal'
+    ? 'Semua ' + st.total + ' output energized'
+    : st.tripped + ' dari ' + st.total + ' output trip';
+  /* timer waktu nyata: halaman CE ikut men-tick supaya status EFFECT &
+     shape blok logic berubah sendiri saat hitungan TOF habis */
+  scheduleTimerTick();
+  saveSyncedState();
+  TagSync.publish(v);
+}
+let timerTick = null;
+function scheduleTimerTick(){
+  const running = sim.anyTimerRunning && sim.anyTimerRunning(Date.now());
+  if(running && timerTick == null) timerTick = setInterval(function(){ simulate(); }, 250);
+  else if(!running && timerTick != null){ clearInterval(timerTick); timerTick = null; }
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  INPUT_IDS.forEach(function(id){ inputState[id] = false; });
+  sim.reset();
+  simulate();
+});
+
+TagSync.onChange(simulate);
+simulate();
+</script>
