@@ -288,6 +288,24 @@
     "f105HS030SB": {
       "tagNo": "12107",
       "desc": "Switch Start Up Bypass 105-F-501 (AUX)"
+    },
+    "m105FSLL645B": {
+      "tagNo": "12353",
+      "desc": "Combustion Air To 105-F-502 LL Alm"
+    },
+    "f105HS645BM": {
+      "tagNo": "12776",
+      "desc": "MOS 105-FSLL-645B",
+      "isMOS": true
+    },
+    "m105FSLL045B": {
+      "tagNo": "12352",
+      "desc": "Combustion Air To 105-F-501 LL Alm"
+    },
+    "f105HS045BM": {
+      "tagNo": "12775",
+      "desc": "MOS 105-FSLL-045B",
+      "isMOS": true
     }
   }
 }

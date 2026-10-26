@@ -94,14 +94,11 @@
     "in_m105FSLL045B": {
       "type": "INPUT",
       "label": "m105FSLL045B",
-      "desc": "12352 — Combustion Air To 105-F-501 LL Alm",
       "group": "Flow Combustion Air 105-F-501 LL (→ TOF#004)"
     },
     "in_f105HS045BM": {
       "type": "INPUT",
       "label": "f105HS045BM",
-      "desc": "12775 — MOS 105-FSLL-045B",
-      "isMOS": true,
       "group": "Flow Combustion Air 105-F-501 LL (→ TOF#004)"
     },
     "tof_004": {
@@ -127,14 +124,11 @@
     "in_m105FSLL645B": {
       "type": "INPUT",
       "label": "m105FSLL645B",
-      "desc": "12353 — Combustion Air To 105-F-502 LL Alm",
       "group": "Flow Combustion Air 105-F-502 LL (→ TOF#008)"
     },
     "in_f105HS645BM": {
       "type": "INPUT",
       "label": "f105HS645BM",
-      "desc": "12776 — MOS 105-FSLL-645B",
-      "isMOS": true,
       "group": "Flow Combustion Air 105-F-502 LL (→ TOF#008)"
     },
     "tof_008": {
