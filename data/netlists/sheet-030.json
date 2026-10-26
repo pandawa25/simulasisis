@@ -27,93 +27,76 @@
     "in_f105HS009A": {
       "type": "INPUT",
       "label": "f105HS009A",
-      "desc": "12063 — Stabilizer Heater 105-F-503 Inlet",
       "group": "ESD Pushbutton — Stabilizer Heater 105-F-503 (→ AND#024)"
     },
     "in_f105HS009B": {
       "type": "INPUT",
       "label": "f105HS009B",
-      "desc": "12064 — Esd Button To Emergency Stop Stabilizer Heater 105-F-503 (Local)",
       "group": "ESD Pushbutton — Stabilizer Heater 105-F-503 (→ AND#024)"
     },
     "in_m105PSHH108": {
       "type": "INPUT",
       "label": "m105PSHH108",
-      "desc": "12446 — 105-F-503 HH Alm",
       "group": "Tekanan HH 108 + MOS (→ TOF#002, NOT#001, OR#003)"
     },
     "in_f105HS108M": {
       "type": "INPUT",
       "label": "f105HS108M",
-      "desc": "12769 — MOS 105-PSHH-108",
-      "isMOS": true,
       "group": "Tekanan HH 108 + MOS (→ TOF#002, NOT#001, OR#003)"
     },
     "in_f105HS031SB": {
       "type": "INPUT",
       "label": "f105HS031SB",
-      "desc": "12109 — Switch Start Up Bypass 105-F-503 (AUX)",
       "group": "Bypass Start Up 105-F-503 (→ OR#003, #006, #015)"
     },
     "in_m105PSLL114A": {
       "type": "INPUT",
       "label": "m105PSLL114A",
-      "desc": "12474 — Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_m105PI114A": {
       "type": "INPUT",
       "label": "m105PI114A",
-      "desc": "12428 — 105PT114A Fault Status",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_m105PSLL114B": {
       "type": "INPUT",
       "label": "m105PSLL114B",
-      "desc": "12475 — Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_m105PI114B": {
       "type": "INPUT",
       "label": "m105PI114B",
-      "desc": "12429 — 105PT114B Fault Status",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_m105PSLL114C": {
       "type": "INPUT",
       "label": "m105PSLL114C",
-      "desc": "12476 — Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_m105PI114C": {
       "type": "INPUT",
       "label": "m105PI114C",
-      "desc": "12430 — 105PT114C Fault Status",
       "group": "Fuel Gas LL 114 — Voting 2oo3 (blok #004)"
     },
     "in_f105BS630A": {
       "type": "INPUT",
       "label": "f105BS630A",
-      "desc": "12029 — Pilot burner flame off 105-F-503",
       "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#009)"
     },
     "in_f105BS630B": {
       "type": "INPUT",
       "label": "f105BS630B",
-      "desc": "12030 — Pilot Burner Flame Off 105-F-503",
       "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#009)"
     },
     "in_f105BS630C": {
       "type": "INPUT",
       "label": "f105BS630C",
-      "desc": "12031 — Pilot Burner Flame Off 105-F-503",
       "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#009)"
     },
     "in_f105HS630_ACM": {
       "type": "INPUT",
       "label": "f105HS630_ACM",
-      "desc": "12284 — MOS 105BS630A to 105BS630H",
-      "isMOS": true,
       "group": "Pilot Burner Flame Off — NUMBITS/GT (→ OR#009)"
     },
     "in_f105TSHH118": {
@@ -250,7 +233,6 @@
     "in_f105ZSO503": {
       "type": "INPUT",
       "label": "f105ZSO503",
-      "desc": "12207 — Open Signal To Stack Damper 105-HV-503",
       "group": "Posisi Valve / Damper (→ OR#027, AND#028)"
     },
     "in_f105ZSO023": {

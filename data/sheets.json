@@ -277,9 +277,9 @@
       "slug": "sheet-031",
       "tag": "105-UC-031",
       "note": "bagian 2",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-031.html",
+      "ceUrl": "sheets/sheet-031-ce.html"
     },
     {
       "sheet": 32,

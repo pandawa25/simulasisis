@@ -529,6 +529,72 @@
     "f105ZSO023": {
       "tagNo": "12204",
       "desc": "Open Signal To Pump Run Permissive"
+    },
+    "f105HS009A": {
+      "tagNo": "12063",
+      "desc": "Stabilizer Heater 105-F-503 Inlet"
+    },
+    "f105HS009B": {
+      "tagNo": "12064",
+      "desc": "Esd Button To Emergency Stop Stabilizer Heater 105-F-503 (Local)"
+    },
+    "m105PSHH108": {
+      "tagNo": "12446",
+      "desc": "105-F-503 HH Alm"
+    },
+    "f105HS108M": {
+      "tagNo": "12769",
+      "desc": "MOS 105-PSHH-108",
+      "isMOS": true
+    },
+    "f105ZSO503": {
+      "tagNo": "12207",
+      "desc": "Open Signal To Stack Damper 105-HV-503"
+    },
+    "f105BS630A": {
+      "tagNo": "12029",
+      "desc": "Pilot burner flame off 105-F-503"
+    },
+    "f105BS630B": {
+      "tagNo": "12030",
+      "desc": "Pilot Burner Flame Off 105-F-503"
+    },
+    "f105BS630C": {
+      "tagNo": "12031",
+      "desc": "Pilot Burner Flame Off 105-F-503"
+    },
+    "f105HS630_ACM": {
+      "tagNo": "12284",
+      "desc": "MOS 105BS630A to 105BS630H",
+      "isMOS": true
+    },
+    "m105PSLL114A": {
+      "tagNo": "12474",
+      "desc": "Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm"
+    },
+    "m105PSLL114B": {
+      "tagNo": "12475",
+      "desc": "Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm"
+    },
+    "m105PSLL114C": {
+      "tagNo": "12476",
+      "desc": "Fuel Gas From 105-E-512 To 105-F-503 Inlet LL Alm"
+    },
+    "m105PI114A": {
+      "tagNo": "12428",
+      "desc": "105PT114A Fault Status"
+    },
+    "m105PI114B": {
+      "tagNo": "12429",
+      "desc": "105PT114B Fault Status"
+    },
+    "m105PI114C": {
+      "tagNo": "12430",
+      "desc": "105PT114C Fault Status"
+    },
+    "f105HS031SB": {
+      "tagNo": "12109",
+      "desc": "Switch Start Up Bypass 105-F-503 (AUX)"
     }
   }
 }
