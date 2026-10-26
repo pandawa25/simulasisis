@@ -88,43 +88,36 @@
     "in_m105PSLL300A": {
       "type": "INPUT",
       "label": "m105PSLL300A",
-      "desc": "12477 — Combustion Air To 105-F-501 LL Alm",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_m105PI300A": {
       "type": "INPUT",
       "label": "m105PI300A",
-      "desc": "12431 — 105PT300A Fault Status",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_m105PSLL300B": {
       "type": "INPUT",
       "label": "m105PSLL300B",
-      "desc": "12478 — Combustion Air To 105-F-501 LL Alm",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_m105PI300B": {
       "type": "INPUT",
       "label": "m105PI300B",
-      "desc": "12432 — 105PT300B Fault Status",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_m105PSLL300C": {
       "type": "INPUT",
       "label": "m105PSLL300C",
-      "desc": "12479 — Combustion Air To 105-F-501 LL Alm",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_m105PI300C": {
       "type": "INPUT",
       "label": "m105PI300C",
-      "desc": "12433 — 105PT300C Fault Status",
       "group": "Tekanan Combustion Air — Voting 2oo3 (blok #009)"
     },
     "in_f105HS030SB": {
       "type": "INPUT",
       "label": "f105HS030SB",
-      "desc": "12107 — Switch Start Up Bypass 105-F-501 (AUX)",
       "group": "Bypass / MOS (→ OR#007, OR#011)"
     },
     "in_L1G14A": {

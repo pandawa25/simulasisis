@@ -260,6 +260,34 @@
       "tagNo": "12281",
       "desc": "MOS 105BS620A to 105BS620H",
       "isMOS": true
+    },
+    "m105PSLL300A": {
+      "tagNo": "12477",
+      "desc": "Combustion Air To 105-F-501 LL Alm"
+    },
+    "m105PI300A": {
+      "tagNo": "12431",
+      "desc": "105PT300A Fault Status"
+    },
+    "m105PSLL300B": {
+      "tagNo": "12478",
+      "desc": "Combustion Air To 105-F-501 LL Alm"
+    },
+    "m105PI300B": {
+      "tagNo": "12432",
+      "desc": "105PT300B Fault Status"
+    },
+    "m105PSLL300C": {
+      "tagNo": "12479",
+      "desc": "Combustion Air To 105-F-501 LL Alm"
+    },
+    "m105PI300C": {
+      "tagNo": "12433",
+      "desc": "105PT300C Fault Status"
+    },
+    "f105HS030SB": {
+      "tagNo": "12107",
+      "desc": "Switch Start Up Bypass 105-F-501 (AUX)"
     }
   }
 }
