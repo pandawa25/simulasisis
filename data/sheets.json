@@ -295,9 +295,9 @@
       "slug": "sheet-033",
       "tag": "XA003",
       "note": "",
-      "status": "pending",
-      "url": null,
-      "ceUrl": null
+      "status": "done",
+      "url": "sheets/sheet-033.html",
+      "ceUrl": "sheets/sheet-033-ce.html"
     },
     {
       "sheet": 34,

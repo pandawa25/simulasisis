@@ -1,0 +1,490 @@
+{
+  "id": "XA003",
+  "title": "105XA003",
+  "sheetRef": "Sheet 33 of 34 — P02_UNIT_105 v1.175",
+  "causeGroups": [
+    "ESD Pushbutton — Splitter Heater 105-F-501 (→ AND#001)",
+    "Tekanan/Link ke AND#025 (PSHH024E, FEED dari sheet 24)",
+    "Tekanan HH 088 + Bypass/MOS (→ TOF#002, OR#003)",
+    "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)",
+    "Temperatur HH 046 + MOS (→ TOF#007, OR#008)",
+    "ESD Pushbutton 105-V-502 + Reset (→ AND#009, RS#010)",
+    "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)",
+    "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)",
+    "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)",
+    "Posisi Valve — Pump (→ AND#022)",
+    "Feedback dari logika tambahan (→ AND#025)"
+  ],
+  "effectGroups": [
+    "Shutdown XA003 — Splitter Heater 105-F-501"
+  ],
+  "nodes": {
+    "in_f105HS003A": {
+      "type": "INPUT",
+      "label": "f105HS003A",
+      "group": "ESD Pushbutton — Splitter Heater 105-F-501 (→ AND#001)"
+    },
+    "in_f105HS003B": {
+      "type": "INPUT",
+      "label": "f105HS003B",
+      "group": "ESD Pushbutton — Splitter Heater 105-F-501 (→ AND#001)"
+    },
+    "in_f105PSHH024E": {
+      "type": "INPUT",
+      "label": "f105PSHH024E",
+      "group": "Tekanan/Link ke AND#025 (PSHH024E, FEED dari sheet 24)"
+    },
+    "in_AND_10UC030_1_FEED_2": {
+      "type": "INPUT",
+      "label": "AND_10UC030_1_FEED_2",
+      "group": "Tekanan/Link ke AND#025 (PSHH024E, FEED dari sheet 24)"
+    },
+    "in_m105PSHH088": {
+      "type": "INPUT",
+      "label": "m105PSHH088",
+      "group": "Tekanan HH 088 + Bypass/MOS (→ TOF#002, OR#003)"
+    },
+    "in_f105HS030SB": {
+      "type": "INPUT",
+      "label": "f105HS030SB",
+      "group": "Tekanan HH 088 + Bypass/MOS (→ TOF#002, OR#003)"
+    },
+    "in_f105HS088M": {
+      "type": "INPUT",
+      "label": "f105HS088M",
+      "group": "Tekanan HH 088 + Bypass/MOS (→ TOF#002, OR#003)"
+    },
+    "in_m105PSLL100A": {
+      "type": "INPUT",
+      "label": "m105PSLL100A",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_m105PI100A": {
+      "type": "INPUT",
+      "label": "m105PI100A",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_m105PSLL100B": {
+      "type": "INPUT",
+      "label": "m105PSLL100B",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_m105PI100B": {
+      "type": "INPUT",
+      "label": "m105PI100B",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_m105PSLL100C": {
+      "type": "INPUT",
+      "label": "m105PSLL100C",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_m105PI100C": {
+      "type": "INPUT",
+      "label": "m105PI100C",
+      "group": "Tekanan Inlet LL 100 — Voting 2oo3 (blok #004)"
+    },
+    "in_f105TSHH046": {
+      "type": "INPUT",
+      "label": "f105TSHH046",
+      "group": "Temperatur HH 046 + MOS (→ TOF#007, OR#008)"
+    },
+    "in_f105HS046M": {
+      "type": "INPUT",
+      "label": "f105HS046M",
+      "group": "Temperatur HH 046 + MOS (→ TOF#007, OR#008)"
+    },
+    "in_f105HS004AE": {
+      "type": "INPUT",
+      "label": "f105HS004AE",
+      "group": "ESD Pushbutton 105-V-502 + Reset (→ AND#009, RS#010)"
+    },
+    "in_f105HS004B": {
+      "type": "INPUT",
+      "label": "f105HS004B",
+      "group": "ESD Pushbutton 105-V-502 + Reset (→ AND#009, RS#010)"
+    },
+    "in_f105HS008UCR": {
+      "type": "INPUT",
+      "label": "f105HS008UCR",
+      "group": "ESD Pushbutton 105-V-502 + Reset (→ AND#009, RS#010)"
+    },
+    "in_m105LSHH040A": {
+      "type": "INPUT",
+      "label": "m105LSHH040A",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105LI040A": {
+      "type": "INPUT",
+      "label": "m105LI040A",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105LSHH040B": {
+      "type": "INPUT",
+      "label": "m105LSHH040B",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105LI040B": {
+      "type": "INPUT",
+      "label": "m105LI040B",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105LSHH040C": {
+      "type": "INPUT",
+      "label": "m105LSHH040C",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105LI040C": {
+      "type": "INPUT",
+      "label": "m105LI040C",
+      "group": "Level HH Fuel Gas KO Drum — Voting 2oo3 (blok #011)"
+    },
+    "in_m105FSLL018A": {
+      "type": "INPUT",
+      "label": "m105FSLL018A",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018B": {
+      "type": "INPUT",
+      "label": "m105FSLL018B",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018C": {
+      "type": "INPUT",
+      "label": "m105FSLL018C",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018D": {
+      "type": "INPUT",
+      "label": "m105FSLL018D",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018E": {
+      "type": "INPUT",
+      "label": "m105FSLL018E",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018F": {
+      "type": "INPUT",
+      "label": "m105FSLL018F",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018G": {
+      "type": "INPUT",
+      "label": "m105FSLL018G",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_m105FSLL018H": {
+      "type": "INPUT",
+      "label": "m105FSLL018H",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_f105HS018M": {
+      "type": "INPUT",
+      "label": "f105HS018M",
+      "group": "Flow LL Splitter Heater Inlet (→ AND#012, TOF#013, OR#014)"
+    },
+    "in_f105HS007UCR": {
+      "type": "INPUT",
+      "label": "f105HS007UCR",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_m105LSLL009": {
+      "type": "INPUT",
+      "label": "m105LSLL009",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS009M": {
+      "type": "INPUT",
+      "label": "f105HS009M",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS007A": {
+      "type": "INPUT",
+      "label": "f105HS007A",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS007B": {
+      "type": "INPUT",
+      "label": "f105HS007B",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS002AE": {
+      "type": "INPUT",
+      "label": "f105HS002AE",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS002B": {
+      "type": "INPUT",
+      "label": "f105HS002B",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS005UCR": {
+      "type": "INPUT",
+      "label": "f105HS005UCR",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105HS025UCR": {
+      "type": "INPUT",
+      "label": "f105HS025UCR",
+      "group": "Level/ESD/Reset per Latch (→ OR#015, AND#016/#018/#023, RS#017/#019/#021/#024)"
+    },
+    "in_f105ZSO012": {
+      "type": "INPUT",
+      "label": "f105ZSO012",
+      "group": "Posisi Valve — Pump (→ AND#022)"
+    },
+    "in_f105ZSO010": {
+      "type": "INPUT",
+      "label": "f105ZSO010",
+      "group": "Posisi Valve — Pump (→ AND#022)"
+    },
+    "in_f105UC030_105XA003": {
+      "type": "INPUT",
+      "label": "f105UC030_105XA003",
+      "desc": "13263 — Feedback To XA003 from UC030",
+      "group": "Feedback dari logika tambahan (→ AND#025)"
+    },
+    "and_001": {
+      "type": "AND",
+      "gateId": "001",
+      "inputs": [
+        "in_f105HS003A",
+        "in_f105HS003B"
+      ]
+    },
+    "tof_002": {
+      "type": "TOF",
+      "gateId": "002",
+      "input": "in_m105PSHH088",
+      "setpointSec": 3
+    },
+    "or_003": {
+      "type": "OR",
+      "gateId": "003",
+      "inputs": [
+        "tof_002",
+        "in_f105HS030SB",
+        "in_f105HS088M"
+      ]
+    },
+    "vot_004": {
+      "type": "VOTING",
+      "gateId": "004",
+      "label": "VOT_XA003_2",
+      "k": 2,
+      "inputs": [
+        "in_m105PSLL100A",
+        "in_m105PSLL100B",
+        "in_m105PSLL100C"
+      ],
+      "fltInputs": [
+        "in_m105PI100A",
+        "in_m105PI100B",
+        "in_m105PI100C"
+      ]
+    },
+    "tof_005": {
+      "type": "TOF",
+      "gateId": "005",
+      "input": "vot_004",
+      "setpointSec": 1
+    },
+    "or_006": {
+      "type": "OR",
+      "gateId": "006",
+      "inputs": [
+        "tof_005",
+        "in_f105HS030SB"
+      ]
+    },
+    "tof_007": {
+      "type": "TOF",
+      "gateId": "007",
+      "input": "in_f105TSHH046",
+      "setpointSec": 10
+    },
+    "or_008": {
+      "type": "OR",
+      "gateId": "008",
+      "inputs": [
+        "tof_007",
+        "in_f105HS046M"
+      ]
+    },
+    "and_009": {
+      "type": "AND",
+      "gateId": "009",
+      "inputs": [
+        "in_f105HS004AE",
+        "in_f105HS004B"
+      ]
+    },
+    "rs_010": {
+      "type": "RS",
+      "gateId": "010",
+      "label": "RS_XA003_1",
+      "s": "and_009",
+      "r": "in_f105HS008UCR"
+    },
+    "vot_011": {
+      "type": "VOTING",
+      "gateId": "011",
+      "label": "VOT_XA003_3",
+      "k": 2,
+      "inputs": [
+        "in_m105LSHH040A",
+        "in_m105LSHH040B",
+        "in_m105LSHH040C"
+      ],
+      "fltInputs": [
+        "in_m105LI040A",
+        "in_m105LI040B",
+        "in_m105LI040C"
+      ]
+    },
+    "and_012": {
+      "type": "AND",
+      "gateId": "012",
+      "inputs": [
+        "in_m105FSLL018A",
+        "in_m105FSLL018B",
+        "in_m105FSLL018C",
+        "in_m105FSLL018D",
+        "in_m105FSLL018E",
+        "in_m105FSLL018F",
+        "in_m105FSLL018G",
+        "in_m105FSLL018H"
+      ]
+    },
+    "tof_013": {
+      "type": "TOF",
+      "gateId": "013",
+      "input": "and_012",
+      "setpointSec": 10
+    },
+    "or_014": {
+      "type": "OR",
+      "gateId": "014",
+      "inputs": [
+        "tof_013",
+        "in_f105HS018M"
+      ]
+    },
+    "or_015": {
+      "type": "OR",
+      "gateId": "015",
+      "inputs": [
+        "in_m105LSLL009",
+        "in_f105HS009M"
+      ]
+    },
+    "and_016": {
+      "type": "AND",
+      "gateId": "016",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_017": {
+      "type": "RS",
+      "gateId": "017",
+      "label": "RS_XA003_4",
+      "s": "and_016",
+      "r": "in_f105HS005UCR"
+    },
+    "and_018": {
+      "type": "AND",
+      "gateId": "018",
+      "inputs": [
+        "in_f105HS002AE",
+        "in_f105HS002B"
+      ]
+    },
+    "rs_019": {
+      "type": "RS",
+      "gateId": "019",
+      "label": "RS_XA003_2",
+      "s": "and_018",
+      "r": "in_f105HS025UCR"
+    },
+    "and_020": {
+      "type": "AND",
+      "gateId": "020",
+      "inputs": [
+        "or_015",
+        "rs_017",
+        "rs_019"
+      ]
+    },
+    "rs_021": {
+      "type": "RS",
+      "gateId": "021",
+      "label": "RS_XA003_3",
+      "s": "and_020",
+      "r": "in_f105HS007UCR"
+    },
+    "and_022": {
+      "type": "AND",
+      "gateId": "022",
+      "inputs": [
+        "in_f105ZSO012",
+        "in_f105ZSO010"
+      ]
+    },
+    "and_023": {
+      "type": "AND",
+      "gateId": "023",
+      "inputs": [
+        "in_f105HS007A",
+        "in_f105HS007B"
+      ]
+    },
+    "rs_024": {
+      "type": "RS",
+      "gateId": "024",
+      "label": "RS_XA003_5",
+      "s": "and_023",
+      "r": "in_f105HS005UCR"
+    },
+    "and_025": {
+      "type": "AND",
+      "gateId": "025",
+      "inputs": [
+        "and_001",
+        "in_f105PSHH024E",
+        "in_AND_10UC030_1_FEED_2",
+        "or_003",
+        "or_006",
+        "or_008",
+        "rs_010",
+        "vot_011",
+        "or_014",
+        "rs_021",
+        "and_022",
+        "rs_024",
+        "in_f105UC030_105XA003"
+      ]
+    },
+    "out_f105XA003": {
+      "type": "OUTPUT",
+      "label": "f105XA003",
+      "desc": "12290 — 105-XS-003 Splitter Heater 105-F-501 Shutdown",
+      "source": "and_025",
+      "group": "Shutdown XA003 — Splitter Heater 105-F-501"
+    }
+  },
+  "summary": [
+    "Halaman 105XA003: shutdown Splitter Heater 105-F-501. Satu output f105XA003 = AND#025 (13 masukan) dari semua permissive: AND#001 (ESD HS003A/B), f105PSHH024E, AND_10UC030_1_FEED_2 (sheet 24), OR#003 (TOF#002 3 s PSHH088 / bypass / MOS), OR#006 (TOF#005 voting#004 LL 100 / bypass), OR#008 (TOF#007 10 s TSHH046 / MOS), RS#010 (ESD 105-V-502), voting#011 (level HH KO Drum), OR#014 (TOF#013 10 s dari AND#012 flow LL 018A-H / MOS), RS#021 (R1 = AND#020: OR#015 level LL 009, RS#017, RS#019), AND#022 (ZSO012/ZSO010), RS#024 (ESD HS007A/B) dan f105UC030_105XA003 (feedback dari logika tambahan)."
+  ],
+  "notes": [
+    "Sumber: gambar vendor sheet 33 of 34 '105XA003' (P02_UNIT_105 v1.175), di-trace 2026-10-26 lewat crop 1.2-1.8x. Urutan 13 pin AND#025: pin 1-4 lurus dari kiri, pin 5-8 dari bawah (vertikal paling kiri = pin teratas; OR#006, OR#008, RS#010, VOT#011), pin 9 OR#014, pin 10-12 dari bawah (RS#021, AND#022, RS#024), pin 13 tag f105UC030_105XA003.",
+    "RS (Koreksi #12/#14): r = tag di pin S, s = gerbang di pin R1 apa adanya. Header RS_XA003_1..5 dan VOT_XA003_2/_3 terbaca utuh. RS#017/#019/#021 membentuk latch bertingkat: reset RS#017 dan RS#019 dulu sampai sehat, baru RS#021 (R1 = AND#020).",
+    "KETIDAKPASTIAN setpoint TOF#005: nilai live iTOF_XA003_3 dan _OUT = 1 (deskripsi iTOF_XA003_3 \"SETPOINT 1 SECOND\") tetapi label kotak \"TOF = 2 SEC\" dan deskripsi OUT \"SETPOINT 2 SECOND\". Dipakai 1 s (nilai live yang sebenarnya dieksekusi PLC) = HIPOTESIS; perlu dicek ke program.",
+    "Tidak ada alarm NOT di sheet ini. f105UC030_105XA003 (13263 \"Feedback To XA003 from UC030\", catatan gambar \"from additional Logic XA003\") dimodelkan INPUT biasa karena sumbernya tidak ada di sheet 1-34 yang sudah di-trace. Catatan gambar \"NOT EXSIST\" di dekat f105HS088M diabaikan (komentar vendor).",
+    "Tag bersama dengan sheet lain (HS003A/B, PSHH024E, FEED_2 dari sheet 24, PSHH088, PSLL100/PI100, TSHH046, HS046M, HS004AE/B, HS008UCR, LSHH040/LI040, FSLL018A-H, HS018M, dst.) memakai registry.",
+    "Setpoint iTOF_XA003_1..5 (3, 1, 10, 10 s) disimpan sebagai setpointSec.",
+    "BUKTI SILANG nilai live: semua input FALSE -> f105XA003 FALSE (hijau). Polaritas NC/NO tidak ditafsirkan."
+  ]
+}
