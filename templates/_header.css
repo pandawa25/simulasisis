@@ -1,0 +1,43 @@
+/* Header bergaya halaman depan (banner gradien) — dipakai Logic Detail & Cause & Effect */
+:root{ --g1:#4338ca; --g2:#7c3aed; --g3:#0ea5e9; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --g1:#312e81; --g2:#5b21b6; --g3:#0369a1; } }
+:root[data-theme="dark"]{ --g1:#312e81; --g2:#5b21b6; --g3:#0369a1; }
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  margin:12px 0 0; padding:14px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; overflow:hidden;
+  color:#fff; border-radius:18px; border:0; box-shadow:0 10px 30px -8px rgba(79,70,229,.45);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.22), transparent 55%),
+    linear-gradient(120deg, var(--g1) 0%, var(--g2) 55%, var(--g3) 120%);
+}
+.brand-mark{
+  width:42px; height:42px; flex:none; border-radius:13px; display:grid; place-items:center;
+  background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff; backdrop-filter:blur(6px);
+}
+.brand-mark svg{width:24px; height:24px}
+.brand-text{min-width:0; flex:1 1 200px}
+.topbar h1{font-size:1.2rem; font-weight:700; letter-spacing:-.01em; line-height:1.25; color:#fff}
+.topbar .sub{display:flex; gap:8px 12px; align-items:center; flex-wrap:wrap; margin-top:6px}
+.topbar .chip{font-family:var(--mono); font-size:.7rem; padding:2px 10px; border-radius:20px; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff}
+.topbar .chip:empty{display:none}
+.topbar .legend{display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:.72rem; color:rgba(255,255,255,.92);
+  padding:2px 10px; border-radius:20px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.28)}
+.topbar .swatch{border-color:rgba(255,255,255,.7)}
+.top-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.topbar .btn{background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff; backdrop-filter:blur(6px); border-radius:10px; transition:background .15s}
+.topbar .btn:hover{background:rgba(255,255,255,.3); border-color:rgba(255,255,255,.5)}
+.topbar .btn.primary{background:#fff; color:var(--g1); border-color:#fff}
+.topbar .btn.primary:hover{background:rgba(255,255,255,.88)}
+.topbar .btn:focus-visible, .icon-btn:focus-visible{outline:2px solid #fff; outline-offset:2px}
+.icon-btn{
+  width:38px; height:38px; flex:none; border-radius:11px; cursor:pointer; display:grid; place-items:center;
+  border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.18); color:#fff; backdrop-filter:blur(6px); transition:background .15s;
+}
+.icon-btn:hover{background:rgba(255,255,255,.3)}
+.icon-btn svg{width:19px; height:19px}
+.icon-btn .i-sun{display:none}
+:root[data-eff="dark"] .icon-btn .i-sun{display:block}
+:root[data-eff="dark"] .icon-btn .i-moon{display:none}
+@media (max-width:640px){ .topbar{position:static; padding:12px 14px; border-radius:16px} .topbar h1{font-size:1.05rem} .top-actions{width:100%} }
+.legend{display:flex; align-items:center; gap:10px; font-size:.75rem; color:var(--fg-dim)}
+.swatch{width:13px; height:13px; border-radius:3px; display:inline-block; border:1px solid var(--border)}

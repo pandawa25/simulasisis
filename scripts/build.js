@@ -126,8 +126,10 @@ function main() {
   const tokensCss = read(TOKENS_CSS_PATH);
   const tagSyncJs = read(TAGSYNC_JS_PATH);
   const crossLinkJs = read(CROSSLINK_JS_PATH);
-  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
-  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
+  const headerCss = read(path.join(__dirname, '..', 'templates', '_header.css'));
+  const headerJs = read(path.join(__dirname, '..', 'templates', '_header.js'));
+  const sheetTpl = read(SHEET_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--HEADER_CSS-->', headerCss).replace('<!--HEADER_JS-->', headerJs).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
+  const ceTpl = read(CE_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss).replace('<!--HEADER_CSS-->', headerCss).replace('<!--HEADER_JS-->', headerJs).replace('<!--TAGSYNC_JS-->', tagSyncJs).replace('<!--CROSSLINK_JS-->', crossLinkJs);
   const portalTpl = read(PORTAL_TPL_PATH).replace('<!--SHARED_TOKENS-->', tokensCss);
   const sheetsData = JSON.parse(read(SHEETS_JSON_PATH));
 
