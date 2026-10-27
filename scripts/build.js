@@ -175,7 +175,8 @@ function main() {
     }
     const netlist = netlistsBySlug[entry.slug]; // sudah diperkaya registry tag
     netlist.slug = entry.slug;
-    const netlistJson = JSON.stringify(netlist);
+    // catatan teknis (notes) tidak disertakan di halaman publik; tetap ada di data/netlists/*.json
+    const netlistJson = JSON.stringify(Object.assign({}, netlist, { notes: undefined }));
 
     // prev/next hanya di dalam unit yang sama
     const unitDone = doneEntries.filter(function (e) { return (e.unit || '105') === (entry.unit || '105'); });

@@ -290,13 +290,6 @@ summary{cursor:pointer; font-size:.78rem; font-weight:650; color:var(--fg)}
       </div>
     </div>
   </div>
-
-  <div class="detail-section" id="detailSection" style="display:none">
-    <details>
-      <summary>Detail tambahan &amp; catatan teknis</summary>
-      <ol class="notes" id="notesList"></ol>
-    </details>
-  </div>
 </div>
 
 <div class="status-dock" id="statusDock">
@@ -998,18 +991,6 @@ if(summaryParas.length){
   });
 } else {
   summaryCard.style.display = 'none';
-}
-
-/* ======================= detail tambahan / catatan teknis (collapsed, di bawah) ======================= */
-const notesList = document.getElementById('notesList');
-const notes = NETLIST.notes || [];
-if(notes.length){
-  notes.forEach(function(note){
-    const li = document.createElement('li');
-    li.textContent = note;
-    notesList.appendChild(li);
-  });
-  document.getElementById('detailSection').style.display = '';
 }
 
 /* ======================= navigasi: portal + sheet sebelumnya/berikutnya ======================= */
